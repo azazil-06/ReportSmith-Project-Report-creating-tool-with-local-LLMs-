@@ -1,0 +1,16 @@
+Metadata-Version: 2.4
+Name: reportsmith
+Version: 0.1.0
+Summary: Deterministic college micro-project report generator in Word (.docx) format
+Requires-Python: >=3.10
+Description-Content-Type: text/markdown
+Requires-Dist: python-docx>=1.2.0
+Requires-Dist: lxml>=6.1.0
+Requires-Dist: pydantic>=2.10.0
+Requires-Dist: PyYAML>=6.0.0
+Requires-Dist: Jinja2>=3.1.0
+Requires-Dist: httpx>=0.28.0
+Requires-Dist: requests>=2.32.0
+Requires-Dist: pypdf>=6.0.0
+Requires-Dist: matplotlib>=3.10.0
+Requires-Dist: Pillow>=11.0.0

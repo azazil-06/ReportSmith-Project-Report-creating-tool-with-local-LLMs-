@@ -1,0 +1,149 @@
+project:
+  title: "Plant Watering Reminder using STM32 and Soil Moisture Sensor"
+  course_code: "PBCST504"
+  course_name: "Microcontrollers"
+  semester: "V Semester B.Tech"
+  month_year: "October 2026"
+  academic_year: "2026-2027"
+  college: "Sree Buddha College of Engineering (Autonomous)"
+  department: "Department of Computer Science & Engineering"
+  university_or_autonomy_line: "An Autonomous Institution Affiliated to State Technological University"
+  address: "Pattoor P. O., Alappuzha - 690 529"
+
+people:
+  team:
+    - name: "Anjana R"
+      roll_no: "SBC24CS061"
+    - name: "Arjun Prasad"
+      roll_no: "SBC24CS073"
+  guide:
+    name: "Ms. Aryalekshmi A"
+    designation: "Assistant Professor"
+    department: "Department of Computer Science & Engineering"
+  hod:
+    name: "Dr. R. Ramanathan"
+    designation: "Professor and Head"
+    department: "Department of Computer Science & Engineering"
+  coordinator:
+    name: "Prof. S. Mukherjee"
+    designation: "Assistant Professor (Senior Scale)"
+    department: "Department of Computer Science & Engineering"
+
+implementation:
+  mode: "hardware"
+  board:
+    name: "STM32 Blue Pill"
+    mcu_part_number: "STM32F103C8T6"
+    core: "ARM Cortex-M3"
+    clock: "72 MHz"
+    flash: "64 KB"
+    sram: "20 KB"
+    voltage: "3.3V"
+  framework: "arduino_stm32core"
+  components:
+    - name: "STM32F103C8T6 Development Board (Blue Pill)"
+      role: "Central Processing Unit"
+      interface: "On-board / 72 MHz ARM Cortex-M3"
+      notes: "64 KB Flash, 20 KB SRAM, 12-bit ADC, Timer PWM"
+    - name: "Soil Moisture Sensor Module"
+      role: "Moisture Measurement"
+      interface: "Analog Voltage Output (PA0)"
+      notes: "Capacitive / Resistive soil moisture probe reading 1300 to 3700 raw ADC"
+    - name: "Active Buzzer Alert Module"
+      role: "Audible Notification"
+      interface: "Digital GPIO (PA1)"
+      notes: "Active high sounder activates when moisture is below threshold"
+    - name: "Onboard Indicator LED (PC13)"
+      role: "Visual State Indicator"
+      interface: "GPIO (Active-Low)"
+      notes: "Illuminates automatically when plant needs watering"
+    - name: "ST-Link V2 In-Circuit Programmer"
+      role: "Firmware Flashing & Debugging"
+      interface: "SWD (SWDIO, SWCLK)"
+      notes: "Serial Wire Debug interface for STM32 programming"
+  pins:
+    - pin: "PA0"
+      peripheral: "ADC1_IN0"
+      connected_to: "Soil Moisture Sensor Analog Out"
+      function: "Analog soil moisture voltage measurement (12-bit ADC)"
+    - pin: "PA1"
+      peripheral: "GPIO"
+      connected_to: "Active Buzzer Module"
+      function: "Audible alert trigger on low moisture"
+    - pin: "PC13"
+      peripheral: "GPIOC"
+      connected_to: "Onboard Status LED"
+      function: "Active-low status alert indicator (lights when watering needed)"
+    - pin: "PA9"
+      peripheral: "USART1_TX"
+      connected_to: "USB-to-UART Adapter RX"
+      function: "Serial telemetry and debug monitoring at 115200 baud"
+    - pin: "PA10"
+      peripheral: "USART1_RX"
+      connected_to: "USB-to-UART Adapter TX"
+      function: "Serial receiver interface"
+    - pin: "3V3"
+      peripheral: "Power"
+      connected_to: "VCC Bus"
+      function: "System regulated 3.3V power supply rail"
+  peripherals:
+    - "GPIO"
+    - "ADC"
+    - "Timers"
+    - "UART"
+  libraries:
+    - "Arduino.h"
+    - "Arduino_Core_STM32"
+  programmer: "ST-Link V2"
+  serial_baud: 115200
+
+behaviour:
+  calibration_constants:
+    AIR_VALUE: 3700
+    WATER_VALUE: 1300
+  thresholds:
+    DRY_THRESHOLD_PERCENT: 30
+    WET_THRESHOLD_PERCENT: 80
+  timing_values:
+    SAMPLE_INTERVAL_MS: 250
+    SAMPLES: 8
+  state_names:
+    - "NEEDS WATER (DRY)"
+    - "OPTIMAL"
+    - "TOO WET"
+  led_active_low: true
+
+code_file: "examples/plant_monitor.ino"
+abstract: "The Plant Watering Reminder using STM32 and Soil Moisture Sensor is a simple embedded system designed to monitor the moisture level of soil and remind the user when a plant needs watering."
+
+tests:
+  - id: "TC_01"
+    name: "Dry Soil Alert Test"
+    condition: "Raw ADC >= 2981 (Moisture < 30%)"
+    expected: "Buzzer ACTIVE (HIGH), Status LED PC13 ON (LOW)"
+    observed: null
+  - id: "TC_02"
+    name: "Optimal Moisture Inactive Test"
+    condition: "1757 <= Raw ADC <= 2980 (Moisture 30% to 80%)"
+    expected: "Buzzer INACTIVE (LOW), Status LED PC13 OFF (HIGH)"
+    observed: null
+  - id: "TC_03"
+    name: "Excess Moisture / Saturated Test"
+    condition: "Raw ADC <= 1756 (Moisture > 80%)"
+    expected: "Buzzer INACTIVE (LOW), Status LED PC13 OFF (HIGH)"
+    observed: null
+
+assets:
+  hardware_photos: []
+  simulation_screenshots: []
+  output_screenshots: []
+  circuit_diagram: null
+  block_diagram: null
+
+references:
+  - "STMicroelectronics, 'STM32F103x8 STM32F103xB Medium-density performance line ARM-based 32-bit MCU Datasheet', DocID 13587 Rev 17, 2020."
+  - "STMicroelectronics, 'RM0008 Reference Manual: STM32F101xx, STM32F102xx, STM32F103xx advanced ARM-based 32-bit MCUs', Rev 21, 2021."
+  - "STM32duino, 'Arduino Core for STM32 based boards', Official STMicroelectronics GitHub Repository, 2024."
+  - "Paul Horowitz and Winfield Hill, 'The Art of Electronics', Cambridge University Press, 3rd Edition, 2015."
+
+extra_notes: "Plant Watering Reminder using STM32F103C8T6 with Soil Moisture Sensor on PA0, Buzzer on PA1, and PC13 status LED."

@@ -1,0 +1,24 @@
+{% include "grounding_rules.j2" %}
+
+TASK: Write Section {{ section_id }}: {{ section_title }} for Chapter 3 (System Design).
+Target Length: {{ target_words }} words
+
+SYSTEM DESIGN CONTEXT:
+- Microcontroller: {{ brief.implementation.board.mcu_part_number }} on {{ brief.implementation.board.name }}
+- Framework: {{ brief.implementation.framework }}
+- Pins & Peripherals:
+{% for p in brief.implementation.pins %}
+  - Pin {{ p.pin }} ({{ p.peripheral }}): Connected to {{ p.connected_to }} -> {{ p.function }}
+{% endfor %}
+- Calibration & Threshold Constants:
+{% for k, v in facts.constants.items() %}
+  - {{ k }} = {{ v }}
+{% endfor %}
+- Operational State Ranges:
+{% for sr in facts.state_ranges %}
+  - State: {{ sr.state_name }} | Condition: {{ sr.condition_desc }} | Raw Range: {{ sr.raw_range }}
+{% endfor %}
+- Indicator Logic: Active-Low onboard LED on PC13 (LOW = Active / Indicator ON, HIGH = Inactive / LED OFF).
+
+Write comprehensive technical paragraphs explaining {{ section_title }}. Detail the electrical interfaces, signal routing, data processing, and state classification logic.
+Output strictly JSON: {"paragraphs": ["..."], "bullets": []}

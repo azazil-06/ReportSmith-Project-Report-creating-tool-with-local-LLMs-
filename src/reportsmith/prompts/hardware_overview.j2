@@ -1,0 +1,19 @@
+{% include "grounding_rules.j2" %}
+
+TASK: Write Section {{ section_id }}: {{ section_title }} for Chapter 2 (Hardware and Software Requirements).
+Target Length: {{ target_words }} words
+
+HARDWARE SPECIFICATIONS:
+- Board: {{ brief.implementation.board.name }}
+- Microcontroller Part Number: {{ brief.implementation.board.mcu_part_number }}
+- Architecture: {{ brief.implementation.board.core }}
+- Core Clock: {{ brief.implementation.board.clock }}
+- Memory: {{ brief.implementation.board.flash }} Flash, {{ brief.implementation.board.sram }} SRAM
+- Operating Voltage: {{ brief.implementation.board.voltage }}
+- Hardware Components:
+{% for c in brief.implementation.components %}
+  - {{ c.name }}: {{ c.role }} ({{ c.interface }}) - {{ c.notes }}
+{% endfor %}
+
+Write detailed, academically sound technical prose describing {{ section_title }}. Explain the architecture, memory, peripheral capabilities, and operational parameters.
+Output strictly JSON: {"paragraphs": ["..."], "bullets": []}

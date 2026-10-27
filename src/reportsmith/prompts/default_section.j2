@@ -1,0 +1,12 @@
+{% include "grounding_rules.j2" %}
+
+TASK: Write Section {{ section_id }}: {{ section_title }}.
+Target Length: {{ target_words }} words
+
+PROJECT DATA:
+- Project: {{ brief.project.title }}
+- Microcontroller: {{ brief.implementation.board.name }} ({{ brief.implementation.board.mcu_part_number }})
+- Framework: {{ brief.implementation.framework }}
+
+Write formal, third-person technical prose covering {{ section_title }} strictly using the provided context.
+Output strictly JSON: {"paragraphs": ["..."], "bullets": []}

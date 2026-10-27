@@ -1,0 +1,17 @@
+{% include "grounding_rules.j2" %}
+
+TASK: Write Section {{ section_id }}: {{ section_title }}.
+Target Length: {{ target_words }} words
+
+SECTION DETAILS:
+- Topic: {{ section_title }}
+- Microcontroller: {{ brief.implementation.board.mcu_part_number }} ({{ brief.implementation.board.name }})
+- Peripherals: {{ brief.implementation.peripherals | join(', ') }}
+- Pins:
+{% for p in brief.implementation.pins %}
+  - {{ p.pin }}: {{ p.peripheral }} connected to {{ p.connected_to }} ({{ p.function }})
+{% endfor %}
+- Libraries: {{ brief.implementation.libraries | join(', ') }}
+
+Provide a short introductory paragraph followed by a clear, formal list of bullet points detailing {{ section_title }}.
+Output strictly JSON: {"paragraphs": ["Introductory statement..."], "bullets": ["Point 1...", "Point 2..."]}

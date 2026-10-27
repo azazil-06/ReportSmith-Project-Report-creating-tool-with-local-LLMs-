@@ -1,0 +1,28 @@
+{% include "grounding_rules.j2" %}
+
+TASK: Write Section {{ section_id }}: {{ section_title }} for Chapter 4 (Implementation).
+Target Length: {{ target_words }} words
+
+IMPLEMENTATION DETAILS:
+- Framework: {{ brief.implementation.framework }} (Arduino STM32 Core / stm32duino built on STM32 HAL drivers)
+- Programmer: {{ brief.implementation.programmer }} via SWD interface
+- Code Stats:
+{% for cs in facts.code_stats %}
+  - File: {{ cs.filename }} ({{ cs.total_lines }} lines, {{ cs.code_lines }} code lines)
+  - Functions: {{ cs.functions | join(', ') }}
+{% endfor %}
+- Peripherals & Clocks:
+  - System Core Clock: 72 MHz (HSE 8 MHz with PLL x9)
+  - APB1 Prescaler: /2 (36 MHz)
+  - APB2 Prescaler: /1 (72 MHz)
+  - ADC Prescaler: /6 (12 MHz ADCCLK)
+{% for p in brief.implementation.pins %}
+  - Pin {{ p.pin }} ({{ p.peripheral }}): {{ p.connected_to }} - {{ p.function }}
+{% endfor %}
+- Operational Challenges & Techniques:
+  - Eliminating sensor measurement noise through moving average filtering.
+  - Correct handling of inverted active-low onboard indicator logic on PC13.
+  - Reliable threshold or hysteresis state evaluation to avoid spurious state switching.
+
+Write formal engineering prose detailing the implementation of {{ section_title }}.
+Output strictly JSON: {"paragraphs": ["..."], "bullets": []}

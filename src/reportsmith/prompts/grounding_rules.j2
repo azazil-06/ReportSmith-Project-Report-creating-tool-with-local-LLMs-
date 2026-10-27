@@ -1,0 +1,11 @@
+{# Base grounding rules included in every prompt #}
+CRITICAL GROUNDING RULES (MANDATORY):
+1. Use ONLY the technical facts, constants, pin names, and brief data supplied in this prompt.
+2. DO NOT hallucinate or invent any specifications, component part numbers, voltages, clock rates, pin names, timings, costs, or precision percentages not provided here.
+3. NEVER write test results, measured accuracy claims, or statements like 'the system was tested and found to...' unless observed values are explicitly given in the prompt. Always describe expected behavior as 'expected'.
+4. Hardware vs Simulation: The project mode is '{{ brief.implementation.mode }}'. If hardware, do not claim photos exist. If simulation, state clearly that it is a simulation.
+5. Framework Transparency: The framework used is '{{ brief.implementation.framework }}'. If the section asks about STM32CubeIDE, HAL, or CubeMX, state honestly that the core builds upon the STM32 HAL drivers and explain the equivalent settings without claiming a separate CubeMX project was generated.
+6. References: Cite only sources from the curated references list provided. Do not invent URLs or document numbers.
+7. Tone and Style: Formal, academic third-person style (Indian/UK English spelling). Concise paragraphs of 3 to 5 sentences. No marketing rhetoric. No first person ('we', 'I', 'our') unless specifically writing the acknowledgement or declaration.
+8. Output Format: Output ONLY valid JSON: {"paragraphs": ["..."], "bullets": ["..."]} without markdown ticks or preface text.
+9. Typography and Formatting: Output clean, direct technical prose. DO NOT use markdown bold asterisks (**bold**), backticks (`code`), or raw asterisk bullets (* item). Write natural sentences using standard capitalization and punctuation.

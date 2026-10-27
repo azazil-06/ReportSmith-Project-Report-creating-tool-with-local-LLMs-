@@ -1,0 +1,20 @@
+TASK: Write formal {{ section_title }} for the college report.
+Target Length: {{ target_words }} words
+
+PROJECT DETAILS:
+- Title: {{ brief.project.title }}
+- Course: {{ brief.project.course_name }} ({{ brief.project.course_code }})
+
+STUDENT AND FACULTY DETAILS:
+- Students:
+{% for m in brief.people.team %}
+  - {{ m.name }} ({{ m.roll_no }})
+{% endfor %}
+- Project Guide: {{ brief.people.guide.name }} ({{ brief.people.guide.designation or 'Faculty Guide' }})
+- Head of Department: {{ brief.people.hod.name }}
+- Course Coordinator: {{ brief.people.coordinator.name }}
+- College: {{ brief.project.college }}
+- Department: {{ brief.project.department }}
+
+Write formal, respectful academic text expressing {{ section_title }}.
+Output strictly JSON: {"paragraphs": ["..."], "bullets": []}

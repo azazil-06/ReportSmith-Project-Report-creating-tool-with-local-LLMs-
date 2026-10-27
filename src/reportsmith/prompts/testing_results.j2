@@ -1,0 +1,18 @@
+{% include "grounding_rules.j2" %}
+
+TASK: Write Section {{ section_id }}: {{ section_title }} for Chapter 5 (Testing and Results).
+Target Length: {{ target_words }} words
+
+TESTING AND VERIFICATION DATA:
+- Execution Mode: {{ brief.implementation.mode }}
+- Test Cases:
+{% for t in brief.tests %}
+  - {{ t.id }}: {{ t.name }} | Condition: {{ t.condition }} | Expected: {{ t.expected }} | Observed: {{ t.observed or "Expected response to be verified physically" }}
+{% endfor %}
+- Operational Boundaries & Expected States:
+{% for sr in facts.state_ranges %}
+  - {{ sr.state_name }}: Condition ({{ sr.condition_desc }}), Expected Raw Range ({{ sr.raw_range }})
+{% endfor %}
+
+Write formal technical paragraphs analyzing the testing methodology or expected behavioral results for {{ section_title }}. Do not claim unrecorded physical observations; describe expected operation and mathematical stability.
+Output strictly JSON: {"paragraphs": ["..."], "bullets": []}

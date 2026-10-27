@@ -1,0 +1,17 @@
+{% include "grounding_rules.j2" %}
+
+TASK: Write Section {{ section_id }}: {{ section_title }} for Chapter 1 (Introduction).
+Target Length: {{ target_words }} words
+
+PROJECT CONTEXT:
+- Title: {{ brief.project.title }}
+- Microcontroller: {{ brief.implementation.board.name }} ({{ brief.implementation.board.mcu_part_number }}, {{ brief.implementation.board.clock }}, {{ brief.implementation.board.flash }} Flash, {{ brief.implementation.board.sram }} SRAM)
+- Framework: {{ brief.implementation.framework }}
+- Purpose: {{ brief.extra_notes or brief.project.title }}
+- Components & Interfaces:
+{% for c in brief.implementation.components %}
+  - {{ c.name }}: {{ c.role }} ({{ c.interface }})
+{% endfor %}
+- Scope Boundaries: Focuses on {{ brief.project.title }} using {{ brief.implementation.board.name }} with {{ brief.implementation.peripherals | join(', ') }}. System is self-contained with deterministic onboard control and telemetry.
+
+Write formal technical prose. Output JSON: {"paragraphs": ["..."], "bullets": []}

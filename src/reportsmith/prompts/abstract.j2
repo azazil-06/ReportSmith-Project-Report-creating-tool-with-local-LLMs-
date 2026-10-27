@@ -1,0 +1,29 @@
+{% include "grounding_rules.j2" %}
+
+TASK: Write the formal Academic Abstract for this college micro-project report.
+Section: Abstract
+Target Length: {{ target_words }} words
+
+PROJECT DATA:
+- Title: {{ brief.project.title }}
+- Microcontroller: {{ brief.implementation.board.mcu_part_number }} ({{ brief.implementation.board.name }}, {{ brief.implementation.board.core }} @ {{ brief.implementation.board.clock }})
+- Framework: {{ brief.implementation.framework }}
+- Hardware Components & Peripherals:
+{% for c in brief.implementation.components %}
+  - {{ c.name }}: {{ c.role }} ({{ c.interface }})
+{% endfor %}
+- Pin Interconnections:
+{% for p in brief.implementation.pins %}
+  - {{ p.pin }} ({{ p.peripheral }}): {{ p.connected_to }} - {{ p.function }}
+{% endfor %}
+- Operational Constants & Thresholds:
+{% for k, v in facts.constants.items() %}
+  - {{ k }} = {{ v }}
+{% endfor %}
+- Telemetry: Serial USART1 at {{ brief.implementation.serial_baud }} baud
+- State Ranges & Logic:
+{% for sr in facts.state_ranges %}
+  - {{ sr.state_name }}: {{ sr.raw_range }} ({{ sr.percent_range }})
+{% endfor %}
+
+Write 2 to 3 concise, formal paragraphs summarizing problem background, technical design, sensor calibration, and expected operational responses. Output JSON: {"paragraphs": ["..."], "bullets": []}

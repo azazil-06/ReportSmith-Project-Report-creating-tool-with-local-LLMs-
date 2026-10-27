@@ -1,0 +1,18 @@
+{% include "grounding_rules.j2" %}
+
+TASK: Write Section {{ section_id }}: {{ section_title }} for Chapter 6 (Conclusion and Future Scope).
+Target Length: {{ target_words }} words
+
+PROJECT SUMMARY:
+- Title: {{ brief.project.title }}
+- Microcontroller: {{ brief.implementation.board.mcu_part_number }} on {{ brief.implementation.board.name }}
+- Peripherals Used: {{ brief.implementation.peripherals | join(', ') }}
+- System Modules:
+{% for c in brief.implementation.components %}
+  - {{ c.name }}: {{ c.role }}
+{% endfor %}
+- Architecture Notes: {{ brief.extra_notes or "Integrated embedded microcontroller design." }}
+- Operational Scope: Real-time acquisition, deterministic logic evaluation, and autonomous actuation without cloud dependency.
+
+Write formal engineering prose summarizing achievements or operational limitations for {{ section_title }}.
+Output strictly JSON: {"paragraphs": ["..."], "bullets": []}

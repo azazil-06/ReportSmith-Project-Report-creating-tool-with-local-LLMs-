@@ -1,0 +1,32 @@
+[build-system]
+requires = ["setuptools>=61.0"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "reportsmith"
+version = "0.1.0"
+description = "Deterministic college micro-project report generator in Word (.docx) format"
+readme = "README.md"
+requires-python = ">=3.10"
+dependencies = [
+    "python-docx>=1.2.0",
+    "lxml>=6.1.0",
+    "pydantic>=2.10.0",
+    "PyYAML>=6.0.0",
+    "Jinja2>=3.1.0",
+    "httpx>=0.28.0",
+    "requests>=2.32.0",
+    "pypdf>=6.0.0",
+    "matplotlib>=3.10.0",
+    "Pillow>=11.0.0",
+]
+
+[project.scripts]
+reportsmith = "reportsmith.cli:main"
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+pythonpath = ["src"]
