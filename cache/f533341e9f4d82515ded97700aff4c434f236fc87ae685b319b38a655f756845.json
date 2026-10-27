@@ -1,0 +1,13 @@
+{
+  "section_id": "abstract",
+  "title": "Abstract",
+  "data": {
+    "paragraphs": [
+      "The project aims to develop a plant watering reminder system using an STM32F103C8T6 microcontroller and a soil moisture sensor module. The system will monitor the soil moisture level and trigger an audible alert when the soil becomes too dry (below 30% of the optimal range) or too wet (above 80% of the optimal range). The system also includes an onboard indicator LED to indicate when action is needed. The project utilizes a ST-Link V2 in-Circuit Programmer for firmware flashing and debugging purposes. The system operates at a sampling interval of 250 milliseconds, providing real-time monitoring of soil moisture levels.",
+      "The soil moisture sensor module is connected to the STM32F103C8T6 via an analog-to-digital converter (ADC) on PA0. The sensor outputs an analog voltage that can be read by the ADC. The system uses a threshold-based logic to determine when to trigger an alert. When the soil moisture level falls below 30% of the optimal range, the system triggers an audible alert through the active buzzer module and turns on the onboard indicator LED. Conversely, when the soil moisture level exceeds 80% of the optimal range, the system triggers an audible alert and turns off the onboard indicator LED."
+    ],
+    "bullets": []
+  },
+  "timestamp": 1793124208.3525817,
+  "elapsed": 11.178534746170044
+}

@@ -1,0 +1,16 @@
+{
+  "section_id": "4.5",
+  "title": "Hardware Interfacing and Integration",
+  "data": {
+    "paragraphs": [
+      "The hardware interface and integration for the Plant Moisture Detection project were implemented using the arduino_stm32core framework, which is built on the STM32 HAL drivers. The system core clock was set to 72 MHz with a PLL x9 configuration, providing ample resources for the application.",
+      "The project utilized an ADC1_IN0 pin connected to a soil moisture sensor for analog soil moisture voltage measurement. This pin was configured as an input pin and used in conjunction with a moving average filter to eliminate sensor measurement noise.",
+      "The onboard status LED on PC13 was designed to be active-low, which required careful handling of the logic when evaluating threshold or hysteresis state transitions. The project implemented reliable threshold or hysteresis state evaluation to avoid spurious state switching.",
+      "The USB-to-UART Adapter was used for serial telemetry and debug monitoring at 115200 baud. This interface allowed for real-time data exchange between the microcontroller and a host computer, facilitating debugging and monitoring of the system's performance.",
+      "Overall, the hardware interface and integration were successful in enabling the Plant Moisture Detection project to function as intended, providing accurate soil moisture measurements and reliable status alerts."
+    ],
+    "bullets": []
+  },
+  "timestamp": 1793124501.8354292,
+  "elapsed": 9.593806982040405
+}

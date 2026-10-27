@@ -1,0 +1,20 @@
+{
+  "section_id": "3.3",
+  "title": "Circuit Diagram",
+  "data": {
+    "paragraphs": [
+      "The circuit diagram for the Plant Watering Reminder Using STM32 And Soil Moisture Sensor is shown below. The STM32 Blue Pill microcontroller is connected to a soil moisture sensor, which measures the moisture content of the soil in real-time. The sensor output is then processed by an Arduino sketch that checks if the soil moisture level falls below a certain threshold (e.g., 40% for watering). If the condition is met, an LED on the microcontroller is turned on to alert the user about the need to water the plant.",
+      "The circuit diagram includes the following components:",
+      "- STM32 Blue Pill microcontroller (STM32F103C8T6) connected to a soil moisture sensor through a digital pin (e.g., D4).",
+      "- Soil moisture sensor (e.g., SCD-1820 or equivalent) with an analog output connected to the microcontroller's ADC.",
+      "- LED connected to the microcontroller through a digital pin (e.g., D5).",
+      "The circuit diagram also includes the necessary connections for power supply and ground.",
+      "To ensure proper functionality, it is important to follow the guidelines provided in the Critical Grounding Rules. The STM32 Blue Pill microcontroller should be powered by a stable voltage source, such as a 3.3V or 5V power supply, and connected to ground through a suitable resistor (e.g., 10k\u03a9). The soil moisture sensor should also be connected to ground through a suitable resistor.",
+      "The circuit diagram is shown below for reference:",
+      "```plaintext\n    +------------------------+\n    | STM32 Blue Pill       |\n    | (STM32F103C8T6)      |\n    +------------------------+\n           |\n           v\n          D4\n           |\n           v\n        Soil Moisture Sensor\n           |\n           v\n          ADC\n           |\n           v\n          LED\n           |\n           v\n         D5\n           |\n           v\n         Ground\n    ```\n    ```"
+    ],
+    "bullets": []
+  },
+  "timestamp": 1793124379.895286,
+  "elapsed": 14.140229940414429
+}

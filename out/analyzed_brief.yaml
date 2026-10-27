@@ -1,6 +1,6 @@
 project:
-  title: Automatic Proximity Door Opener Using Ultrasonic Sensor
-  course_code: PROJECT
+  title: Plant Watering Reminder Using Stm32 And Soil Moisture Sensor
+  course_code: PCCST504
   course_name: Microcontrollers
   semester: V Semester B.Tech
   month_year: October 2026
@@ -12,16 +12,14 @@ project:
   address: PATTOOR P. O., ALAPPUZHA
 people:
   team:
-  - name: Arjun S
-    roll_no: SBC24CS074
-  - name: R Tharun Raj
-    roll_no: SBC24CS175
-  - name: J Aromal Krishna
-    roll_no: SBC24CS119
-  - name: Aasifa Mohiuddin
-    roll_no: SBC24CS006
+  - name: Which
+    roll_no: THE SOIL. THE SENSOR OUTPUT IS CONNECTED TO THE ADC OF AN STM32 MICROCONTROLLER
+  - name: Falls Below A Predefined Threshold
+    roll_no: THE STM32 ACTIVATES A BUZZER OR LED TO PROVIDE A
+  - name: Project Uses An Arm Cortex
+    roll_no: M BASED STM32, ADC, GPIO, EMBEDDED C, AND BASIC
   guide:
-    name: Aryalekshmi A
+    name: Ms.ARYALEKSHMI A
     designation: Assistant Professor
     department: Department Of Computer Science & Engineering
   hod:
@@ -48,39 +46,27 @@ implementation:
     role: Central Processing Unit
     interface: On-board / 72 MHz ARM Cortex-M3
     notes: 64 KB Flash, 20 KB SRAM, 12-bit ADC, Timer PWM
-  - name: "Light Dependent Resistor (LDR) & 10k\u03A9 Resistor"
-    role: Ambient Light Sensing
-    interface: Analog Voltage Divider (PA1)
-    notes: Resistance decreases with illumination, output ~300 (dark) to ~3500 (light)
-  - name: Night Lamp Output Module / High-Power LED
-    role: Illumination Actuator
-    interface: PWM / Digital Output (PA8)
-    notes: Hardware Timer TIM1 PWM (0-255 duty cycle) or 5V relay drive
+  - name: Soil Moisture Sensor Module
+    role: Soil Moisture Measurement
+    interface: Analog Voltage Output (PA0)
+    notes: Capacitive / Resistive soil moisture probe reading 1300 to 3700 raw ADC
+  - name: Active Buzzer Alert Module
+    role: Audible Notification
+    interface: Digital GPIO (PA1)
+    notes: Active high sounder activates when moisture is below threshold
   - name: Onboard Indicator LED (PC13)
     role: Visual State Indicator
     interface: GPIO (Active-Low)
-    notes: Illuminates automatically when the night lamp is engaged
+    notes: Illuminates automatically when plant needs watering
   - name: ST-Link V2 In-Circuit Programmer
     role: Firmware Flashing & Debugging
     interface: SWD (SWDIO, SWCLK)
     notes: Serial Wire Debug interface for STM32 programming
   pins:
-  - pin: PA11
-    peripheral: GPIO
-    connected_to: A11
-    function: A11 control pin
-  - pin: PA11
-    peripheral: GPIO
-    connected_to: SERVO_PIN
-    function: Servo PWM Control Signal Pin (A11 / PA11)
-  - pin: PB0
-    peripheral: GPIOC
-    connected_to: Onboard Status LED
-    function: Active-low status alert indicator (lights when action needed)
-  - pin: PB1
-    peripheral: GPIOC
-    connected_to: Onboard Status LED
-    function: Active-low status alert indicator (lights when action needed)
+  - pin: PA0
+    peripheral: ADC1_IN0
+    connected_to: Soil Moisture Sensor Analog Out
+    function: Analog soil moisture voltage measurement (12-bit ADC)
   - pin: PC13
     peripheral: GPIOC
     connected_to: Onboard Status LED
@@ -105,60 +91,47 @@ implementation:
   serial_baud: 115200
 behaviour:
   calibration_constants:
-    FULL_DARK_ADC: 300
-    FULL_LIGHT_ADC: 3500
+    AIR_VALUE: 3700
+    WATER_VALUE: 1300
   thresholds:
-    THRESHOLD_DARK_ON: 1400
-    THRESHOLD_LIGHT_OFF: 1800
+    DRY_THRESHOLD_PERCENT: 30
+    WET_THRESHOLD_PERCENT: 80
   timing_values:
     SAMPLE_INTERVAL_MS: 250
-    SAMPLES: 8
+    SAMPLES: 10
   state_names:
-  - DARK (LAMP ACTIVE)
-  - HYSTERESIS (STABILIZED)
-  - DAYLIGHT (LAMP OFF)
+  - NEEDS WATER (DRY)
+  - OPTIMAL
+  - TOO WET
   led_active_low: true
-code_file: Content\Proximity_Door_Opener.ino
-abstract: The Automatic Door System is a simple microcontroller -based project designed
-  to automate the opening and closing of a door based on the presence of a person.
-  The main objective of this project is to reduce the need for manual operation and
-  provide a convenient, hygienic, and user -friendly method of door control. The system
-  uses an IR sensor or ultrasonic sensor to detect a person approaching the door.
-  The sensor continuously provides information about the presence of an object or
-  person to the microcontroller. When a person is detected within the specified range,
-  the microcontroller processes the sensor signal and sends a control signal to a
-  servo motor. The servo motor then rotates to open the door automatically. An LCD
-  or LED indicator can also be included to display or indicate the current status
-  of the door. The system can be implemented using a small -scale model door for demonstration,
-  making it simple, cost-effective, and easy to operate. When the person moves away
-  from the detection area, the sensor identifies that there is no longer an object
-  in front of the door, and the microcontroller instructs the servo motor to return
-  to its original position, thereby closing the door automatically. The project demonstrates
-  important concepts of microcontroller - based embedded systems, including sensor
-  interfacing, digital input processing, motor control, and real -time decision making.
-  The system can be further improved by adding features such as a buzzer for alerts,
-  password or RFID - based access control, automatic lighting, adjustable detection
-  distance, and safety mechanisms to prevent the door from closing when an obstacle
-  is present. The proposed Automatic Door System provides a practical example of how
-  sensors and microcontrollers can be combined to automate everyday tasks. Due to
-  its simple hardware requirements, low cost, easy implementation, and clear working
-  demonstration, the project is suitable for academic purposes and can serve as a
-  basic model for more advanced automated access-control systems.
+code_file: Content\Plant_Moisture_Detection.ino
+abstract: The Plant Watering Reminder using STM32 and Soil Moisture Sensor is a simple
+  embedded system designed to monitor the moisture level of soil and remind the user
+  when a plant needs watering. The system uses a soil moisture sensor to detect the
+  amount of moisture present in the soil. The sensor output is connected to the ADC
+  of an STM32 microcontroller, which reads and processes the moisture level. When
+  the soil becomes dry and the moisture level falls below a predefined threshold,
+  the STM32 activates a buzzer or LED to provide a watering reminder. When sufficient
+  moisture is available, the indicator remains OFF. The project uses an ARM Cortex-M
+  based STM32, ADC, GPIO, Embedded C, and basic delay/timer concepts. This system
+  helps prevent plants from being under-watered and provides a simple and convenient
+  method for monitoring soil moisture. The project is low- cost, easy to implement,
+  and demonstrates basic sensor interfacing and microcontroller programming.
 tests:
 - id: TC_01
-  name: Daylight Inactivation Test
-  condition: Ambient light high (LDR ADC > 1800)
-  expected: Lamp OFF, Status LED PC13 OFF (HIGH), PWM duty 0
+  name: Dry Soil Alert Test
+  condition: Raw ADC >= 2981 (Moisture < 30%)
+  expected: Buzzer ACTIVE (HIGH), Status LED PC13 ON (LOW)
   observed: null
 - id: TC_02
-  name: Hysteresis Dusk/Twilight Stability Test
-  condition: Ambient light fluctuating within hysteresis band (1400 to 1800)
-  expected: System latches existing state without high-frequency toggling or flickering
+  name: Optimal Moisture Inactive Test
+  condition: 1757 <= Raw ADC <= 2980 (Moisture 30% to 80%)
+  expected: Buzzer INACTIVE (LOW), Status LED PC13 OFF (HIGH)
   observed: null
 - id: TC_03
-  name: Night Darkness Activation Test
-  condition: Ambient light drops below threshold (LDR ADC < 1400)
-  expected: Lamp engaged, Status LED PC13 ON (LOW), PWM duty scaled from 60 to 255
+  name: Excess Moisture / Saturated Test
+  condition: Raw ADC <= 1756 (Moisture > 80%)
+  expected: Buzzer INACTIVE (LOW), Status LED PC13 OFF (HIGH)
   observed: null
 assets:
   hardware_photos: []
@@ -175,5 +148,5 @@ references:
   Repository, 2024.
 - Paul Horowitz and Winfield Hill, 'The Art of Electronics', Cambridge University
   Press, 3rd Edition, 2015.
-extra_notes: Automatic Proximity Door Opener Using Ultrasonic Sensor using STM32F103C8T6
+extra_notes: Plant Watering Reminder Using Stm32 And Soil Moisture Sensor using STM32F103C8T6
   with hardware sensors and actuators.

@@ -1,0 +1,15 @@
+{
+  "section_id": "4.7",
+  "title": "Implementation Challenges and Solutions",
+  "data": {
+    "paragraphs": [
+      "In Chapter 4, we explored the implementation of a plant moisture detection system using the Arduino STM32 core framework. The project aimed to monitor soil moisture levels and provide real-time alerts through an onboard status LED and USB-to-UART adapter. To address operational challenges, we implemented several strategies.",
+      "One of the primary challenges was eliminating sensor measurement noise. We utilized moving average filtering to smooth out the analog signal from the soil moisture sensor. This technique helps in reducing fluctuations caused by environmental factors such as temperature and humidity, ensuring more accurate readings.",
+      "Another challenge involved handling inverted active-low onboard indicator logic on PC13. The onboard status LED is activated when an action is needed, but it is wired with an inverted logic configuration. To ensure correct functionality, we implemented a simple state machine that toggles the LED based on the current state of the system. This approach ensures that the LED lights up only when necessary.",
+      "Reliable threshold or hysteresis state evaluation was another challenge. We designed a simple state machine that evaluates the soil moisture level and transitions between states based on predefined thresholds. This method helps in maintaining a stable status alert, avoiding spurious state switching caused by minor fluctuations in the sensor readings."
+    ],
+    "bullets": []
+  },
+  "timestamp": 1793124520.0614257,
+  "elapsed": 9.400683403015137
+}

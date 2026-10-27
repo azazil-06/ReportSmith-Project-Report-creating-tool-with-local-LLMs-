@@ -1,0 +1,12 @@
+{
+  "section_id": "1.3",
+  "title": "Scope of the Project",
+  "data": {
+    "paragraphs": [
+      "The scope of the project for Chapter 1 (Introduction) focuses on the plant watering reminder system using an STM32 Blue Pill microcontroller and a soil moisture sensor module. The system is designed to alert users when the soil moisture level falls below a predefined threshold, ensuring timely watering. The components used include an STM32F103C8T6 development board with GPIO, ADC, Timers, UART interfaces for communication, and an active buzzer alert module for audible notifications. The system is self-contained with deterministic onboard control and telemetry, making it suitable for a variety of applications in agriculture and environmental monitoring."
+    ],
+    "bullets": []
+  },
+  "timestamp": 1793124243.021985,
+  "elapsed": 6.086800813674927
+}

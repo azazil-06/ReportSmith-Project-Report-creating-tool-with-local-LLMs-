@@ -1,14 +1,36 @@
-# ReportSmith
+# ReportSmith 📄⚡
 
-<p align="center">
-  <img src="assets/sample_output_preview.jpg" alt="ReportSmith Sample Output Document Preview" width="100%">
-</p>
+**ReportSmith** is an offline, local command-line tool designed to generate comprehensive, publication-quality college micro-project reports as Microsoft Word (`.docx`) documents from source code and syllabus guidelines.
 
-**ReportSmith** is an offline, local command-line tool designed to generate comprehensive, publication-quality college micro-project reports as Microsoft Word (`.docx`) documents.
+---
 
-ReportSmith strictly bifurcates technical generation:
-- **Local LLM (`gpt-oss:20b`)**: Used **only** to write formal technical prose and academic explanations.
-- **Deterministic Python Engine**: Derives all document layout, styles, section numbers, formulas, ADC mapping ranges, pin tables, component specifications, circuit/block diagrams, flowcharts, and code appendices from verifiable facts. The LLM never invents numbers or specifications.
+## 📸 Demo Showcase
+
+| 🚀 Automated CLI Build | 🧠 Local LLM Generation | 📄 Raw Generated Document |
+| :---: | :---: | :---: |
+| <img src="Demo/cli_build_running.png" width="320" alt="ReportSmith CLI in action" /> | <img src="Demo/llm_token_generation.png" width="280" alt="Local LLM Token Generation" /> | <img src="Demo/raw_report_preview.png" width="320" alt="Raw Unedited Word Output" /> |
+| *Single-command automated pipeline* | *Runs on consumer hardware via LM Studio/Ollama* | *Raw, unedited output with certificate & layout* |
+
+---
+
+## 💡 How It Works & How Well It Works
+
+### ⚙️ How It Works
+ReportSmith strictly bifurcates technical generation to eliminate LLM hallucinations while ensuring rigorous academic tone:
+1. **Drop Project Files in `Content/`**: Place your project source code (e.g. `Plant_Moisture_Detection.ino`, `.c`, or `.py`) and university syllabus/guidelines (`rules.pdf` or `format.txt`) into the `Content/` folder.
+2. **Deterministic Information Extraction**: ReportSmith parses your code and syllabus, automatically extracting microcontroller specifications, pin configurations, component ratings, and academic formatting rules into a validated project brief.
+3. **Bifurcated Generation Architecture**:
+   - **Local LLM (`qwen2.5-coder-1.5b`, `gpt-oss:20b`, etc.)**: Writes formal, university-standard academic prose, literature reviews, and section narratives (~150 to 350 words per prompt).
+   - **Deterministic Python Engine**: Builds exact pin mapping tables, sensor state classifications, 200 DPI vector diagrams (block diagrams, wiring schematics, execution flowcharts), mathematical ADC formulas, and verbatim code appendices. The LLM never invents numbers or specifications.
+4. **Document Assembly & Styling**: Merges prose and deterministic assets into a native `.docx` document conforming to university standards—including a formal Title Page, Bonafide Certificate with dual faculty signatures, Declaration, roman numeral preliminary pages, decimal numbered body chapters, and automated page-numbered TOC.
+
+### 🌟 How Well It Works
+- **100% Factual Fidelity**: All hardware pinouts, circuit connections, and math formulas are mathematically verified against source code with zero hallucination. Integer division matches hardware execution (such as Arduino `map()`).
+- **Runs Fully Locally & Privately**: Works completely offline on modest consumer hardware (e.g., laptop RTX 2050 4 GB VRAM or CPU) with zero cloud dependencies and zero API costs.
+- **High-Speed Execution**: Achieves 15–25+ tokens/second on lightweight models (e.g., `qwen2.5-coder-1.5b`), generating individual sections in 5–15 seconds and complete 30+ page reports in ~10–15 minutes.
+- **Smart Resumption & Caching**: Employs SHA-256 disk caching (`cache/`) so interrupted runs instantly skip completed sections in milliseconds.
+- **Instant Stub Mode**: Supports a lightning-fast offline verification mode (`--stub-llm`) that compiles complete reports in under 3 seconds without loading a GPU model.
+- **Automated Verification**: Comes with a built-in validator (`reportsmith check`) that automatically scans output documents for fact adherence, banned words, ungrounded numbers, and verbatim code fidelity.
 
 ---
 

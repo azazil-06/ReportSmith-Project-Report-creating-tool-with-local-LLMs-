@@ -1,0 +1,18 @@
+{
+  "section_id": "3.7",
+  "title": "Working Principle",
+  "data": {
+    "paragraphs": [
+      "The working principle of the system is designed to monitor the soil moisture level using an ADC1 connected to PA0. The ADC converts the analog signal from the sensor into a digital value, which is then processed to determine the state of the system.",
+      "The system uses a threshold-based approach to classify the soil moisture level into three states: NEEDS WATER (DRY), OPTIMAL, and TOO WET. The moisture level is measured in percentage, with DRY being 30% or less and TOO WET being 80% or more.",
+      "The ADC converts the analog signal from the sensor into a digital value using an 12-bit resolution. This allows for precise measurement of the soil moisture level.",
+      "The state classification logic is implemented in the Arduino code, which reads the raw ADC value and compares it to the threshold values. If the moisture level is below the DRY threshold, the system enters the NEEDS WATER state. If the moisture level is between the DRY and WET thresholds, the system enters the OPTIMAL state. If the moisture level is above the WET threshold, the system enters the TOO WET state.",
+      "The onboard status LED on PC13 is used to indicate the current state of the system. When the system is in the NEEDS WATER state, the LED turns ON. When the system is in the OPTIMAL state, the LED turns OFF. When the system is in the TOO WET state, the LED also turns ON.",
+      "The system uses a USB-to-UART adapter to transmit and receive data over serial communication at 115200 baud. The transmitted data includes the current moisture level percentage, the state of the system, and any other relevant information.",
+      "The system is designed to be robust and reliable, with error checking and fault tolerance mechanisms in place to ensure that it can handle unexpected conditions and maintain its performance over time."
+    ],
+    "bullets": []
+  },
+  "timestamp": 1793124439.560386,
+  "elapsed": 13.214516878128052
+}

@@ -1,0 +1,17 @@
+{
+  "section_id": "5.2",
+  "title": "Test Cases and Observations",
+  "data": {
+    "paragraphs": [
+      "The testing phase of the project involved several test cases designed to evaluate the functionality of the moisture sensor and buzzer system. The execution mode was set to hardware, ensuring that physical observations could be made to verify the expected behavior.",
+      "Test Case TC_01: Dry Soil Alert Test. This test condition is defined by a raw ADC value of 2981 or less (indicating moisture < 30%). The expected outcome is for the buzzer to be active (HIGH) and the status LED PC13 to be turned on (LOW). Observations should confirm that these conditions are met physically.",
+      "Test Case TC_02: Optimal Moisture Inactive Test. This test condition is defined by a raw ADC value between 1757 and 2980 (indicating moisture 30% to 80%). The expected outcome is for the buzzer to be inactive (LOW) and the status LED PC13 to be turned on (HIGH). Observations should confirm that these conditions are met physically.",
+      "Test Case TC_03: Excess Moisture / Saturated Test. This test condition is defined by a raw ADC value of 1756 or less (indicating moisture > 80%). The expected outcome is for the buzzer to be inactive (LOW) and the status LED PC13 to be turned on (HIGH). Observations should confirm that these conditions are met physically.",
+      "Operational Boundaries & Expected States: The operational boundaries were defined as follows: NEEDS WATER (DRY): Raw ADC >= 2981; OPTIMAL: 1757 <= Raw ADC <= 2980; TOO WET: Raw ADC <= 1756. These conditions are crucial for ensuring the system's reliability and performance.",
+      "The testing methodology involved monitoring the raw ADC values of the moisture sensor and comparing them to the defined operational boundaries. The buzzer was controlled based on the raw ADC values, and the status LED PC13 was toggled accordingly. Observations were made to ensure that the system behaved as expected within the specified ranges."
+    ],
+    "bullets": []
+  },
+  "timestamp": 1793124547.646527,
+  "elapsed": 14.73964238166809
+}

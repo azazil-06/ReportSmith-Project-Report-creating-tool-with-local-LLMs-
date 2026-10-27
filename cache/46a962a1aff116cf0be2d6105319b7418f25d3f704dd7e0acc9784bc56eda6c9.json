@@ -1,0 +1,18 @@
+{
+  "section_id": "4.1",
+  "title": "Development Environment Setup",
+  "data": {
+    "paragraphs": [
+      "The development environment setup for Chapter 4 of the Plant Moisture Detection project involves configuring the hardware and software components to ensure proper operation. The framework used is arduino_stm32core, which builds on the STM32 HAL drivers. The programmer will use ST-Link V2 via SWD interface to program the microcontroller. The code stats indicate that the file Plant_Moisture_Detection.ino contains 202 lines of code with 116 code lines written by the user.",
+      "The project requires several peripherals and clocks to function properly. The System Core Clock is set to 72 MHz, which is derived from HSE 8 MHz using a PLL x9. APB1 and APB2 prescalers are set to /2 and /1 respectively, providing clock frequencies of 36 MHz and 72 MHz respectively.",
+      "The ADC is configured with a prescaler of /6 to achieve a frequency of 12 MHz for the ADCCLK. The soil moisture sensor analog out is connected to PA0 (ADC1_IN0), which measures the voltage at the soil moisture sensor. The onboard status LED is connected to PC13 (GPIOC) and is active-low, indicating when action is needed.",
+      "The project also requires a USB-to-UART adapter for serial communication. The RX pin of USART1_TX is connected to PA9, and the TX pin of USART1_RX is connected to PA10. This allows for reliable serial telemetry and debug monitoring at 115200 baud.",
+      "To eliminate sensor measurement noise, a moving average filtering technique will be implemented in the code. The filtered values will be used to determine the moisture level and trigger alerts when necessary.",
+      "The onboard status LED logic on PC13 needs to be handled correctly. The active-low logic should be inverted using a suitable digital circuit or library function to ensure proper operation.",
+      "To avoid spurious state switching, a reliable threshold or hysteresis state evaluation will be implemented in the code. This will help to prevent the system from switching between states unnecessarily and improve overall performance."
+    ],
+    "bullets": []
+  },
+  "timestamp": 1793124454.0465784,
+  "elapsed": 14.476500272750854
+}

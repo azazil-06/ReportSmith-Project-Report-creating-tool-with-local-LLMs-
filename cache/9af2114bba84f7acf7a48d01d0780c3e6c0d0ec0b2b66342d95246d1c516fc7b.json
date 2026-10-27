@@ -1,0 +1,19 @@
+{
+  "section_id": "2.4",
+  "title": "Software Requirements",
+  "data": {
+    "paragraphs": [
+      "Software requirements are the specifications and constraints that define what software should do, how it should behave, and what hardware resources it needs to run on. For this project, we will focus on the STM32F103C8T6 microcontroller, which is a popular choice for embedded systems due to its low cost, high performance, and wide range of peripherals."
+    ],
+    "bullets": [
+      "The primary software requirements are:",
+      "- The microcontroller must be programmed with the Arduino framework.",
+      "- It should have access to the ADC (Analog-to-Digital Converter) peripheral for soil moisture sensor readings.",
+      "- It should provide a GPIO (General Purpose Input/Output) pin for the onboard status LED.",
+      "- It should support USART1 for serial communication, which will be used for debugging and telemetry.",
+      "- The software must include functions to initialize and read from the ADC, configure the GPIO, and handle UART communications."
+    ]
+  },
+  "timestamp": 1793124311.0204203,
+  "elapsed": 10.168368816375732
+}

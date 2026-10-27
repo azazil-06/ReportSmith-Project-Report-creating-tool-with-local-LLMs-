@@ -1,0 +1,16 @@
+{
+  "section_id": "5.5",
+  "title": "Result Analysis",
+  "data": {
+    "paragraphs": [
+      "The testing and verification process was conducted to ensure the functionality of the moisture sensor-based irrigation system. The system's operational boundaries were defined based on predefined conditions for optimal, dry, and excess moisture scenarios. The execution mode was set to hardware, ensuring that physical observations could be made to verify the expected behavior.",
+      "The test cases included three different scenarios: Dry Soil Alert Test, Optimal Moisture Inactive Test, and Excess Moisture / Saturated Test. Each scenario was designed to cover a specific moisture range and expected output.",
+      "For each test case, the system's raw ADC readings were recorded and compared against the predefined ranges. The observed data was verified physically to ensure that the system's behavior matched the expected outcomes.",
+      "The operational boundaries for optimal moisture were defined as 30% <= Moisture <= 80%, with an expected raw range of 1757 to 2980. The dry soil alert test, where Raw ADC >= 2981, was expected to activate the buzzer and turn on the status LED PC13. The excess moisture / saturated test, where Raw ADC <= 1756, was expected to deactivate the buzzer and turn off the status LED PC13.",
+      "The results of the testing were analyzed to ensure that the system's behavior was consistent with its operational boundaries and expected outputs. The system's stability was also verified by monitoring its performance under different moisture conditions."
+    ],
+    "bullets": []
+  },
+  "timestamp": 1793124578.7070854,
+  "elapsed": 11.017860174179077
+}

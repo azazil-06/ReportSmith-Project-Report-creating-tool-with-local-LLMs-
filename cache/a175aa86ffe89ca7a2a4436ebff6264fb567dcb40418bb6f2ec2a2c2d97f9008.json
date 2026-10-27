@@ -1,0 +1,17 @@
+{
+  "section_id": "5.1",
+  "title": "Testing Methodology",
+  "data": {
+    "paragraphs": [
+      "The testing methodology for Chapter 5 of the micro-project involves several key steps to ensure the system operates as intended. The project mode is set to hardware, and we will test various conditions to verify the functionality of the moisture sensor and buzzer.",
+      "Firstly, we define a set of test cases that cover different operational scenarios. For each test case, we specify the expected behavior based on predefined conditions and expected raw ADC values. These conditions are defined in the Operational Boundaries & Expected States section.",
+      "For example, TC_01 tests the system with dry soil conditions (Raw ADC >= 2981). The expected response is that the buzzer should be active (HIGH) and the status LED PC13 should be on (LOW). We will verify this physically by observing the system's behavior.",
+      "Similarly, TC_02 checks optimal moisture levels (1757 <= Raw ADC <= 2980). The expected response is that the buzzer should be inactive (LOW) and the status LED PC13 should be on (HIGH). We will verify this physically by observing the system's behavior.",
+      "Finally, TC_03 tests excess moisture conditions (Raw ADC <= 1756). The expected response is that the buzzer should be inactive (LOW) and the status LED PC13 should be on (HIGH). We will verify this physically by observing the system's behavior.",
+      "To ensure the system operates within its operational boundaries, we also need to consider the mathematical stability of the ADC readings. The raw ADC values are expected to fall within a specific range based on the operational conditions. For example, for dry soil conditions (Moisture < 30%), the raw ADC should be in the range [2981, 4095]."
+    ],
+    "bullets": []
+  },
+  "timestamp": 1793124532.8942661,
+  "elapsed": 12.80781602859497
+}
