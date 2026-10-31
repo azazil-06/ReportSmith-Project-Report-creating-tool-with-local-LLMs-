@@ -1,0 +1,14 @@
+{
+  "section_id": "2.3",
+  "title": "Hardware Components and Sensors Used",
+  "data": {
+    "paragraphs": [
+      "The STM32 Blue Pill is a microcontroller development board featuring an ARM Cortex-M3 processor with a clock speed of 72 MHz. The board has 64 KB of flash memory and 20 KB of SRAM, providing ample resources for software development. The on-board ADC (Analog-to-Digital Converter) can read soil moisture levels from a capacitive or resistive probe, which outputs an analog voltage between 1300 and 3700 raw units. The active buzzer alert module is connected to GPIO pin PA1, activating when the soil moisture level falls below a predefined threshold. The onboard indicator LED (PC13) is connected to GPIO pin PC13, illuminating automatically when the plant needs watering. The ST-Link V2 In-Circuit Programmer allows for firmware flashing and debugging through the SWD interface.",
+      "The STM32F103C8T6 microcontroller has a 12-bit ADC that can accurately measure soil moisture levels within the specified range. The ADC is connected to PA0, which outputs an analog voltage between 1300 and 3700 raw units. This allows for precise measurements of soil moisture levels and enables the system to detect when the plant needs watering.",
+      "The active buzzer alert module is connected to GPIO pin PA1, which activates when the soil moisture level falls below a predefined threshold. The buzzer is designed to produce an audible notification when the plant needs watering. This feature helps in maintaining optimal moisture levels and prevents overwatering."
+    ],
+    "bullets": []
+  },
+  "timestamp": 1793235505.5652804,
+  "elapsed": 8.397249937057495
+}

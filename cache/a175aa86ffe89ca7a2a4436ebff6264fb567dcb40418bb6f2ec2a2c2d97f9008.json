@@ -1,0 +1,18 @@
+{
+  "section_id": "5.1",
+  "title": "Testing Methodology",
+  "data": {
+    "paragraphs": [
+      "The testing methodology for Chapter 5 of the micro-project involves several key steps to ensure the system's reliability and accuracy. The project mode is set to 'hardware', meaning that all hardware components will be tested directly, without any simulation. The test cases are designed to cover different operational conditions and moisture levels, ensuring comprehensive coverage of the system's performance.",
+      "The first test case, TC_01, focuses on a dry soil alert condition. In this scenario, the raw ADC reading should exceed 2981 (the threshold for low moisture). The expected behavior is that the buzzer should be active (HIGH) and the status LED PC13 should turn on (LOW). This test case will be verified physically to ensure that the system responds as intended.",
+      "The second test case, TC_02, tests the optimal moisture inactive condition. In this scenario, the raw ADC reading should fall within the range of 1757 to 2980 (indicating a moisture level between 30% and 80%). The expected behavior is that the buzzer should be inactive (LOW) and the status LED PC13 should turn on (HIGH). This test case will also be verified physically.",
+      "The third test case, TC_03, tests the excess moisture / saturated condition. In this scenario, the raw ADC reading should fall within the range of 0 to 1756 (indicating a moisture level above 80%). The expected behavior is that the buzzer should be inactive (LOW) and the status LED PC13 should turn on (HIGH). This test case will also be verified physically.",
+      "The operational boundaries for the system are defined as follows: NEEDS WATER (DRY): Condition (Moisture < 30%), Expected Raw Range (raw >= 2981 (range 2981-4095)). OPTIMAL: Condition (30% <= Moisture <= 80%), Expected Raw Range (1757 to 2980). TOO WET: Condition (Moisture > 80%), Expected Raw Range (raw <= 1756 (range 0-1756)). These boundaries ensure that the system operates within a safe and predictable range of moisture levels, minimizing potential issues.",
+      "The testing methodology for Chapter 5 is designed to provide a thorough assessment of the system's performance under various conditions. The test cases cover different operational scenarios and moisture levels, ensuring comprehensive coverage of the system's performance. The expected behavior is that the system responds as intended, with the buzzer active or inactive based on the moisture level, and the status LED PC13 turning on or off accordingly.",
+      "The testing methodology for Chapter 5 is designed to provide a thorough assessment of the system's performance under various conditions. The test cases cover different operational scenarios and moisture levels, ensuring comprehensive coverage of the system's performance. The expected behavior is that the system responds as intended, with the buzzer active or inactive based on the moisture level, and the status LED PC13 turning on or off accordingly."
+    ],
+    "bullets": []
+  },
+  "timestamp": 1793235685.8867602,
+  "elapsed": 14.307724237442017
+}

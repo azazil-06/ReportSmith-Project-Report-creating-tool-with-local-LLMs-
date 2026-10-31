@@ -1,0 +1,14 @@
+{
+  "section_id": "abstract",
+  "title": "Abstract",
+  "data": {
+    "paragraphs": [
+      "This report presents the design and hardware realization of an autonomous Water Level Detection and Overflow Indicator system based on the STM32F103C8T6 ARM Cortex-M3 microcontroller and an HC-SR04 ultrasonic distance sensor. Unmonitored overhead water storage tanks frequently lead to severe resource wastage and building dampness due to unmanaged tank overflowing. The system performs continuous non-contact distance measurement between the sensor transducer and the liquid surface using acoustic time-of-flight ranging.",
+      "The ultrasonic sensor is driven via high-speed GPIO pins PB0 (Trigger) and PB1 (Echo). Acquired echo pulse durations are processed through a 5-sample digital moving average filter with a 500ms sampling cadence to mitigate fluid turbulence and surface ripples. Real-time water depth and diagnostic alerts are formatted and presented on a 16x2 alphanumeric LCD display interfaced over the I2C bus on pins PB6 and PB7. The firmware implements calibrated operational boundaries configured at 15 cm for critical overflow alarm and 30 cm for approaching high level. Upon detecting overflow, the microcontroller commands an active-low visual indicator on GPIO pin PC13, energizes an active buzzer on pin PA1, and drives a red warning LED on pin PA2. Safe operational levels are signaled by a green LED on pin PA3. Telemetry is streamed over USART1 at 115200 baud, powered by an LM2596 buck converter supplying regulated 5V DC.",
+      "The embedded firmware was developed in Embedded C for the Arduino STM32 Core environment leveraging official STMicroelectronics Hardware Abstraction Layer (HAL) drivers. Empirical testing confirmed responsive alert annunciation within 500ms of reaching the 15 cm overflow threshold, providing a dependable and energy-efficient solution for water storage monitoring."
+    ],
+    "bullets": []
+  },
+  "timestamp": 1793236995.3862667,
+  "elapsed": 0.00016427040100097656
+}

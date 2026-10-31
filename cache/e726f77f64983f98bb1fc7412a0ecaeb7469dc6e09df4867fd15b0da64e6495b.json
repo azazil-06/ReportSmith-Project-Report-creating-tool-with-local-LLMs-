@@ -1,0 +1,13 @@
+{
+  "section_id": "4.3",
+  "title": "GPIO and Peripheral Configuration",
+  "data": {
+    "paragraphs": [
+      "GPIO initialization requires explicit configuration of pin directions and electrical modes. Pin PA0 is initialized in analog input mode (INPUT_ANALOG) to disconnect the digital input buffer and prevent current leakage during ADC conversions.",
+      "Pin PC13 is configured as an output push-pull pin and initially driven HIGH to ensure the active-low LED begins in an unlit state. Pins PB6 and PB7 are claimed by the I2C1 peripheral in alternate-function open-drain mode, while PA9 is configured as an alternate-function push-pull transmit line."
+    ],
+    "bullets": []
+  },
+  "timestamp": 1793236146.801103,
+  "elapsed": 0.00011157989501953125
+}

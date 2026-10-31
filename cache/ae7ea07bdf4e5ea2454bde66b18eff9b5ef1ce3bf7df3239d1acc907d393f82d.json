@@ -1,0 +1,15 @@
+{
+  "section_id": "3.4",
+  "title": "Hardware Component Description",
+  "data": {
+    "paragraphs": [
+      "The STM32F103C8T6 microcontroller serves as the central processing unit, executing the control loop, calculating rolling averages, and coordinating communication across all hardware buses. Operating at 72 MHz with 64 KB of Flash, it easily handles graphics rendering and real-time sensory math.",
+      "The Capacitive Soil Moisture Sensor v1.2 measures soil capacitance using high-frequency oscillator circuitry embedded directly onto the probe PCB. Because the copper traces are protected beneath a solder mask, the sensor avoids electrolytic breakdown, generating an analog voltage between approximately 1.2V and 3.0V across wet to dry conditions.",
+      "The 0.96-inch SSD1306 OLED display provides a high-contrast 128x64 dot matrix interface. Operating on 3.3V with an I2C slave address of 0x3C, it displays system titles, raw ADC readings, calculated moisture percentages, and human-readable state indicators without backlight power overhead.",
+      "The onboard user indicator LED wired to GPIO pin PC13 operates in an active-low sink topology. Writing digital logic LOW illuminates the LED to indicate a low moisture alert, while writing HIGH turns the LED off during optimal and saturated soil conditions."
+    ],
+    "bullets": []
+  },
+  "timestamp": 1793236146.7891238,
+  "elapsed": 9.393692016601562e-05
+}

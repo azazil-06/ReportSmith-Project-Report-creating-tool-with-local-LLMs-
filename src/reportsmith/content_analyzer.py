@@ -83,6 +83,39 @@ def extract_template_metadata(sample_docx_path: Path) -> Dict[str, Any]:
     return meta
 
 
+def _is_valid_student_name(name: str) -> bool:
+    name_clean = name.strip()
+    if len(name_clean) < 3 or len(name_clean) > 40:
+        return False
+    if not re.match(r"^[A-Za-z\s\.\'\-]+$", name_clean):
+        return False
+    lower = name_clean.lower()
+    banned = [
+        "system", "sensor", "controls", "indicator", "ultrasonic", "circuit",
+        "diagram", "table", "figure", "chapter", "abstract", "contents",
+        "predefined", "configured", "threshold", "powered", "supply", "battery",
+        "demonstrate", "application", "instead", "designed", "microcontroller",
+        "watering", "reminder", "moisture", "night", "automatic", "lamp",
+    ]
+    if any(b in lower for b in banned):
+        return False
+    return True
+
+
+def _is_valid_roll_no(roll: str) -> bool:
+    roll_clean = roll.strip().upper()
+    if len(roll_clean) < 5 or len(roll_clean) > 16:
+        return False
+    if not (re.search(r"\d", roll_clean) and re.search(r"[A-Z]", roll_clean)):
+        return False
+    lower = roll_clean.lower()
+    if any(w in lower for w in ["sr04", "hc-sr", "stm32", "lm2596", "lcd", "led", "16x2", "162", "oled"]):
+        return False
+    if len(roll_clean.split()) > 2:
+        return False
+    return True
+
+
 def _parse_member_line(line: str) -> Optional[TeamMember]:
     """Parse a single line into a TeamMember(name, roll_no), or None if not matching."""
     clean = re.sub(r"^\s*(?:\d+[\.\)]|\*|-)\s*", "", line).strip()
@@ -93,18 +126,18 @@ def _parse_member_line(line: str) -> Optional[TeamMember]:
     m = re.match(r"^([A-Za-z\s\.\']+?)\s*\(\s*([A-Za-z0-9\s\-_/]+)\s*\)$", clean)
     if m:
         p1, p2 = m.group(1).strip(), m.group(2).strip()
-        if re.search(r"\d", p2) and not re.search(r"\d", p1) and len(p1) > 2:
+        if _is_valid_roll_no(p2) and _is_valid_student_name(p1):
             return TeamMember(name=p1.title(), roll_no=p2.upper())
-        elif re.search(r"\d", p1) and not re.search(r"\d", p2) and len(p2) > 2:
+        elif _is_valid_roll_no(p1) and _is_valid_student_name(p2):
             return TeamMember(name=p2.title(), roll_no=p1.upper())
 
-    # 2. Separated by delimiter [-–—:,|\t]
-    parts = re.split(r"\s*[-–—:,|\t]\s*", clean, maxsplit=1)
+    # 2. Separated by delimiter [-–—:,|\t] or 2+ spaces
+    parts = re.split(r"\s*(?:[-–—:,|\t]|\s{2,})\s*", clean, maxsplit=1)
     if len(parts) == 2:
         p1, p2 = parts[0].strip(), parts[1].strip()
-        if re.search(r"\d", p2) and not re.search(r"\d", p1) and len(p1) > 2:
+        if _is_valid_roll_no(p2) and _is_valid_student_name(p1):
             return TeamMember(name=p1.title(), roll_no=p2.upper())
-        elif re.search(r"\d", p1) and not re.search(r"\d", p2) and len(p2) > 2:
+        elif _is_valid_roll_no(p1) and _is_valid_student_name(p2):
             return TeamMember(name=p2.title(), roll_no=p1.upper())
 
     return None
@@ -124,9 +157,9 @@ def _parse_table_row_member(cells: List[str]) -> Optional[TeamMember]:
     else:
         c1, c2 = clean[0], clean[1]
 
-    if re.search(r"\d", c2) and not re.search(r"\d", c1) and len(c1) > 2:
+    if _is_valid_roll_no(c2) and _is_valid_student_name(c1):
         return TeamMember(name=c1.title(), roll_no=c2.strip("()").upper())
-    elif re.search(r"\d", c1) and not re.search(r"\d", c2) and len(c2) > 2:
+    elif _is_valid_roll_no(c1) and _is_valid_student_name(c2):
         return TeamMember(name=c2.title(), roll_no=c1.strip("()").upper())
     return None
 
@@ -180,7 +213,25 @@ def parse_project_doc(doc_path: Path) -> Dict[str, Any]:
     if docx_team_candidates:
         res["team"] = docx_team_candidates
 
-    # Check for two-column layout on cover page (e.g. Project.pdf with Submitted to: on left, Submitted by: on right)
+    # Extract team members from Cover Page (text_p0)
+    if not res["team"] and text_p0:
+        lines_p0 = [l.strip() for l in text_p0.splitlines() if l.strip()]
+        in_sub_by = False
+        cover_team: List[TeamMember] = []
+        for l in lines_p0:
+            if re.search(r"submitted\s+by", l, re.IGNORECASE):
+                in_sub_by = True
+                continue
+            if in_sub_by:
+                if re.search(r"(?:submitted\s+to|guided\s+by|guide|faculty|department|college|microcontrollers)", l, re.IGNORECASE):
+                    break
+                mem = _parse_member_line(l)
+                if mem and mem not in cover_team:
+                    cover_team.append(mem)
+        if cover_team:
+            res["team"] = cover_team
+
+    # Check for two-column layout on cover page if team still empty
     if not res["team"] and text_p0:
         lines = [l for l in text_p0.splitlines() if l.strip()]
         left_items = []
@@ -217,7 +268,7 @@ def parse_project_doc(doc_path: Path) -> Dict[str, Any]:
             if col_team:
                 res["team"] = col_team
 
-    # If still no team, check for "Submitted by" or "Team" block in full text
+    # If still no team, check for "Submitted by" block in full text before ABSTRACT
     if not res["team"]:
         in_team_block = False
         block_team = []
@@ -232,47 +283,24 @@ def parse_project_doc(doc_path: Path) -> Dict[str, Any]:
                 in_team_block = False
             if in_team_block:
                 mem = _parse_member_line(l_str)
-                if mem:
+                if mem and mem not in block_team:
                     block_team.append(mem)
         if block_team:
             res["team"] = block_team
 
-    # If still no team, scan any line in document matching Name - Roll pattern
-    if not res["team"]:
-        any_team = []
-        for l in text_all.splitlines():
-            mem = _parse_member_line(l.strip())
-            if mem and mem not in any_team:
-                any_team.append(mem)
-        if any_team:
-            res["team"] = any_team
-
-    # If still no team, try positional pairing with rolls
-    if not res["team"]:
-        lines = [l.strip() for l in text_p0.splitlines() if l.strip()]
-        idx_course = -1
-        for i, l in enumerate(lines):
-            if "(" in l and ")" in l and ("CST" in l or "PROJECT" in l):
-                idx_course = i
-                break
-        if idx_course != -1 and len(lines) > idx_course + 1:
-            name_lines = lines[idx_course + 1 : -1]
-            team_members = []
-            for i, name in enumerate(name_lines):
-                r = rolls[i] if i < len(rolls) else f"SBC24CS{100+i}"
-                team_members.append(TeamMember(name=name.title(), roll_no=r))
-            if team_members:
-                res["team"] = team_members
-
     # 3. Guide (if not already extracted)
     if not res["guide"]:
-        g_match = re.search(r"(?:SUBMITTED\s+TO|GUIDED\s+BY|FACULTY\s+GUIDE|PROJECT\s+GUIDE|GUIDE)\s*[:\-]?\s*([^\n]+)", text_all or text_p0, re.IGNORECASE)
+        g_match = re.search(r"(?:SUBMITTED\s+TO|GUIDED\s+BY|FACULTY\s+GUIDE|PROJECT\s+GUIDE|GUIDE)\s*[:\-]?\s*([^\n]+)", text_p0 or text_all, re.IGNORECASE)
         if g_match:
             cand = g_match.group(1).strip()
             cand = re.split(r"\s{3,}", cand)[0].strip()
             cand = cand.split(":")[0].strip()
             if cand and not re.search(r"(?:submitted\s+by|team|roll)", cand, re.IGNORECASE):
-                res["guide"] = cand
+                prefix_m = re.match(r"^(Ms|Mr|Dr|Prof)\.?\s*(.*)", cand, re.IGNORECASE)
+                if prefix_m:
+                    res["guide"] = f"{prefix_m.group(1).title()}. {prefix_m.group(2).strip().title()}"
+                else:
+                    res["guide"] = cand.title()
 
     # 4. Course code
     c_match = re.search(r"\((P[A-Z0-9]+)\)", text_p0)
@@ -282,27 +310,62 @@ def parse_project_doc(doc_path: Path) -> Dict[str, Any]:
         res["course_code"] = c_match.group(1).strip()
 
     # 5. Title from cover lines
-    lines = [l.strip() for l in text_p0.splitlines() if l.strip()]
-    if lines:
-        cand_title = lines[-1].strip()
-        if "PLANT" in cand_title.upper() or "REMINDER" in cand_title.upper() or "STM32" in cand_title.upper():
+    lines_p0 = [l.strip() for l in text_p0.splitlines() if l.strip()]
+    idx_course = -1
+    idx_sub = len(lines_p0)
+    for i, l in enumerate(lines_p0):
+        if re.search(r"\((?:P[A-Z0-9]+)\)", l) or re.search(r"microcontrollers|microprocessors|embedded", l, re.IGNORECASE):
+            idx_course = i
+        if re.search(r"submitted\s+(?:to|by)", l, re.IGNORECASE):
+            idx_sub = min(idx_sub, i)
+
+    if idx_course != -1 and idx_sub > idx_course:
+        cand_lines = lines_p0[idx_course + 1 : idx_sub]
+        cand_lines = [
+            l for l in cand_lines
+            if not re.search(r"(?:project\s+report|mini\s+project|micro\s+project)", l, re.IGNORECASE)
+        ]
+        if cand_lines:
+            cand_title = " ".join(cand_lines).strip()
+            cand_title = re.sub(r"\bSTEM32\b", "STM32", cand_title, flags=re.IGNORECASE)
+            res["title"] = cand_title.title()
+
+    if not res["title"] and text_p1:
+        m_abs_title = re.search(r"ABSTRACT\s*\n\s*(?:The\s+)?([A-Za-z0-9\s\-]+?)\s+is\s+designed\s+to", text_p1, re.IGNORECASE)
+        if m_abs_title:
+            res["title"] = f"{m_abs_title.group(1).strip().title()} using STM32"
+
+    if not res["title"] and lines_p0:
+        cand_title = lines_p0[-1].strip()
+        if "PLANT" in cand_title.upper() or "REMINDER" in cand_title.upper() or "STM32" in cand_title.upper() or "WATER" in cand_title.upper():
+            cand_title = re.sub(r"\bSTEM32\b", "STM32", cand_title, flags=re.IGNORECASE)
             res["title"] = cand_title.title()
 
     # 6. Abstract
     if text_p1:
         abs_m = re.search(r"ABSTRACT\s*\n\s*(.*)", text_p1, re.DOTALL | re.IGNORECASE)
         if abs_m:
-            res["abstract"] = " ".join(abs_m.group(1).split())
+            raw_abs = abs_m.group(1)
+            raw_abs = re.sub(r"\s+", " ", raw_abs).strip()
+            raw_abs = re.sub(r"16[^\x20-\x7E]?2\s*LCD", "16x2 LCD", raw_abs)
+            raw_abs = re.sub(r"\bpro\s+vide\b", "provide", raw_abs)
+            raw_abs = re.sub(r"\bwastag\s+e\b", "wastage", raw_abs)
+            res["abstract"] = raw_abs
     elif text_all:
         abs_m = re.search(r"ABSTRACT\s*\n\s*(.*?)(?:\n\s*\n\s*[A-Z0-9]|\Z)", text_all, re.DOTALL | re.IGNORECASE)
         if abs_m:
-            res["abstract"] = " ".join(abs_m.group(1).split())
+            raw_abs = abs_m.group(1)
+            raw_abs = re.sub(r"\s+", " ", raw_abs).strip()
+            raw_abs = re.sub(r"16[^\x20-\x7E]?2\s*LCD", "16x2 LCD", raw_abs)
+            raw_abs = re.sub(r"\bpro\s+vide\b", "provide", raw_abs)
+            raw_abs = re.sub(r"\bwastag\s+e\b", "wastage", raw_abs)
+            res["abstract"] = raw_abs
 
     return res
 
 
 def analyze_code_content(code_path: Path) -> Dict[str, Any]:
-    """Analyze embedded source code file (e.g. plant_watering_reminder.ino) to extract
+    """Analyze embedded source code file (e.g. water_level_overflow_indicator.ino or plant_monitor.ino) to extract
     project title, pins, components, calibration, thresholds, and operational logic.
     """
     if not code_path.is_file():
@@ -311,8 +374,16 @@ def analyze_code_content(code_path: Path) -> Dict[str, Any]:
         code_text = code_path.read_text(encoding="utf-8", errors="replace")
 
     # 1. Project Title
-    is_plant = "plant" in code_text.lower() or "moisture" in code_text.lower()
-    title = "Plant Watering Reminder using STM32 and Soil Moisture Sensor" if is_plant else "Automatic Night Lamp using STM32 and LDR"
+    is_water = any(w in code_text.lower() for w in ["water", "overflow", "ultrasonic", "sr04", "trig_pin", "echo_pin", "tank"])
+    is_plant = ("plant" in code_text.lower() or "moisture" in code_text.lower()) and not is_water
+
+    if is_water:
+        title = "Water Level Detection using STM32 and Ultrasonic Sensor"
+    elif is_plant:
+        title = "Plant Watering Reminder using STM32 and Soil Moisture Sensor"
+    else:
+        title = "Automatic Night Lamp using STM32 and LDR"
+
     title_match = re.search(r"PROJECT\s*\d*[:\-]?\s*([A-Za-z0-9_\s]+)", code_text, re.IGNORECASE)
     if title_match:
         cand = title_match.group(1).split("\n")[0].strip()
@@ -333,18 +404,42 @@ def analyze_code_content(code_path: Path) -> Dict[str, Any]:
         for name, pin_str in pin_defs:
             desc = pin_comments.get(name, f"{name} control pin")
             periph = "GPIO"
-            if "SENSOR" in name or ("MOISTURE" in name) or (pin_str == "PA0" and is_plant):
+            if "TRIG" in name or (pin_str == "PB0" and is_water):
+                periph = "GPIO"
+                conn = "HC-SR04 Ultrasonic Trigger Pin"
+                func = "10us ultrasonic pulse generation trigger"
+            elif "ECHO" in name or (pin_str == "PB1" and is_water):
+                periph = "GPIO/Timer"
+                conn = "HC-SR04 Ultrasonic Echo Pin"
+                func = "High-speed ultrasonic pulse duration echo measurement"
+            elif "LED_RED" in name or (pin_str == "PA2" and is_water):
+                periph = "GPIO"
+                conn = "Red Alert LED"
+                func = "Visual indicator for critical high water level and overflow"
+            elif "LED_GREEN" in name or (pin_str == "PA3" and is_water):
+                periph = "GPIO"
+                conn = "Green Status LED"
+                func = "Visual indicator for safe and normal water level"
+            elif "SCL" in name or (pin_str == "PB6" and is_water):
+                periph = "I2C1_SCL"
+                conn = "16x2 LCD I2C SCL"
+                func = "I2C clock line for 16x2 alphanumeric LCD display"
+            elif "SDA" in name or (pin_str == "PB7" and is_water):
+                periph = "I2C1_SDA"
+                conn = "16x2 LCD I2C SDA"
+                func = "I2C data line for 16x2 alphanumeric LCD display"
+            elif "SENSOR" in name or ("MOISTURE" in name) or (pin_str == "PA0" and is_plant):
                 periph = "ADC1_IN0"
                 conn = "Soil Moisture Sensor Analog Out"
                 func = "Analog soil moisture voltage measurement (12-bit ADC)"
-            elif "LDR" in name or (pin_str == "PA1" and not is_plant):
+            elif "LDR" in name or (pin_str == "PA1" and not is_plant and not is_water):
                 periph = "ADC1_IN1"
                 conn = "LDR Voltage Divider Output"
                 func = "Analog ambient light voltage measurement (12-bit ADC)"
-            elif "BUZZER" in name or (pin_str == "PA1" and is_plant):
+            elif "BUZZER" in name or (pin_str == "PA1" and (is_plant or is_water)):
                 periph = "GPIO"
                 conn = "Active Buzzer Alert Driver"
-                func = "Audible alert trigger on low soil moisture"
+                func = "Audible alarm trigger on critical alert condition"
             elif "LAMP" in name or pin_str == "PA8":
                 periph = "TIM1_CH1"
                 conn = "Night Lamp / Relay Module / LED Driver"
@@ -403,7 +498,83 @@ def analyze_code_content(code_path: Path) -> Dict[str, Any]:
         constants[name] = val
 
     # 4. Default components for detected sensors
-    if is_plant:
+    if is_water:
+        components: List[ComponentItem] = [
+            ComponentItem(
+                name="STM32F103C8T6 Development Board (Blue Pill)",
+                role="Central Processing Unit",
+                interface="On-board / 72 MHz ARM Cortex-M3",
+                notes="64 KB Flash, 20 KB SRAM, 12-bit ADC, Timer PWM",
+            ),
+            ComponentItem(
+                name="HC-SR04 Ultrasonic Distance Sensor Module",
+                role="Non-Contact Water Level Measurement",
+                interface="Digital Trigger (PB0) & Echo (PB1)",
+                notes="Acoustic time-of-flight ranging from 2 cm to 400 cm with 3mm precision",
+            ),
+            ComponentItem(
+                name="16x2 Alphanumeric LCD Display (with I2C PCF8574)",
+                role="Local Telemetry & Level Display",
+                interface="I2C Bus (PB6 SCL, PB7 SDA at 0x27)",
+                notes="Displays real-time distance in cm and system status warnings",
+            ),
+            ComponentItem(
+                name="Active Buzzer Alert Module",
+                role="Audible Overflow Warning",
+                interface="Digital GPIO (PA1)",
+                notes="Active high sounder activates when water level reaches overflow threshold",
+            ),
+            ComponentItem(
+                name="Red & Green Status Indicator LEDs",
+                role="Visual Level State Annunciation",
+                interface="Digital GPIOs (PA2 Red, PA3 Green)",
+                notes="Red indicates overflow alarm; Green indicates normal safe water level",
+            ),
+            ComponentItem(
+                name="LM2596 DC-DC Buck Converter Step-Down Module",
+                role="Regulated Power Supply",
+                interface="Input 9V-12V Battery, Regulated 5V DC Output",
+                notes="High-efficiency step-down switching regulator supplying stable 5V rail",
+            ),
+            ComponentItem(
+                name="Onboard Indicator LED (PC13)",
+                role="Visual Diagnostic Indicator",
+                interface="GPIO (Active-Low)",
+                notes="Illuminates automatically during overflow alert states",
+            ),
+            ComponentItem(
+                name="ST-Link V2 In-Circuit Programmer",
+                role="Firmware Flashing & Debugging",
+                interface="SWD (SWDIO, SWCLK)",
+                notes="Serial Wire Debug interface for STM32 programming",
+            ),
+        ]
+        overflow_cm = constants.get("OVERFLOW_THRESHOLD_CM", 15)
+        warning_cm = constants.get("WARNING_THRESHOLD_CM", 30)
+        tests = [
+            TestCase(
+                id="TC_01",
+                name="High Water Level / Critical Overflow Alert Test",
+                condition=f"Measured Distance <= {overflow_cm} cm (Tank > 85% full)",
+                expected="Red LED ON, Active Buzzer sounding, Green LED OFF, LCD shows 'OVERFLOW ALERT!'",
+                observed=None,
+            ),
+            TestCase(
+                id="TC_02",
+                name="Approaching High Level Warning Test",
+                condition=f"{overflow_cm + 1} cm <= Measured Distance <= {warning_cm} cm (70% to 85% full)",
+                expected="Red LED ON, Green LED ON, Buzzer OFF, LCD shows 'LEVEL HIGH'",
+                observed=None,
+            ),
+            TestCase(
+                id="TC_03",
+                name="Normal / Safe Water Level Verification Test",
+                condition=f"Measured Distance > {warning_cm} cm (Tank < 70% full)",
+                expected="Green LED ON, Red LED OFF, Buzzer OFF, LCD shows 'STATUS: NORMAL'",
+                observed=None,
+            ),
+        ]
+    elif is_plant:
         components: List[ComponentItem] = [
             ComponentItem(
                 name="STM32F103C8T6 Development Board (Blue Pill)",
@@ -573,7 +744,13 @@ def analyze_content_folder(
             code_file = f
             break
     if not code_file:
-        for cand in [Path("Content/plant_watering_reminder.ino"), Path("examples/plant_monitor.ino")]:
+        for cand in [
+            Path("Content/Water_Level_Overflow_Indicator.ino"),
+            Path("Content/water_level_overflow_indicator.ino"),
+            Path("Content/water_level_indicator.ino"),
+            Path("Content/plant_watering_reminder.ino"),
+            Path("examples/plant_monitor.ino"),
+        ]:
             if cand.is_file():
                 code_file = cand
                 break
@@ -590,6 +767,16 @@ def analyze_content_folder(
     template_meta = extract_template_metadata(sample_p)
 
     final_title = doc_meta.get("title") or code_info["title"]
+    final_abstract = doc_meta.get("abstract")
+
+    is_water = "water" in final_title.lower() or "overflow" in final_title.lower() or "ultrasonic" in final_title.lower() or (final_abstract and "water" in final_abstract.lower())
+    is_plant = ("plant" in final_title.lower() or "moisture" in final_title.lower()) and not is_water
+
+    if is_water and not ("water" in code_info["title"].lower() or "overflow" in code_info["title"].lower()):
+        water_ino = Path("Content/Water_Level_Overflow_Indicator.ino")
+        if water_ino.is_file():
+            code_file = water_ino
+            code_info = analyze_code_content(code_file)
 
     # Names must come strictly from content in Content folder, never from COA_report
     final_team = doc_meta.get("team") or []
@@ -633,10 +820,7 @@ def analyze_content_folder(
     if not final_guide:
         final_guide = "Ms. Aryalekshmi A"
 
-    final_course_code = doc_meta.get("course_code") or "PCCST504"
-    final_abstract = doc_meta.get("abstract")
-
-    is_plant = "plant" in final_title.lower() or "moisture" in final_title.lower()
+    final_course_code = doc_meta.get("course_code") or "PBCST504"
 
     # 5. Synthesize ProjectBrief
     project_info = ProjectInfo(
@@ -675,13 +859,23 @@ def analyze_content_folder(
         framework="arduino_stm32core",
         components=code_info["components"],
         pins=code_info["pins"],
-        peripherals=["GPIO", "ADC", "Timers", "UART"],
-        libraries=["Arduino.h", "Arduino_Core_STM32"],
+        peripherals=["GPIO", "ADC", "Timers", "UART", "I2C"],
+        libraries=["Arduino.h", "Arduino_Core_STM32", "Wire.h", "LiquidCrystal_I2C.h"],
         programmer="ST-Link V2",
         serial_baud=115200,
     )
 
-    if is_plant:
+    if is_water:
+        calib = {
+            "TANK_HEIGHT_CM": code_info["constants"].get("TANK_HEIGHT_CM", 100),
+            "OVERFLOW_THRESHOLD_CM": code_info["constants"].get("OVERFLOW_THRESHOLD_CM", 15),
+        }
+        thresh = {
+            "WARNING_THRESHOLD_CM": code_info["constants"].get("WARNING_THRESHOLD_CM", 30),
+            "OVERFLOW_THRESHOLD_CM": code_info["constants"].get("OVERFLOW_THRESHOLD_CM", 15),
+        }
+        state_names = ["CRITICAL OVERFLOW ALERT", "APPROACHING HIGH LEVEL", "NORMAL / SAFE WATER LEVEL"]
+    elif is_plant:
         calib = {
             "AIR_VALUE": code_info["constants"].get("AIR_VALUE", 3700),
             "WATER_VALUE": code_info["constants"].get("WATER_VALUE", 1300),
@@ -706,12 +900,29 @@ def analyze_content_folder(
         calibration_constants=calib,
         thresholds=thresh,
         timing_values={
-            "SAMPLE_INTERVAL_MS": code_info["constants"].get("SAMPLE_INTERVAL_MS", 250),
-            "SAMPLES": code_info["constants"].get("SAMPLES", 8),
+            "SAMPLE_INTERVAL_MS": code_info["constants"].get("SAMPLE_INTERVAL_MS", 500 if is_water else 250),
+            "SAMPLES": code_info["constants"].get("SAMPLES", 5 if is_water else 8),
         },
         state_names=state_names,
         led_active_low=True,
     )
+
+    if is_water:
+        project_refs = [
+            "STMicroelectronics, 'STM32F103x8 STM32F103xB Medium-density performance line ARM-based 32-bit MCU Datasheet', DocID 13587 Rev 17, 2020.",
+            "STMicroelectronics, 'RM0008 Reference Manual: STM32F101xx, STM32F102xx, STM32F103xx advanced ARM-based 32-bit MCUs', Rev 21, 2021.",
+            "ElecFreaks, 'HC-SR04 Ultrasonic Ranging Module User Guide', 2019.",
+            "STM32duino, 'Arduino Core for STM32 based boards', Official STMicroelectronics GitHub Repository, 2024.",
+            "Texas Instruments, 'LM2596 SIMPLE SWITCHER Power Converter 150-kHz 3-A Step-Down Voltage Regulator', SNVS124D, 2021.",
+            "Paul Horowitz and Winfield Hill, 'The Art of Electronics', Cambridge University Press, 3rd Edition, 2015.",
+        ]
+    else:
+        project_refs = [
+            "STMicroelectronics, 'STM32F103x8 STM32F103xB Medium-density performance line ARM-based 32-bit MCU Datasheet', DocID 13587 Rev 17, 2020.",
+            "STMicroelectronics, 'RM0008 Reference Manual: STM32F101xx, STM32F102xx, STM32F103xx advanced ARM-based 32-bit MCUs', Rev 21, 2021.",
+            "STM32duino, 'Arduino Core for STM32 based boards', Official STMicroelectronics GitHub Repository, 2024.",
+            "Paul Horowitz and Winfield Hill, 'The Art of Electronics', Cambridge University Press, 3rd Edition, 2015.",
+        ]
 
     brief = ProjectBrief(
         project=project_info,
@@ -721,12 +932,7 @@ def analyze_content_folder(
         code_file=str(code_file),
         abstract=final_abstract,
         tests=code_info["tests"],
-        references=[
-            "STMicroelectronics, 'STM32F103x8 STM32F103xB Medium-density performance line ARM-based 32-bit MCU Datasheet', DocID 13587 Rev 17, 2020.",
-            "STMicroelectronics, 'RM0008 Reference Manual: STM32F101xx, STM32F102xx, STM32F103xx advanced ARM-based 32-bit MCUs', Rev 21, 2021.",
-            "STM32duino, 'Arduino Core for STM32 based boards', Official STMicroelectronics GitHub Repository, 2024.",
-            "Paul Horowitz and Winfield Hill, 'The Art of Electronics', Cambridge University Press, 3rd Edition, 2015.",
-        ],
+        references=project_refs,
         extra_notes=f"{final_title} using STM32F103C8T6 with hardware sensors and actuators.",
     )
 

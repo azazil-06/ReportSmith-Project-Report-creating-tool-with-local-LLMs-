@@ -1,0 +1,12 @@
+{
+  "section_id": "declaration",
+  "title": "Declaration",
+  "data": {
+    "paragraphs": [
+      "This declaration is made on behalf of the students and faculty members involved in the college micro-project titled 'Plant Watering Reminder Using Stm32 And Soil Moisture Sensor'. The project was carried out under the guidance of Ms. Aryalekshmi A, Head of Department, Dr. Ramanathan, Course Coordinator Prof. S. Mukherjee, and College Sree Buddha College Of Engineering, Department of Computer Science & Engineering. The students are Predefined High Level with an Hc (SR04 ULTRASONIC SENSOR) to control a 16\u00d72 LCD for plant watering reminders. The project was designed to ensure the system's reliability and accuracy in detecting soil moisture levels and providing timely notifications to users."
+    ],
+    "bullets": []
+  },
+  "timestamp": 1793235450.1297872,
+  "elapsed": 5.2908549308776855
+}

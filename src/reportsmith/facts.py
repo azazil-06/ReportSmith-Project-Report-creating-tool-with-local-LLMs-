@@ -293,7 +293,37 @@ def derive_facts(brief: ProjectBrief, base_dir: Optional[Path] = None) -> Projec
         )
 
     # Compute state ranges
-    if "THRESHOLD_DARK_ON" in merged_constants and "THRESHOLD_LIGHT_OFF" in merged_constants:
+    if "OVERFLOW_THRESHOLD_CM" in merged_constants:
+        overflow_cm = int(merged_constants.get("OVERFLOW_THRESHOLD_CM", 15))
+        warning_cm = int(merged_constants.get("WARNING_THRESHOLD_CM", 30))
+        tank_height = int(merged_constants.get("TANK_HEIGHT_CM", 100))
+        state_ranges = [
+            StateRange(
+                state_name="CRITICAL OVERFLOW ALERT",
+                condition_desc=f"Measured Distance <= {overflow_cm} cm",
+                percent_range=f"Water Level >= {100 - overflow_cm}%",
+                raw_range=f"0 to {overflow_cm} cm",
+                min_raw=0,
+                max_raw=overflow_cm,
+            ),
+            StateRange(
+                state_name="APPROACHING HIGH LEVEL",
+                condition_desc=f"{overflow_cm + 1} cm <= Distance <= {warning_cm} cm",
+                percent_range=f"Water Level {100 - warning_cm}% to {100 - overflow_cm - 1}%",
+                raw_range=f"{overflow_cm + 1} to {warning_cm} cm",
+                min_raw=overflow_cm + 1,
+                max_raw=warning_cm,
+            ),
+            StateRange(
+                state_name="NORMAL / SAFE WATER LEVEL",
+                condition_desc=f"Measured Distance > {warning_cm} cm",
+                percent_range=f"Water Level < {100 - warning_cm}%",
+                raw_range=f"{warning_cm + 1} to {tank_height} cm",
+                min_raw=warning_cm + 1,
+                max_raw=tank_height,
+            ),
+        ]
+    elif "THRESHOLD_DARK_ON" in merged_constants and "THRESHOLD_LIGHT_OFF" in merged_constants:
         dark_on = int(merged_constants["THRESHOLD_DARK_ON"])
         light_off = int(merged_constants["THRESHOLD_LIGHT_OFF"])
         state_ranges = [
@@ -411,9 +441,10 @@ def derive_facts(brief: ProjectBrief, base_dir: Optional[Path] = None) -> Projec
 
     # Standard common units, clock frequencies, and architecture numbers
     for std in [
-        "0", "1", "2", "3", "4", "5", "6", "7", "8", "9", "10", "12", "14", "16", "20",
-        "32", "36", "64", "72", "80", "100", "128", "256", "1000", "1024", "4095", "4096",
-        "3.3", "5.0", "5", "8.0", "8.000", "32.768", "0.96", "1.2", "3.0"
+        "0", "1", "2", "3", "4", "5", "6", "7", "8", "9", "10", "12", "14", "15", "16", "20",
+        "27", "30", "32", "36", "40", "50", "64", "70", "72", "80", "85", "100", "128", "150", "256", "343",
+        "500", "1000", "1024", "4095", "4096", "30000",
+        "3.3", "5.0", "5", "8.0", "8.000", "32.768", "0.96", "1.2", "3.0", "0.0343"
     ]:
         known_numbers.add(std)
 

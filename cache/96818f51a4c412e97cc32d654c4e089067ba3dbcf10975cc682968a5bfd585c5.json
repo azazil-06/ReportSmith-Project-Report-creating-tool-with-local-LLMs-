@@ -1,0 +1,13 @@
+{
+  "section_id": "4.5",
+  "title": "Hardware Interfacing and Integration",
+  "data": {
+    "paragraphs": [
+      "Hardware interfacing was executed on a breadboard prototyping platform. The capacitive soil moisture sensor was connected with three jumper wires: VCC to the 3.3V rail, GND to common ground, and the analog output signal line to pin PA0 of the Blue Pill board.",
+      "The SSD1306 OLED module was wired to the 3.3V and GND rails, with its SCL pin wired to PB6 and SDA pin to PB7. The ST-Link V2 programmer was connected to the four-pin SWD header (3.3V, SWDIO, SWCLK, GND). Decoupling capacitors were verified on the board to ensure voltage stability during sensor analog conversions."
+    ],
+    "bullets": []
+  },
+  "timestamp": 1793236146.8056557,
+  "elapsed": 9.34600830078125e-05
+}

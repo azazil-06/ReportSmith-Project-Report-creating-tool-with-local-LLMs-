@@ -1,0 +1,13 @@
+{
+  "section_id": "4.4",
+  "title": "Embedded C Program Development",
+  "data": {
+    "paragraphs": [
+      "The embedded C program follows a clean modular design divided into sensory acquisition, calculation, state machine logic, display rendering, and serial output routines.",
+      "The 'readSoilMoistureAverage()' routine executes a loop accumulating ten ADC measurements into a 32-bit integer variable before performing integer division. The 'calculateMoisturePercent()' function applies the integer map algorithm with strict clamping to enforce a valid 0% to 100% boundary. The 'updateDisplay()' routine formats telemetry lines on the SSD1306 frame buffer and flushes the pixel matrix over I2C."
+    ],
+    "bullets": []
+  },
+  "timestamp": 1793236146.8040087,
+  "elapsed": 9.799003601074219e-05
+}

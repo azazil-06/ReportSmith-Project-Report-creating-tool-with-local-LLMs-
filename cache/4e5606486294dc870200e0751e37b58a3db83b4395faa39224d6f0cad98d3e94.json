@@ -1,0 +1,13 @@
+{
+  "section_id": "5.1",
+  "title": "Testing Methodology",
+  "data": {
+    "paragraphs": [
+      "The verification methodology employed systematic bench testing using an experimental water column tank calibrated from 0 to 100 cm. Distance readings from the HC-SR04 were compared against physical rule measurements.",
+      "Sensor response times, moving average filter stability, and threshold transition boundaries were evaluated across dry, intermediate, and simulated overflow conditions."
+    ],
+    "bullets": []
+  },
+  "timestamp": 1793236995.4616456,
+  "elapsed": 7.867813110351562e-05
+}

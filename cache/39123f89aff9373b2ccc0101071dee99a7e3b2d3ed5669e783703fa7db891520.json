@@ -1,0 +1,22 @@
+{
+  "section_id": "4.3",
+  "title": "GPIO and Peripheral Configuration",
+  "data": {
+    "paragraphs": [
+      "Section 4.3: GPIO and Peripheral Configuration for Chapter 4 (Implementation)",
+      "The implementation of GPIO and peripheral configuration in the plant_monitor.ino sketch is detailed below, focusing on the setup and loop functions to manage soil moisture sensor data, active buzzer alert, onboard status LED, and USB-to-UART communication.",
+      "1. **GPIO Configuration**",
+      "- The system uses PA0 for ADC1_IN0, which measures the analog soil moisture voltage. This pin is configured as an input with a pull-up resistor to ensure it reads correctly even when no soil moisture is present.",
+      "- Pin PA1 is used for GPIO, which controls the active buzzer alert driver. This pin is configured as an output and set to high initially to avoid triggering the buzzer until needed.",
+      "- Pin PC13 is used for GPIOC, which provides an onboard status LED. This pin is configured as an output and set to low initially to indicate that no action is required.",
+      "2. **ADC Configuration**",
+      "- The system uses ADC1 with a prescaler of /6 to achieve a 12 MHz ADCCLK. This clock is used to read the soil moisture voltage from PA0.",
+      "- The ADC configuration includes setting the reference voltage to VREF_3V3 and configuring the channel to ADC1_IN0.",
+      "3. **Operational Challenges and Techniques**",
+      "- To eliminate sensor measurement noise, a moving average filter is implemented in the `readSoilMoistureAverage` function. This averages multiple measurements over time to reduce fluctuations."
+    ],
+    "bullets": []
+  },
+  "timestamp": 1793235629.9745922,
+  "elapsed": 16.620413780212402
+}

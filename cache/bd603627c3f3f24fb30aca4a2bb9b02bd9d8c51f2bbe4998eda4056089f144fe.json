@@ -1,0 +1,13 @@
+{
+  "section_id": "3.1",
+  "title": "System Architecture",
+  "data": {
+    "paragraphs": [
+      "The system architecture follows a modular embedded sensory acquisition and actuation model. The core processing unit is the STM32F103C8T6 microcontroller, which coordinates three primary subsystems: sensory input acquisition, visual and status output display, and serialized data logging.",
+      "Power distribution provides regulated 3.3V to the microcontroller, the capacitive soil moisture sensor, and the SSD1306 OLED display. Sensory input is acquired through internal ADC Channel 0 on pin PA0. Telemetry data is packetized and routed simultaneously to the I2C bus (PB6/PB7) for on-device display and to USART1 (PA9/PA10) for serial terminal inspection."
+    ],
+    "bullets": []
+  },
+  "timestamp": 1793236146.781445,
+  "elapsed": 9.465217590332031e-05
+}

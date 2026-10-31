@@ -1,0 +1,13 @@
+{
+  "section_id": "5.1",
+  "title": "Testing Methodology",
+  "data": {
+    "paragraphs": [
+      "The testing methodology was formulated to validate system accuracy, state machine transitions, and visual indicators across three distinct environmental operating conditions: completely dry air, calibrated optimal damp soil, and liquid water saturation.",
+      "Each test condition evaluated the raw 12-bit ADC measurement, calculated moisture percentage, reported operational state on the OLED display, status of the PC13 alert LED, and serial telemetry output at 115200 baud."
+    ],
+    "bullets": []
+  },
+  "timestamp": 1793236146.8152816,
+  "elapsed": 0.00011324882507324219
+}

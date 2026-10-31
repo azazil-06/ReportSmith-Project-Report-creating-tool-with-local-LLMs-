@@ -1,0 +1,18 @@
+{
+  "section_id": "4.4",
+  "title": "Embedded C Program Development",
+  "data": {
+    "paragraphs": [
+      "Section 4.4: Embedded C Program Development for Chapter 4 (Implementation)",
+      "The embedded C program development process for the plant_monitor.ino file, which is a 96-line Arduino sketch utilizing the arduino_stm32core framework, involves several key steps to ensure accurate and reliable operation of the system.",
+      "The code consists of four main functions: readSoilMoistureAverage, calculateMoisturePercent, map, and updateDisplay. These functions are responsible for reading the soil moisture sensor data, converting it into a percentage, mapping it to a displayable range, and updating the status LED accordingly.",
+      "Peripherals such as the ADC1_IN0 pin for soil moisture measurement, GPIO pins for active buzzer alert and onboard status LED, and USART1_TX/RX pins for USB-to-UART communication are utilized. The system's clock settings, including the System Core Clock (72 MHz), APB1 Prescaler (36 MHz), APB2 Prescaler (72 MHz), and ADC Prescaler (12 MHz), are carefully configured to ensure optimal performance.",
+      "To eliminate sensor measurement noise, a moving average filter is implemented in the readSoilMoistureAverage function. This technique averages multiple readings over time to reduce the impact of random fluctuations in the soil moisture sensor output.",
+      "The active-low onboard status LED logic on PC13 is handled with care to avoid spurious state switching. The code ensures that the LED turns on when an action is needed, such as detecting low soil moisture levels, and turns off when no action is required.",
+      "Reliable threshold or hysteresis state evaluation is crucial for avoiding spurious state switching in the active buzzer alert driver. This technique compares the current sensor reading with a predefined threshold and triggers the alert only if there is a significant change from the previous reading."
+    ],
+    "bullets": []
+  },
+  "timestamp": 1793235639.6106687,
+  "elapsed": 9.63455605506897
+}

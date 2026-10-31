@@ -1,0 +1,15 @@
+{
+  "section_id": "4.7",
+  "title": "Implementation Challenges and Solutions",
+  "data": {
+    "paragraphs": [
+      "Several practical implementation challenges were encountered and resolved during development:",
+      "First, single raw ADC readings exhibited occasional high-frequency noise spikes caused by switching transients on the USB power rail. This was resolved by implementing a 10-sample moving average with 10 ms inter-sample delay, resulting in stable and repeatable readings.",
+      "Second, the inverted active-low configuration of the onboard LED on pin PC13 required explicit handling in software logic. Writing digital HIGH turns the LED OFF, while writing LOW completes the circuit to ground and turns the LED ON. The conditional state handler was verified to reflect this inversion accurately.",
+      "Third, integer division truncation in the Arduino map() function required careful ordering of operations to prevent premature underflow before multiplying by 100, ensuring consistent calculation across the 12-bit ADC span."
+    ],
+    "bullets": []
+  },
+  "timestamp": 1793236146.8094265,
+  "elapsed": 8.702278137207031e-05
+}

@@ -1,0 +1,16 @@
+{
+  "section_id": "1.4",
+  "title": "Applications",
+  "data": {
+    "paragraphs": [
+      "Section 1.4: Applications"
+    ],
+    "bullets": [
+      "The STM32F103C8T6 microcontroller is designed for a wide range of applications, including environmental monitoring, industrial automation, and home automation.",
+      "One of the primary applications of this microcontroller is in soil moisture monitoring. The ADC1_IN0 pin is connected to an analog soil moisture sensor, which provides an analog voltage measurement (12-bit ADC) that can be used to determine the moisture content of the soil.",
+      "The Active Buzzer Alert Driver on PA1 can be triggered by low soil moisture levels, providing audible alerts when action is needed. This feature helps in maintaining a healthy environment and preventing waterlogging."
+    ]
+  },
+  "timestamp": 1793235476.227446,
+  "elapsed": 5.286222219467163
+}

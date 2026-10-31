@@ -1,0 +1,13 @@
+{
+  "section_id": "3.4",
+  "title": "Hardware Component Description",
+  "data": {
+    "paragraphs": [
+      "The primary sensing transducer is the HC-SR04 ultrasonic ranging module. The sensor operates by transmitting an eight-cycle 40 kHz burst from an ultrasonic transmitter and timing the acoustic reflection detected by the receiver transducer. The distance is calculated from the pulse duration based on the speed of sound.",
+      "The LM2596 buck converter step-down module incorporates a monolithic switching regulator operating at 150 kHz. It accepts input voltages up to 12V DC from an external battery and provides a regulated 5V DC rail with high thermal and electrical conversion efficiency."
+    ],
+    "bullets": []
+  },
+  "timestamp": 1793236995.4369435,
+  "elapsed": 8.249282836914062e-05
+}

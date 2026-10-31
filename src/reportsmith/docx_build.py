@@ -846,7 +846,11 @@ class DocxReportBuilder:
         run_t.font.size = Pt(15)
 
         if self.brief.abstract:
-            paras = [self.brief.abstract]
+            clean_abs = self.brief.abstract
+            clean_abs = re.sub(r"16[^\x20-\x7E]?2\s*LCD", "16x2 LCD", clean_abs)
+            clean_abs = re.sub(r"\bpro\s+vide\b", "provide", clean_abs)
+            clean_abs = re.sub(r"\bwastag\s+e\b", "wastage", clean_abs)
+            paras = [clean_abs]
         else:
             paras = gen_data.get("paragraphs") or [
                 f"This micro-project report describes the design and implementation of '{self.brief.project.title}' "

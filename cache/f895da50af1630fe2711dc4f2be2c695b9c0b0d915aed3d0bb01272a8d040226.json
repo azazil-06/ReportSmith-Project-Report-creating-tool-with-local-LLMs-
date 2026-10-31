@@ -1,0 +1,13 @@
+{
+  "section_id": "3.5",
+  "title": "Pin Configuration and Peripheral Mapping",
+  "data": {
+    "paragraphs": [
+      "The microcontroller peripheral mapping has been configured to maximize signal integrity and prevent resource contention across the STM32 bus matrix:",
+      "GPIO Port A Pin 0 (PA0) is allocated to ADC1 Channel 0 configured in analog input mode without pull-up or pull-down resistors. The internal ADC sampling time is set to provide adequate settling time for the capacitive sensor impedance. GPIO Port B Pin 6 (PB6) and Pin 7 (PB7) are assigned to I2C1 SCL and SDA respectively, with internal pull-ups augmented by external resistors on the OLED breakout. GPIO Port C Pin 13 (PC13) is configured as a general-purpose push-pull output. Finally, PA9 (USART1_TX) and PA10 (USART1_RX) are mapped to serial communication at 115200 baud."
+    ],
+    "bullets": []
+  },
+  "timestamp": 1793237060.4206314,
+  "elapsed": 4.57763671875e-05
+}

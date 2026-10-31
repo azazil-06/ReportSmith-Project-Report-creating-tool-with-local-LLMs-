@@ -1,0 +1,13 @@
+{
+  "section_id": "6.1",
+  "title": "Conclusion",
+  "data": {
+    "paragraphs": [
+      "The Water Level Detection and Overflow Indicator system based on the STM32F103C8T6 microcontroller was successfully designed, constructed, and verified. The prototype delivers non-contact acoustic distance acquisition and multi-channel alarm notification.",
+      "By alerting users immediately upon water reaching the 15 cm overflow threshold, the system provides a dependable, low-cost solution to prevent liquid spillage and excessive water pumping wastage."
+    ],
+    "bullets": []
+  },
+  "timestamp": 1793236995.4786117,
+  "elapsed": 8.440017700195312e-05
+}

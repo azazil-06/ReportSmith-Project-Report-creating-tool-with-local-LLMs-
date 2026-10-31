@@ -1,0 +1,12 @@
+{
+  "section_id": "6.3",
+  "title": "Limitations",
+  "data": {
+    "paragraphs": [
+      "The project demonstrated the feasibility of using a STM32F103C8T6 microcontroller with a soil moisture sensor to alert users about plant watering needs. The system was designed to operate in real-time, with deterministic logic evaluation and autonomous actuation without cloud dependency. However, the project faced limitations in terms of accuracy and responsiveness due to the limited processing power and memory available on the STM32F103C8T6. Additionally, the soil moisture sensor's calibration was not perfect, leading to occasional false readings. Future improvements could include more advanced algorithms for soil moisture detection and a larger storage capacity for data logging."
+    ],
+    "bullets": []
+  },
+  "timestamp": 1793235736.482465,
+  "elapsed": 5.025121450424194
+}

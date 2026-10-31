@@ -1,0 +1,18 @@
+{
+  "section_id": "5.4",
+  "title": "Output Screenshots",
+  "data": {
+    "paragraphs": [
+      "The testing process for the moisture sensor system was conducted to ensure its reliability and accuracy. The test cases were designed to cover different operational conditions, including dry soil, optimal moisture, and excess moisture/saturated conditions.",
+      "For each test case, the system was executed in hardware mode, and the observed behavior was compared with the expected results.",
+      "The dry soil alert test (TC_01) involved a condition where the raw ADC reading was greater than or equal to 2981. The expected response was for the buzzer to be active (HIGH) and the status LED PC13 to be on (LOW). The observed behavior matched these expectations.",
+      "The optimal moisture inactive test (TC_02) involved a condition where the raw ADC reading was between 1757 and 2980. The expected response was for the buzzer to be inactive (LOW) and the status LED PC13 to be off (HIGH). The observed behavior matched these expectations.",
+      "The excess moisture/saturated test (TC_03) involved a condition where the raw ADC reading was less than or equal to 1756. The expected response was for the buzzer to be inactive (LOW) and the status LED PC13 to be off (HIGH). The observed behavior matched these expectations.",
+      "The operational boundaries and expected states were also verified during testing. For dry soil, the raw ADC range should be greater than or equal to 2981. For optimal moisture, the raw ADC range should be between 1757 and 2980. For too wet conditions, the raw ADC range should be less than or equal to 1756.",
+      "The testing methodology was rigorous, ensuring that all operational conditions were covered and that the system's performance met the expected specifications."
+    ],
+    "bullets": []
+  },
+  "timestamp": 1793235713.953856,
+  "elapsed": 9.51784896850586
+}

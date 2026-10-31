@@ -1,0 +1,17 @@
+{
+  "section_id": "3.7",
+  "title": "Working Principle",
+  "data": {
+    "paragraphs": [
+      "The working principle of the system is based on monitoring the soil moisture level using an ADC (Analog-to-Digital Converter) connected to PA0. The ADC converts the analog signal from the soil moisture sensor into a digital value, which is then processed by the microcontroller.",
+      "The ADC operates in 12-bit mode, allowing for a range of 4096 possible readings. The raw data is converted to a percentage of the maximum moisture level (100%) using the formula: (raw_value / 4095) * 100.",
+      "The system uses a threshold-based state classification logic to determine the current operational state based on the soil moisture reading. If the moisture level is below 30%, the system transitions to the 'NEEDS WATER' state, which triggers an audible alert through PA1 using a buzzer driver.",
+      "If the moisture level is between 30% and 80%, the system remains in the 'OPTIMAL' state. This state indicates that the soil is adequately moist for optimal plant growth.",
+      "If the moisture level exceeds 80%, the system transitions to the 'TOO WET' state, which triggers an audible alert through PA1 again. In this state, the system may need to adjust watering schedules or provide additional support to prevent overwatering.",
+      "The onboard status LED is connected to PC13 and is active-low, indicating that the system is in a specific operational state. When the system transitions between states, the LED indicator changes accordingly, providing visual feedback to the user."
+    ],
+    "bullets": []
+  },
+  "timestamp": 1793235590.0563483,
+  "elapsed": 8.623994588851929
+}

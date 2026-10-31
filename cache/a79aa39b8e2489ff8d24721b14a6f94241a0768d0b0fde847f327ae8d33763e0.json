@@ -1,0 +1,12 @@
+{
+  "section_id": "2.4",
+  "title": "Software Requirements",
+  "data": {
+    "paragraphs": [
+      "The development and execution of the embedded firmware require a cohesive software toolchain and library suite:"
+    ],
+    "bullets": []
+  },
+  "timestamp": 1793237060.404003,
+  "elapsed": 3.838539123535156e-05
+}

@@ -1,0 +1,13 @@
+{
+  "section_id": "1.3",
+  "title": "Scope of the Project",
+  "data": {
+    "paragraphs": [
+      "The scope of this project focuses on the design, embedded programming, and hardware integration of an autonomous soil moisture monitoring unit tailored for indoor potted plants and controlled micro-greenhouses.",
+      "The design accommodates calibrated sensor ranges between 1300 (saturation) and 3700 (air/dry) raw ADC counts, supporting user feedback through local OLED screens and status LEDs. Network telemetry, cloud logging, and automated solenoid water pumping are defined as external extensions outside the current core scope, keeping the hardware footprint compact and power consumption low."
+    ],
+    "bullets": []
+  },
+  "timestamp": 1793236146.758435,
+  "elapsed": 8.416175842285156e-05
+}

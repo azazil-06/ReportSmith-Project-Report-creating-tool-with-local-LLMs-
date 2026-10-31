@@ -1,0 +1,13 @@
+{
+  "section_id": "4.5",
+  "title": "Hardware Interfacing and Integration",
+  "data": {
+    "paragraphs": [
+      "Hardware integration was executed by assembling the STM32 Blue Pill, HC-SR04 sensor, LM2596 buck converter, 16x2 LCD, and alert indicators onto a structured prototyping board. Power rail separation was implemented to isolate sensor switching transients from microcontroller logic.",
+      "The 5V echo output of the HC-SR04 sensor was conditioned using a resistor voltage divider to deliver a safe 3.3V signal to pin PB1, safeguarding the microcontroller from overvoltage conditions."
+    ],
+    "bullets": []
+  },
+  "timestamp": 1793236995.4530673,
+  "elapsed": 8.440017700195312e-05
+}

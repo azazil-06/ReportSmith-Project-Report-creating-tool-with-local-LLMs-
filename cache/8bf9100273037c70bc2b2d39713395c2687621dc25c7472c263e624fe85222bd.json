@@ -1,0 +1,13 @@
+{
+  "section_id": "4.2",
+  "title": "STM32CubeMX Configuration",
+  "data": {
+    "paragraphs": [
+      "In the equivalent STM32CubeMX configuration, the clock configuration tree configures the 8.0 MHz HSE crystal oscillator to achieve the maximum 72 MHz system clock using the integrated PLL. The APB1 peripheral prescaler is configured for 36 MHz and APB2 for 72 MHz.",
+      "GPIO pins PB0, PA1, PA2, PA3, and PC13 are defined as GPIO_Output (Push-Pull). Pin PB1 is defined as GPIO_Input with internal pull-down resistor. Peripheral I2C1 is enabled on pins PB6 and PB7 in standard mode."
+    ],
+    "bullets": []
+  },
+  "timestamp": 1793236995.446991,
+  "elapsed": 8.273124694824219e-05
+}

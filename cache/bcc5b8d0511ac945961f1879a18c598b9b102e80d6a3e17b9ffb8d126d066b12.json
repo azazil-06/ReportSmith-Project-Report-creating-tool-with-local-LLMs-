@@ -1,0 +1,17 @@
+{
+  "section_id": "2.4",
+  "title": "Software Requirements",
+  "data": {
+    "paragraphs": [
+      "The software toolchain and runtime libraries utilized for firmware development comprise the following components:"
+    ],
+    "bullets": [
+      "Arduino IDE with official STM32duino (Arduino STM32 Core) board support packages.",
+      "Wire and LiquidCrystal_I2C libraries for PCF8574-based LCD control over the I2C bus.",
+      "ST-Link V2 firmware upgrade and flashing utility for SWD program programming.",
+      "Serial terminal monitor for USART1 telemetry acquisition at 115200 baud."
+    ]
+  },
+  "timestamp": 1793236995.4195223,
+  "elapsed": 0.00010538101196289062
+}

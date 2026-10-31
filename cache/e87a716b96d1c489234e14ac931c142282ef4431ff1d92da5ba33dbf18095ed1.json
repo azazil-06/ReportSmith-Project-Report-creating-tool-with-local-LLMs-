@@ -1,0 +1,17 @@
+{
+  "section_id": "2.4",
+  "title": "Software Requirements",
+  "data": {
+    "paragraphs": [
+      "Section 2.4: Software Requirements\n\nThis section outlines the software requirements for the STM32F103C8T6 microcontroller, focusing on the peripherals and their respective pins. The system is designed to monitor soil moisture levels, alert users via a buzzer when soil moisture falls below a certain threshold, and provide real-time telemetry over USB."
+    ],
+    "bullets": [
+      "STM32F103C8T6 microcontroller",
+      "ADC (Analog-to-Digital Converter) for soil moisture measurement",
+      "GPIO (General Purpose Input/Output) pins for active buzzer alert, onboard status LED, and serial communication",
+      "USART1 for USB-to-UART Adapter"
+    ]
+  },
+  "timestamp": 1793235510.8474646,
+  "elapsed": 5.280988931655884
+}

@@ -1,0 +1,13 @@
+{
+  "section_id": "4.1",
+  "title": "Development Environment Setup",
+  "data": {
+    "paragraphs": [
+      "The development environment was configured by installing the Arduino IDE and incorporating the official STM32duino board package via the Boards Manager URL. The board target was set to 'Generic STM32F103C series' with 64 KB Flash configuration.",
+      "The ST-Link V2 programmer was connected to the microcontroller's SWD pins (SWDIO, SWCLK, 3.3V, GND). The STM32CubeProgrammer software was utilized to verify hardware target communication and flash the compiled binary image."
+    ],
+    "bullets": []
+  },
+  "timestamp": 1793237060.4254613,
+  "elapsed": 2.6941299438476562e-05
+}

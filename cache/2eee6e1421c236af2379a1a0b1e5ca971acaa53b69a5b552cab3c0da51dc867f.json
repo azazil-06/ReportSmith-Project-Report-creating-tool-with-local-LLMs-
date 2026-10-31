@@ -1,0 +1,13 @@
+{
+  "section_id": "2.2",
+  "title": "STM32 Development Board and Specifications",
+  "data": {
+    "paragraphs": [
+      "The hardware platform selected for this implementation is the popular STM32F103C8T6 development board, widely designated as the 'Blue Pill'. The board incorporates an STM32F103C8T6 microcontroller featuring an ARM Cortex-M3 32-bit RISC core operating at a maximum clock frequency of 72 MHz. The device integrates 64 KB of embedded Flash memory for program code storage and 20 KB of high-speed SRAM for data allocation.",
+      "The board is powered by an onboard 3.3V low-dropout voltage regulator capable of accepting 5V input via USB or an external power supply. An external 8 MHz quartz crystal oscillator serves as the high-speed external (HSE) clock source, which is multiplied by the internal phase-locked loop (PLL) to deliver the system core clock of 72 MHz. An auxiliary 32.768 kHz crystal supports the integrated real-time clock (RTC)."
+    ],
+    "bullets": []
+  },
+  "timestamp": 1793237060.4014213,
+  "elapsed": 3.552436828613281e-05
+}

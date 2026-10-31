@@ -1,0 +1,16 @@
+{
+  "section_id": "5.2",
+  "title": "Test Cases and Observations",
+  "data": {
+    "paragraphs": [
+      "The testing phase of the project was conducted to ensure the system's functionality meets the specified requirements. The test cases were designed to cover various operational scenarios, including dry soil, optimal moisture, and excess moisture/saturated conditions. Each test case was executed in hardware mode, and the observed behavior was compared against the expected results.",
+      "For TC_01: Dry Soil Alert Test, the system should activate the buzzer (HIGH) and turn on the status LED PC13 (LOW) when the raw ADC reading is greater than or equal to 2981. The observed response was verified physically by observing the buzzer and status LED.",
+      "For TC_02: Optimal Moisture Inactive Test, the system should deactivate the buzzer (LOW) and turn off the status LED PC13 (HIGH) when the raw ADC reading is between 1757 and 2980. The observed response was verified physically by observing the buzzer and status LED.",
+      "For TC_03: Excess Moisture / Saturated Test, the system should deactivate the buzzer (LOW) and turn off the status LED PC13 (HIGH) when the raw ADC reading is less than or equal to 1756. The observed response was verified physically by observing the buzzer and status LED.",
+      "The operational boundaries and expected states were carefully defined, ensuring that the system's behavior adhered to the specified conditions. The raw ADC readings were within the expected ranges for each condition, indicating that the system was functioning as intended."
+    ],
+    "bullets": []
+  },
+  "timestamp": 1793235694.380532,
+  "elapsed": 8.476704835891724
+}

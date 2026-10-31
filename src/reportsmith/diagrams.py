@@ -93,22 +93,29 @@ def extract_project_hardware_profile(brief: ProjectBrief) -> HardwareProfile:
     # 1. Look for Primary Sensor
     sensor_pin_obj = None
     for p in brief.implementation.pins:
+        if p.pin in ["PC13", "PA9", "PA10", "3V3", "5V", "GND"]:
+            continue
         p_str = (p.peripheral + " " + p.connected_to + " " + p.function).lower()
-        if "adc" in p.peripheral.lower() or any(
-            w in p_str for w in ["sensor", "moisture", "ldr", "light", "temp", "humidity", "probe", "analog"]
-        ):
+        if any(
+            w in p_str for w in ["ultrasonic", "echo", "trigger", "distance", "sonar", "sr04", "sensor", "moisture", "ldr", "temp", "humidity", "probe"]
+        ) or ("analog" in p_str and "adc" in p.peripheral.lower()):
             sensor_pin_obj = p
             break
 
     sensor_comp = None
     for c in brief.implementation.components:
         c_str = (c.name + " " + c.role + " " + c.interface).lower()
-        if any(w in c_str for w in ["sensor", "probe", "moisture", "ldr", "light", "photocell", "temp", "measurement"]):
+        if any(w in c_str for w in ["ultrasonic", "echo", "trigger", "sensor", "probe", "moisture", "ldr", "light", "photocell", "temp", "measurement"]):
             sensor_comp = c
             break
 
-    sensor_pin = sensor_pin_obj.pin if sensor_pin_obj else "PA0"
-    sensor_peripheral = sensor_pin_obj.peripheral if sensor_pin_obj else "ADC1_IN0"
+    trig_pin = next((p.pin for p in brief.implementation.pins if "trig" in (p.connected_to + " " + p.function).lower()), None)
+    echo_pin = next((p.pin for p in brief.implementation.pins if "echo" in (p.connected_to + " " + p.function).lower()), None)
+    if trig_pin and echo_pin:
+        sensor_pin = f"{trig_pin}/{echo_pin}"
+    else:
+        sensor_pin = sensor_pin_obj.pin if sensor_pin_obj else "PB0/PB1"
+    sensor_peripheral = sensor_pin_obj.peripheral if sensor_pin_obj else "GPIO"
     if sensor_comp:
         sensor_name = sensor_comp.name
         sensor_desc = sensor_comp.notes or sensor_comp.role

@@ -1,0 +1,13 @@
+{
+  "section_id": "3.1",
+  "title": "System Architecture",
+  "data": {
+    "paragraphs": [
+      "The system architecture is organized into three cohesive functional tiers: sensing, processing, and output annunciation. The sensing tier comprises the HC-SR04 ultrasonic sensor mounted above the water surface. The processing tier consists of the STM32F103C8T6 microcontroller executing signal filtering, distance computation, and threshold comparison algorithms. The output tier comprises the 16x2 I2C LCD, active buzzer, status LEDs, and serial telemetry interface.",
+      "Power distribution is governed by an LM2596 buck converter supplying a regulated 5V DC rail to the ultrasonic sensor and LCD module, with the microcontroller operating deterministically at 3.3V."
+    ],
+    "bullets": []
+  },
+  "timestamp": 1793236995.4298599,
+  "elapsed": 8.845329284667969e-05
+}

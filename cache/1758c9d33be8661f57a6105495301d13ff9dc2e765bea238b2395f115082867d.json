@@ -1,0 +1,14 @@
+{
+  "section_id": "abstract",
+  "title": "Abstract",
+  "data": {
+    "paragraphs": [
+      "This report presents the design and hardware realization of an automated soil moisture monitoring and plant watering reminder system based on the STM32F103C8T6 ARM Cortex-M3 microcontroller. Potted plants require maintained soil moisture to prevent root degradation and drought stress. The system interfaces a capacitive soil moisture sensor with a 12-bit analog-to-digital converter (ADC) on pin PA0 to acquire periodic moisture measurements.",
+      "Acquired analog values are smoothed using a ten-sample rolling average to suppress electromagnetic noise. The raw ADC values are deterministically mapped to soil moisture percentages using calibrated limits (AIR_VALUE = 3700 and WATER_VALUE = 1300). System telemetry, instantaneous moisture percentage, and operating state are output to a 0.96-inch SSD1306 OLED display via the I2C bus and transmitted via USART1 at 115200 baud. An active-low status LED on pin PC13 provides immediate visual alerting whenever moisture drops below the critical 30% threshold.",
+      "The firmware was implemented in Embedded C within the Arduino STM32 Core environment leveraging underlying STM32 Hardware Abstraction Layer (HAL) drivers. Experimental verification confirmed robust detection across dry (raw >= 2981), optimal (1757 to 2980), and water-saturated (raw <= 1756) operational ranges, delivering an energy-efficient and scalable solution for smart agriculture."
+    ],
+    "bullets": []
+  },
+  "timestamp": 1793237060.3775704,
+  "elapsed": 0.0001347064971923828
+}

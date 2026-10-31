@@ -1,0 +1,13 @@
+{
+  "section_id": "4.1",
+  "title": "Development Environment Setup",
+  "data": {
+    "paragraphs": [
+      "Setting up the embedded development environment required configuring the Arduino IDE with the official STM32duino board package repository. The board manager URL was populated to install the STMicroelectronics core libraries and toolchains.",
+      "The target board was selected as 'Generic STM32F1 series' with the part number specified as 'BluePill F103C8'. The upload method was configured for 'STLink', enabling direct flashing and debugging over the hardware SWD header. Peripheral library dependencies, including Adafruit_GFX and Adafruit_SSD1306, were installed via the IDE library manager."
+    ],
+    "bullets": []
+  },
+  "timestamp": 1793236146.797318,
+  "elapsed": 9.1552734375e-05
+}

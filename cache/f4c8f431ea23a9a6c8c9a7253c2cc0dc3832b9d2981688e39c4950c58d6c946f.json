@@ -1,0 +1,13 @@
+{
+  "section_id": "6.1",
+  "title": "Conclusion",
+  "data": {
+    "paragraphs": [
+      "The plant watering reminder system based on the STM32F103C8T6 microcontroller and capacitive soil moisture sensor was successfully designed, implemented, and verified. The system demonstrates the integration of analog acquisition, multi-sample digital filtering, I2C graphical display rendering, and active-low GPIO actuation.",
+      "The capacitive measurement technique eliminates sensor probe degradation, while the ARM Cortex-M3 processor delivers rapid 72 MHz computation with minimal power consumption. The resulting unit provides a self-contained, dependable tool for soil hydration monitoring."
+    ],
+    "bullets": []
+  },
+  "timestamp": 1793237060.444734,
+  "elapsed": 3.361701965332031e-05
+}

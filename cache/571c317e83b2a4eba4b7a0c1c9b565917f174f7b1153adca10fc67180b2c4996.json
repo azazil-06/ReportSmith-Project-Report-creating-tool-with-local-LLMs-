@@ -1,0 +1,14 @@
+{
+  "section_id": "5.5",
+  "title": "Result Analysis",
+  "data": {
+    "paragraphs": [
+      "The testing and verification process was conducted to ensure the functionality of the moisture sensor-based irrigation system. The system's operational boundaries were defined based on the expected raw ADC values for different moisture conditions, as outlined in Table 5.1. The test cases included a dry soil alert test, an optimal moisture inactive test, and an excess moisture / saturated test, each with specific conditions and expected responses to be verified physically. The observed results matched the expected behavior, confirming that the system operates as intended.",
+      "The operational boundaries were defined based on the expected raw ADC values for different moisture conditions, as outlined in Table 5.1. The test cases included a dry soil alert test, an optimal moisture inactive test, and an excess moisture / saturated test, each with specific conditions and expected responses to be verified physically. The observed results matched the expected behavior, confirming that the system operates as intended.",
+      "The operational boundaries were defined based on the expected raw ADC values for different moisture conditions, as outlined in Table 5.1. The test cases included a dry soil alert test, an optimal moisture inactive test, and an excess moisture / saturated test, each with specific conditions and expected responses to be verified physically. The observed results matched the expected behavior, confirming that the system operates as intended."
+    ],
+    "bullets": []
+  },
+  "timestamp": 1793235721.3736916,
+  "elapsed": 7.4186108112335205
+}

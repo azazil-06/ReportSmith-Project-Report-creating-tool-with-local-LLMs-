@@ -1,6 +1,6 @@
 project:
-  title: Plant Watering Reminder Using Stm32 And Soil Moisture Sensor
-  course_code: PCCST504
+  title: Water Level Detection Using Stm32
+  course_code: PBCST504
   course_name: Microcontrollers
   semester: V Semester B.Tech
   month_year: October 2026
@@ -12,14 +12,16 @@ project:
   address: PATTOOR P. O., ALAPPUZHA
 people:
   team:
-  - name: Which
-    roll_no: THE SOIL. THE SENSOR OUTPUT IS CONNECTED TO THE ADC OF AN STM32 MICROCONTROLLER
-  - name: Falls Below A Predefined Threshold
-    roll_no: THE STM32 ACTIVATES A BUZZER OR LED TO PROVIDE A
-  - name: Project Uses An Arm Cortex
-    roll_no: M BASED STM32, ADC, GPIO, EMBEDDED C, AND BASIC
+  - name: Devananda.S
+    roll_no: SBC24CS097
+  - name: Neehara Anil K K
+    roll_no: SBC24CS154
+  - name: Sanu R Geevarghese
+    roll_no: SBC24CS180
+  - name: Madhav Padmakumar
+    roll_no: SBC24CS144
   guide:
-    name: Ms.ARYALEKSHMI A
+    name: Ms. Aryalekshmi A
     designation: Assistant Professor
     department: Department Of Computer Science & Engineering
   hod:
@@ -46,27 +48,63 @@ implementation:
     role: Central Processing Unit
     interface: On-board / 72 MHz ARM Cortex-M3
     notes: 64 KB Flash, 20 KB SRAM, 12-bit ADC, Timer PWM
-  - name: Soil Moisture Sensor Module
-    role: Soil Moisture Measurement
-    interface: Analog Voltage Output (PA0)
-    notes: Capacitive / Resistive soil moisture probe reading 1300 to 3700 raw ADC
+  - name: HC-SR04 Ultrasonic Distance Sensor Module
+    role: Non-Contact Water Level Measurement
+    interface: Digital Trigger (PB0) & Echo (PB1)
+    notes: Acoustic time-of-flight ranging from 2 cm to 400 cm with 3mm precision
+  - name: 16x2 Alphanumeric LCD Display (with I2C PCF8574)
+    role: Local Telemetry & Level Display
+    interface: I2C Bus (PB6 SCL, PB7 SDA at 0x27)
+    notes: Displays real-time distance in cm and system status warnings
   - name: Active Buzzer Alert Module
-    role: Audible Notification
+    role: Audible Overflow Warning
     interface: Digital GPIO (PA1)
-    notes: Active high sounder activates when moisture is below threshold
+    notes: Active high sounder activates when water level reaches overflow threshold
+  - name: Red & Green Status Indicator LEDs
+    role: Visual Level State Annunciation
+    interface: Digital GPIOs (PA2 Red, PA3 Green)
+    notes: Red indicates overflow alarm; Green indicates normal safe water level
+  - name: LM2596 DC-DC Buck Converter Step-Down Module
+    role: Regulated Power Supply
+    interface: Input 9V-12V Battery, Regulated 5V DC Output
+    notes: High-efficiency step-down switching regulator supplying stable 5V rail
   - name: Onboard Indicator LED (PC13)
-    role: Visual State Indicator
+    role: Visual Diagnostic Indicator
     interface: GPIO (Active-Low)
-    notes: Illuminates automatically when plant needs watering
+    notes: Illuminates automatically during overflow alert states
   - name: ST-Link V2 In-Circuit Programmer
     role: Firmware Flashing & Debugging
     interface: SWD (SWDIO, SWCLK)
     notes: Serial Wire Debug interface for STM32 programming
   pins:
-  - pin: PA0
-    peripheral: ADC1_IN0
-    connected_to: Soil Moisture Sensor Analog Out
-    function: Analog soil moisture voltage measurement (12-bit ADC)
+  - pin: PB0
+    peripheral: GPIO
+    connected_to: HC-SR04 Ultrasonic Trigger Pin
+    function: 10us ultrasonic pulse generation trigger
+  - pin: PB1
+    peripheral: GPIO/Timer
+    connected_to: HC-SR04 Ultrasonic Echo Pin
+    function: High-speed ultrasonic pulse duration echo measurement
+  - pin: PA1
+    peripheral: GPIO
+    connected_to: Active Buzzer Alert Driver
+    function: Audible alarm trigger on critical alert condition
+  - pin: PA2
+    peripheral: GPIO
+    connected_to: Red Alert LED
+    function: Visual indicator for critical high water level and overflow
+  - pin: PA3
+    peripheral: GPIO
+    connected_to: Green Status LED
+    function: Visual indicator for safe and normal water level
+  - pin: PB6
+    peripheral: I2C1_SCL
+    connected_to: 16x2 LCD I2C SCL
+    function: I2C clock line for 16x2 alphanumeric LCD display
+  - pin: PB7
+    peripheral: I2C1_SDA
+    connected_to: 16x2 LCD I2C SDA
+    function: I2C data line for 16x2 alphanumeric LCD display
   - pin: PC13
     peripheral: GPIOC
     connected_to: Onboard Status LED
@@ -84,54 +122,59 @@ implementation:
   - ADC
   - Timers
   - UART
+  - I2C
   libraries:
   - Arduino.h
   - Arduino_Core_STM32
+  - Wire.h
+  - LiquidCrystal_I2C.h
   programmer: ST-Link V2
   serial_baud: 115200
 behaviour:
   calibration_constants:
-    AIR_VALUE: 3700
-    WATER_VALUE: 1300
+    TANK_HEIGHT_CM: 100
+    OVERFLOW_THRESHOLD_CM: 15
   thresholds:
-    DRY_THRESHOLD_PERCENT: 30
-    WET_THRESHOLD_PERCENT: 80
+    WARNING_THRESHOLD_CM: 30
+    OVERFLOW_THRESHOLD_CM: 15
   timing_values:
-    SAMPLE_INTERVAL_MS: 250
-    SAMPLES: 10
+    SAMPLE_INTERVAL_MS: 500
+    SAMPLES: 5
   state_names:
-  - NEEDS WATER (DRY)
-  - OPTIMAL
-  - TOO WET
+  - CRITICAL OVERFLOW ALERT
+  - APPROACHING HIGH LEVEL
+  - NORMAL / SAFE WATER LEVEL
   led_active_low: true
-code_file: Content\Plant_Moisture_Detection.ino
-abstract: The Plant Watering Reminder using STM32 and Soil Moisture Sensor is a simple
-  embedded system designed to monitor the moisture level of soil and remind the user
-  when a plant needs watering. The system uses a soil moisture sensor to detect the
-  amount of moisture present in the soil. The sensor output is connected to the ADC
-  of an STM32 microcontroller, which reads and processes the moisture level. When
-  the soil becomes dry and the moisture level falls below a predefined threshold,
-  the STM32 activates a buzzer or LED to provide a watering reminder. When sufficient
-  moisture is available, the indicator remains OFF. The project uses an ARM Cortex-M
-  based STM32, ADC, GPIO, Embedded C, and basic delay/timer concepts. This system
-  helps prevent plants from being under-watered and provides a simple and convenient
-  method for monitoring soil moisture. The project is low- cost, easy to implement,
-  and demonstrates basic sensor interfacing and microcontroller programming.
+code_file: Content\Water_Level_Overflow_Indicator.ino
+abstract: The Water Level Overflow Indicator is designed to monitor the water level
+  in a tank and provide a warning when the water approaches a predefined high level.
+  The system uses an HC-SR04 ultrasonic sensor to measure the distance between the
+  sensor and the water surface. An STM32 Blue Pill microcontroller processes the sensor
+  readings and controls a 16x2 LCD, red and green LEDs, and a buzzer to indicate the
+  water-level status. The LCD displays the measured distance or water-level information,
+  while the LEDs provide visual indications and the buzzer generates an audible alert
+  when the water level reaches the configured threshold. A battery-powered supply
+  with an LM2596 buck converter provides regulated power to the circuit. The project
+  aims to reduce water wastage caused by tank overflow and demonstrate the application
+  of ultrasonic sensing and embedded control in a practical water-level monitoring
+  system. The system does not automatically stop the water flow; instead, it alerts
+  the user so that appropriate action can be taken
 tests:
 - id: TC_01
-  name: Dry Soil Alert Test
-  condition: Raw ADC >= 2981 (Moisture < 30%)
-  expected: Buzzer ACTIVE (HIGH), Status LED PC13 ON (LOW)
+  name: High Water Level / Critical Overflow Alert Test
+  condition: Measured Distance <= 15 cm (Tank > 85% full)
+  expected: Red LED ON, Active Buzzer sounding, Green LED OFF, LCD shows 'OVERFLOW
+    ALERT!'
   observed: null
 - id: TC_02
-  name: Optimal Moisture Inactive Test
-  condition: 1757 <= Raw ADC <= 2980 (Moisture 30% to 80%)
-  expected: Buzzer INACTIVE (LOW), Status LED PC13 OFF (HIGH)
+  name: Approaching High Level Warning Test
+  condition: 16 cm <= Measured Distance <= 30 cm (70% to 85% full)
+  expected: Red LED ON, Green LED ON, Buzzer OFF, LCD shows 'LEVEL HIGH'
   observed: null
 - id: TC_03
-  name: Excess Moisture / Saturated Test
-  condition: Raw ADC <= 1756 (Moisture > 80%)
-  expected: Buzzer INACTIVE (LOW), Status LED PC13 OFF (HIGH)
+  name: Normal / Safe Water Level Verification Test
+  condition: Measured Distance > 30 cm (Tank < 70% full)
+  expected: 'Green LED ON, Red LED OFF, Buzzer OFF, LCD shows ''STATUS: NORMAL'''
   observed: null
 assets:
   hardware_photos: []
@@ -144,9 +187,12 @@ references:
   32-bit MCU Datasheet', DocID 13587 Rev 17, 2020.
 - 'STMicroelectronics, ''RM0008 Reference Manual: STM32F101xx, STM32F102xx, STM32F103xx
   advanced ARM-based 32-bit MCUs'', Rev 21, 2021.'
+- ElecFreaks, 'HC-SR04 Ultrasonic Ranging Module User Guide', 2019.
 - STM32duino, 'Arduino Core for STM32 based boards', Official STMicroelectronics GitHub
   Repository, 2024.
+- Texas Instruments, 'LM2596 SIMPLE SWITCHER Power Converter 150-kHz 3-A Step-Down
+  Voltage Regulator', SNVS124D, 2021.
 - Paul Horowitz and Winfield Hill, 'The Art of Electronics', Cambridge University
   Press, 3rd Edition, 2015.
-extra_notes: Plant Watering Reminder Using Stm32 And Soil Moisture Sensor using STM32F103C8T6
-  with hardware sensors and actuators.
+extra_notes: Water Level Detection Using Stm32 using STM32F103C8T6 with hardware sensors
+  and actuators.

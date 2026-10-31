@@ -1,0 +1,16 @@
+{
+  "section_id": "3.1",
+  "title": "System Architecture",
+  "data": {
+    "paragraphs": [
+      "The system architecture for Chapter 3 is designed to monitor soil moisture levels using a STM32F103C8T6 microcontroller with the arduino_stm32core framework. The system consists of several key components and interfaces, including the ADC (Analog-to-Digital Converter) connected to the Soil Moisture Sensor Analog Out pin PA0, the Active Buzzer Alert Driver connected to the GPIO pin PA1, the Onboard Status LED connected to the GPIOC pin PC13, the USB-to-UART Adapter connected to both USART1_TX and USART1_RX pins for serial communication.",
+      "The ADC is configured to measure analog soil moisture voltage levels in 12-bit resolution. The raw data from the ADC is processed by a state machine that classifies the soil moisture level into three states: NEEDS WATER (DRY), OPTIMAL, or TOO WET based on predefined threshold constants. The state classification logic uses a combination of moisture percentage and raw range values to determine the current operational state.",
+      "The system also includes an indicator logic that controls the onboard Status LED based on the current operational state. When the soil moisture level is below 30%, the LED turns ON, indicating that the system needs water. When the soil moisture level is between 30% and 80%, the LED turns OFF, indicating that the system is optimal. When the soil moisture level is above 80%, the LED remains OFF, indicating that the system is too wet.",
+      "The system operates at a baud rate of 115200 for serial communication with the USB-to-UART Adapter. The ADC sampling interval is set to 250 milliseconds, and the number of samples collected per cycle is 8. This configuration allows for accurate soil moisture measurements while maintaining low power consumption.",
+      "The system architecture provides a robust monitoring and alerting mechanism for soil moisture levels using a STM32F103C8T6 microcontroller with the arduino_stm32core framework. The state machine and indicator logic ensure that the system is able to classify soil moisture levels accurately and provide timely alerts to users."
+    ],
+    "bullets": []
+  },
+  "timestamp": 1793235531.9411983,
+  "elapsed": 10.680681943893433
+}

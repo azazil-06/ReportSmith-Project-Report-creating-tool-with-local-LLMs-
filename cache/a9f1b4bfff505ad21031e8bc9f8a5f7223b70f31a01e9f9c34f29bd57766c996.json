@@ -1,0 +1,19 @@
+{
+  "section_id": "4.5",
+  "title": "Hardware Interfacing and Integration",
+  "data": {
+    "paragraphs": [
+      "The hardware interface and integration for the plant monitoring system are detailed in this section. The system uses the Arduino STM32Core framework, which is built on the STM32 HAL drivers. The core provides a robust set of functions and utilities to simplify the development process.",
+      "The system consists of several peripherals and clocks that are essential for proper operation. The System Core Clock is set to 72 MHz (HSE 8 MHz with PLL x9), which is sufficient for most applications. The APB1 Prescaler is set to /2, resulting in a frequency of 36 MHz, while the APB2 Prescaler is set to /1, providing a frequency of 72 MHz.",
+      "The ADC (Analog-to-Digital Converter) is used to measure the soil moisture level. The ADC clock is set to /6, which results in a sampling rate of 12 MHz. The pin PA0 (ADC1_IN0) is connected to the soil moisture sensor analog out, and it measures the voltage at this point.",
+      "The system also includes an active buzzer alert driver connected to pin PA1. This driver triggers an audible alert when the soil moisture level falls below a certain threshold. The logic for this driver is inverted on PC13 (GPIOC), which is an active-low status LED. When the onboard status LED lights, it indicates that an action is needed.",
+      "The system uses USART1 to communicate with a USB-to-UART adapter. The RX pin is connected to PA9 and the TX pin is connected to PA10. This allows for serial telemetry and debug monitoring at 115200 baud.",
+      "To eliminate sensor measurement noise, the system implements moving average filtering on the soil moisture data. This technique averages multiple measurements over a period of time to reduce the impact of random fluctuations in the sensor output.",
+      "The system also includes a threshold or hysteresis state evaluation to avoid spurious state switching. When the soil moisture level falls below a certain threshold, the active buzzer alert driver triggers an audible alert. However, if the soil moisture level returns above this threshold within a short period of time, the alert is not triggered again until the soil moisture level falls below the threshold again.",
+      "Overall, the hardware interface and integration for the plant monitoring system are designed to provide reliable and accurate measurements of soil moisture levels. The use of moving average filtering and threshold/hysteresis state evaluation helps to eliminate noise and ensure that the system operates correctly in a variety of conditions."
+    ],
+    "bullets": []
+  },
+  "timestamp": 1793235651.7145655,
+  "elapsed": 12.102346181869507
+}

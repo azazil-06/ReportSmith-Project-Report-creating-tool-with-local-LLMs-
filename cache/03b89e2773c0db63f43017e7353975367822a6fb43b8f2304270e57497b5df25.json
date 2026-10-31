@@ -1,0 +1,12 @@
+{
+  "section_id": "acknowledgement",
+  "title": "Acknowledgement",
+  "data": {
+    "paragraphs": [
+      "The college report acknowledges the contributions of the students and faculty involved in the project. The project was led by Ms. Aryalekshmi A, Assistant Professor, with Dr. Ramanathan as Head of Department and Prof. S. Mukherjee as Course Coordinator. The project was carried out at Sree Buddha College Of Engineering, Department of Computer Science & Engineering. The students used an HC (SR04 ULTRASONIC SENSOR) to measure the moisture level in a plant pot. They controlled a 16\u00d72 LCD using Red and Green LEDs and a Buzzer. The project was designed to remind the user when the soil moisture level drops below a certain threshold, which is set by the battery. The students also used an LM2596 power supply to provide power to the system. The project was completed within the given timeframe and achieved the expected results."
+    ],
+    "bullets": []
+  },
+  "timestamp": 1793235444.827586,
+  "elapsed": 5.913523197174072
+}

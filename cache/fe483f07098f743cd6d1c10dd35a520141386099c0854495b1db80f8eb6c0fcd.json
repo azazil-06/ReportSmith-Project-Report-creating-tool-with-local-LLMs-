@@ -1,0 +1,13 @@
+{
+  "section_id": "6.3",
+  "title": "Limitations",
+  "data": {
+    "paragraphs": [
+      "The prototype system exhibits certain operational limitations inherent in ultrasonic time-of-flight sensing. The HC-SR04 transducer has a minimum physical blind distance of 2 cm, preventing measurements within the immediate vicinity of the sensor face.",
+      "Furthermore, the speed of sound in air varies with ambient temperature, introducing minor measurement drifts across extreme weather conditions. The current system provides auditory and visual alerts but does not incorporate an automated motorized shutoff valve."
+    ],
+    "bullets": []
+  },
+  "timestamp": 1793236995.482806,
+  "elapsed": 9.369850158691406e-05
+}

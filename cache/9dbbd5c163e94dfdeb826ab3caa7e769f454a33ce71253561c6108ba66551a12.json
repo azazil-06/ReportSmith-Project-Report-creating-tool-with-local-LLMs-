@@ -1,0 +1,16 @@
+{
+  "section_id": "4.7",
+  "title": "Implementation Challenges and Solutions",
+  "data": {
+    "paragraphs": [
+      "In Chapter 4, we implemented a plant monitoring system using the arduino_stm32core framework. The system consists of an ADC to measure soil moisture and a buzzer for alerting when the soil moisture is low. To address implementation challenges, we employed moving average filtering to eliminate sensor measurement noise and correctly handled inverted active-low onboard indicator logic on PC13. Additionally, we implemented reliable threshold or hysteresis state evaluation to avoid spurious state switching.",
+      "The plant_monitor.ino file contains 96 lines of code, with 61 code lines dedicated to the implementation of the main functions. The system uses the System Core Clock at 72 MHz and the APB1 and APB2 prescalers set to /2 and /1 respectively. The ADC is configured with a prescaler of /6 to achieve a sampling frequency of 12 MHz.",
+      "The Soil Moisture Sensor Analog Out pin (PA0) is connected to an ADC1_IN0 channel, which measures the soil moisture voltage. The ADC conversion result is then processed by the readSoilMoistureAverage function, which calculates the average soil moisture reading over a specified period. The calculated moisture percentage is then displayed on the onboard status LED using the updateDisplay function.",
+      "The Active Buzzer Alert Driver pin (PA1) is connected to a GPIO output, which triggers an audible alert when the soil moisture is low. The threshold or hysteresis state evaluation is performed in the loop function, where the system checks if the soil moisture reading has dropped below a predefined threshold and sets the buzzer accordingly.",
+      "The USB-to-UART Adapter RX pin (PA9) is connected to a USART1_TX pin, which provides serial telemetry and debug monitoring at 115200 baud. The USART1_RX pin is also connected to a GPIO input, which allows for debugging purposes."
+    ],
+    "bullets": []
+  },
+  "timestamp": 1793235671.5662599,
+  "elapsed": 9.72865104675293
+}

@@ -1,0 +1,13 @@
+{
+  "section_id": "3.7",
+  "title": "Working Principle",
+  "data": {
+    "paragraphs": [
+      "The working principle relies on acoustic time-of-flight ranging. The microcontroller issues a 10-microsecond trigger pulse on pin PB0. The HC-SR04 emits a 40 kHz ultrasonic wave and drives pin PB1 HIGH for the duration of the return travel time. The distance in centimeters is calculated as duration multiplied by 0.0343 divided by 2.",
+      "When the water level rises such that the measured distance is less than or equal to 15 cm, the controller identifies a critical overflow condition. It commands pin PA1 HIGH to sound the buzzer, turns on the red LED on pin PA2, turns off the green LED on pin PA3, and prints 'OVERFLOW ALERT!' on the LCD."
+    ],
+    "bullets": []
+  },
+  "timestamp": 1793236995.44331,
+  "elapsed": 8.559226989746094e-05
+}

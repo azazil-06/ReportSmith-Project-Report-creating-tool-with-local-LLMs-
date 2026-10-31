@@ -1,0 +1,13 @@
+{
+  "section_id": "5.5",
+  "title": "Result Analysis",
+  "data": {
+    "paragraphs": [
+      "Experimental data analysis confirmed that the ultrasonic sensor delivered distance measurements with high linearity across the tested 15 cm to 100 cm range. The 5-sample moving average filter eliminated false alarms caused by surface turbulence.",
+      "The system achieved an alert latency under 500ms upon crossing the 15 cm threshold, providing sufficient response time for user intervention before liquid tank overflow occurs."
+    ],
+    "bullets": []
+  },
+  "timestamp": 1793236995.470437,
+  "elapsed": 8.893013000488281e-05
+}

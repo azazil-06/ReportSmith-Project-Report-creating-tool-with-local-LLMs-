@@ -1,0 +1,15 @@
+{
+  "section_id": "6.3",
+  "title": "Limitations",
+  "data": {
+    "paragraphs": [
+      "While the system achieves its core objectives reliably, certain operational limitations exist:",
+      "The capacitive sensor output is subject to temperature drift, as ambient temperature changes can slightly alter soil dielectric permittivity without a corresponding change in moisture content.",
+      "The current implementation relies on tethered 5V/3.3V power and does not incorporate low-power sleep modes between measurement cycles, which would be essential for battery-operated field deployments.",
+      "Telemetry reporting is restricted to local visual displays and wired serial terminals, without long-range wireless connectivity."
+    ],
+    "bullets": []
+  },
+  "timestamp": 1793237060.448167,
+  "elapsed": 3.170967102050781e-05
+}

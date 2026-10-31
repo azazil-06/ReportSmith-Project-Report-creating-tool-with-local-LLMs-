@@ -1,0 +1,13 @@
+{
+  "section_id": "2.2",
+  "title": "STM32 Development Board and Specifications",
+  "data": {
+    "paragraphs": [
+      "The hardware platform selected for this micro-project is the STM32F103C8T6 'Blue Pill' development board. The board incorporates an ARM Cortex-M3 32-bit RISC core operating at a clock frequency of 72 MHz. The microcontroller provides 64 KB of Flash memory for firmware program storage and 20 KB of SRAM for dynamic variables and filter buffers.",
+      "The Blue Pill module operates at a core voltage of 3.3V supplied through an onboard low-dropout linear regulator. It incorporates an 8.0 MHz high-speed external (HSE) crystal oscillator, multiplied internally to 72 MHz via a Phase-Locked Loop (PLL). A Serial Wire Debug (SWD) interface enables in-circuit flashing and debugging via an ST-Link V2 programmer, while onboard status LED PC13 provides visual diagnostic signaling."
+    ],
+    "bullets": []
+  },
+  "timestamp": 1793236995.4151244,
+  "elapsed": 8.082389831542969e-05
+}

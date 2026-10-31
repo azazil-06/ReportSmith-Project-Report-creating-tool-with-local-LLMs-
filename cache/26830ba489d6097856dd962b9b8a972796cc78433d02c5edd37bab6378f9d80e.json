@@ -1,0 +1,17 @@
+{
+  "section_id": "1.2",
+  "title": "Objectives",
+  "data": {
+    "paragraphs": [
+      "This section outlines the objectives for the project, focusing on the hardware components and peripherals to be used with the STM32F103C8T6 microcontroller. The primary objectives are to monitor soil moisture levels using an ADC sensor connected to PA0, trigger an audible alert via a buzzer when soil moisture is below a certain threshold (PA1), provide real-time status updates through an onboard LED (PC13), and transmit data over USB for debugging and telemetry purposes (USART1)."
+    ],
+    "bullets": [
+      "To monitor soil moisture levels, the ADC sensor connected to PA0 will be used to measure the voltage drop across the soil moisture sensor. The measured voltage will be converted into a digital value using the ADC peripheral.",
+      "When the soil moisture is below a predefined threshold (e.g., 25% of the full scale range), an audible alert will be triggered via the buzzer connected to PA1. This can be configured to sound for a specific duration or frequency.",
+      "An onboard LED connected to PC13 will provide real-time status updates indicating whether the system needs attention. The LED will turn on when there is an issue (e.g., low soil moisture) and turn off when everything is normal.",
+      "Data transmission over USB will be used for debugging and telemetry purposes. The USART1 peripheral will be configured to transmit data at 115200 baud, allowing for real-time monitoring of the system's status."
+    ]
+  },
+  "timestamp": 1793235465.9627466,
+  "elapsed": 7.970913887023926
+}

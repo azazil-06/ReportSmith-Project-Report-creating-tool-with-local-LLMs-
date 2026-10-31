@@ -1,0 +1,14 @@
+{
+  "section_id": "1.1",
+  "title": "Project Overview",
+  "data": {
+    "paragraphs": [
+      "Automated plant monitoring systems have become critical in modern agriculture and domestic horticulture to optimize water usage and prevent plant stress. Manual soil assessment frequently leads to either underwatering or excessive watering, both of which impair root oxygenation and vegetative growth. The objective of this project is to develop an embedded microcontroller-based plant watering reminder system that provides continuous, autonomous soil moisture monitoring.",
+      "The hardware architecture centers on the STM32F103C8T6 'Blue Pill' development board, housing a 32-bit ARM Cortex-M3 core operating at a clock frequency of 72 MHz. The microcontroller features integrated 12-bit Analog-to-Digital Converters (ADC) and high-speed communication peripherals including I2C and USART. A capacitive soil moisture sensor measures changes in soil dielectric permittivity without experiencing the rapid electrode oxidation characteristic of resistive probes.",
+      "Real-time soil moisture percentages and operating statuses are presented locally on a 0.96-inch SSD1306 monochrome OLED screen. Concurrently, an onboard active-low LED on GPIO pin PC13 triggers a visual alarm when soil moisture falls below the safe operational threshold of 30%. The embedded software architecture guarantees deterministic execution, low latency, and robust fault-tolerant operation."
+    ],
+    "bullets": []
+  },
+  "timestamp": 1793236146.7521937,
+  "elapsed": 9.369850158691406e-05
+}

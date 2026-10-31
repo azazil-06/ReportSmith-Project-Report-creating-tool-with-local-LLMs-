@@ -1,0 +1,13 @@
+{
+  "section_id": "2.5",
+  "title": "STM32CubeIDE and STM32 HAL Library",
+  "data": {
+    "paragraphs": [
+      "The software architecture is established upon the STM32 Hardware Abstraction Layer (HAL), which provides structured C-language application programming interfaces (APIs) abstracting peripheral registers. While the application sketch utilizes the Arduino STM32 Core framework for modularity and rapid driver integration, the underlying core relies entirely on STMicroelectronics' official HAL drivers for register initialization and clock distribution.",
+      "This layered software model maintains low-level hardware predictability and timing precision while providing portable higher-level constructs. Peripheral configurations including the 12-bit ADC conversion clock prescalers, I2C bus timings at 100 kHz standard mode, and USART1 baud generator registers are handled through verified HAL primitives, ensuring reliable execution."
+    ],
+    "bullets": []
+  },
+  "timestamp": 1793236146.776135,
+  "elapsed": 8.559226989746094e-05
+}

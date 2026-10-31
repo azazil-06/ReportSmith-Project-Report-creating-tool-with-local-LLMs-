@@ -1,0 +1,14 @@
+{
+  "section_id": "5.5",
+  "title": "Result Analysis",
+  "data": {
+    "paragraphs": [
+      "Analysis of the expected operational behavior confirms that the integer mapping algorithm cleanly partitions the 12-bit ADC space into three unambiguous functional regions.",
+      "In dry soil conditions where raw ADC values are greater than or equal to 2981, the calculated moisture percentage remains strictly below 30%, triggering the 'NEEDS WATER' alert state and lighting the PC13 LED. When raw ADC values range between 1757 and 2980, the system operates in the 'OPTIMAL' moisture band (30% to 80%) with the alert LED extinguished. For raw values less than or equal to 1756, the moisture percentage exceeds 80%, correctly indicating the 'TOO WET' state.",
+      "The deterministic mathematical relationship guarantees predictable and reliable operation without boundary flutter or calculation overflow."
+    ],
+    "bullets": []
+  },
+  "timestamp": 1793236146.8235478,
+  "elapsed": 0.0001304149627685547
+}

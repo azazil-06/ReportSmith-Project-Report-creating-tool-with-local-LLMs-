@@ -1,0 +1,13 @@
+{
+  "section_id": "2.1",
+  "title": "STM32 Microcontroller Overview",
+  "data": {
+    "paragraphs": [
+      "The STM32 microcontroller family, developed by STMicroelectronics, is built upon the high-performance ARM Cortex-M core architecture. The platform delivers high computational efficiency, low power consumption, and rich integrated peripheral sets tailored for real-time embedded control applications.",
+      "The microcontroller features nested vector interrupt controllers (NVIC), multi-channel Direct Memory Access (DMA), advanced hardware timers, and sophisticated analog-to-digital converters. These architectural features enable precise microsecond-level timing and deterministic interrupt-driven peripheral handling essential for time-of-flight acoustic sensing."
+    ],
+    "bullets": []
+  },
+  "timestamp": 1793236995.4133139,
+  "elapsed": 8.606910705566406e-05
+}

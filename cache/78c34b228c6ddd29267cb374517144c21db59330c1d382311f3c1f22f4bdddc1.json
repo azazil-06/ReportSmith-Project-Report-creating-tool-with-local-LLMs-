@@ -1,0 +1,14 @@
+{
+  "section_id": "1.1",
+  "title": "Project Overview",
+  "data": {
+    "paragraphs": [
+      "Water resource preservation and infrastructure management are essential components of modern civil and domestic engineering. Conventional water storage systems commonly depend on manual visual inspection or submerged mechanical float switches. Submerged mechanical switches frequently experience electrochemical corrosion, scaling, and mechanical sticking over time, resulting in undetected overflow events that waste potable water and electrical pumping energy. The objective of this micro-project is to design and implement an autonomous, non-contact Water Level Detection and Overflow Indicator using an embedded STM32 microcontroller and ultrasonic sensing.",
+      "The core computing platform is the STM32F103C8T6 'Blue Pill' development board, incorporating a 32-bit ARM Cortex-M3 core operating at a clock frequency of 72 MHz with 64 KB of Flash memory and 20 KB of SRAM. An HC-SR04 ultrasonic sensor mounted above the storage reservoir continuously measures the air column distance between the sensor and the rising water surface. Because the acoustic sensor does not make physical contact with the water, it is entirely immune to corrosion, fouling, and liquid contamination.",
+      "Instantaneous water depth and operating state are output to a local 16x2 alphanumeric LCD display via the I2C communication bus. Simultaneously, the microcontroller monitors a calibrated overflow threshold of 15 cm and drives an audible active buzzer on pin PA1, a high-visibility red alert LED on pin PA2, a green status LED on pin PA3, and an active-low diagnostic LED on pin PC13. The architecture guarantees deterministic real-time execution, low power consumption, and robust operational dependability."
+    ],
+    "bullets": []
+  },
+  "timestamp": 1793236995.3986464,
+  "elapsed": 8.440017700195312e-05
+}

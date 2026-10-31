@@ -1,0 +1,13 @@
+{
+  "section_id": "2.1",
+  "title": "STM32 Microcontroller Overview",
+  "data": {
+    "paragraphs": [
+      "The STM32 family of 32-bit Flash microcontrollers, manufactured by STMicroelectronics, is built upon the high-performance ARM Cortex-M processor core. Designed specifically for embedded applications requiring high computational density, low power consumption, and deterministic real-time response, the architecture integrates advanced Harvard memory organization with separate instruction and data buses.",
+      "The STM32F103 series belongs to the mainstream performance line, featuring integrated nested vectored interrupt controllers (NVIC), multi-channel Direct Memory Access (DMA), and advanced analog and digital peripherals. Its combination of 32-bit computational capability, cost efficiency, and rich peripheral support makes it an industry standard for instrumentation, motor control, and sensory acquisition."
+    ],
+    "bullets": []
+  },
+  "timestamp": 1793237060.4000325,
+  "elapsed": 4.9591064453125e-05
+}

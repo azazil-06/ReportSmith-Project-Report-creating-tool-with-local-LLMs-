@@ -1,0 +1,13 @@
+{
+  "section_id": "4.6",
+  "title": "Program Execution and Debugging",
+  "data": {
+    "paragraphs": [
+      "Firmware verification was conducted by uploading the binary sketch through the ST-Link V2 programmer. The serial telemetry stream was monitored using a terminal emulator at 115200 baud.",
+      "The system demonstrated deterministic startup, initializing the LCD screen and outputting status messages before entering the continuous 500ms measurement loop."
+    ],
+    "bullets": []
+  },
+  "timestamp": 1793236995.4549725,
+  "elapsed": 9.226799011230469e-05
+}

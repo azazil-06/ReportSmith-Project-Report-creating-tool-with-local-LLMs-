@@ -1,0 +1,13 @@
+{
+  "section_id": "4.2",
+  "title": "STM32CubeMX Configuration",
+  "data": {
+    "paragraphs": [
+      "The peripheral and clock tree architecture reflects standard STM32CubeMX configuration principles. The clock tree configures an external 8 MHz crystal oscillator (HSE) routed through the phase-locked loop (PLL) multiplier of 9, producing the maximum rated system core frequency of 72 MHz. The APB2 peripheral clock runs at 72 MHz, while the APB1 peripheral clock is prescaled to 36 MHz.",
+      "The ADC clock prescaler is configured to divide APB2 by 6, yielding an ADC peripheral clock frequency of 12 MHz, safely beneath the 14 MHz maximum threshold specified in the STM32F103 datasheet. I2C1 is clocked from the 36 MHz APB1 bus to generate standard 100 kHz clock pulses on PB6."
+    ],
+    "bullets": []
+  },
+  "timestamp": 1793236146.7990181,
+  "elapsed": 9.179115295410156e-05
+}

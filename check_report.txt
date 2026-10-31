@@ -1,8 +1,8 @@
 ============================================================
 REPORTSMITH VERIFICATION REPORT
 ============================================================
-Target Document: out\report_updated.docx
-Project: Plant Watering Reminder Using Stm32 And Soil Moisture Sensor
+Target Document: out\report.docx
+Project: Water Level Detection Using Stm32
 Status: PASSED
 
 Total Errors: 0

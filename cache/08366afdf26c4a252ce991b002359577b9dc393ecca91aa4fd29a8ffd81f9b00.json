@@ -1,0 +1,14 @@
+{
+  "section_id": "3.7",
+  "title": "Working Principle",
+  "data": {
+    "paragraphs": [
+      "The operational principle of the plant watering reminder system is based on cyclic analog acquisition, digital smoothing, threshold classification, and synchronous telemetry reporting. Upon power-up, the microcontroller initializes system clocks, serial peripherals, OLED display buffers, and GPIO directions.",
+      "During each iteration of the main loop, ten successive analog samples are read from pin PA0 with an inter-sample interval of 10 milliseconds. The arithmetic mean of these samples is computed to filter high-frequency environmental noise. The smoothed raw ADC value is subsequently evaluated through an integer mapping function calibrated against predetermined air (3700) and water (1300) endpoints.",
+      "The resultant percentage is evaluated against preset thresholds (30% for dry soil and 80% for saturation). If the calculated moisture is below 30%, the state transitions to 'NEEDS WATER' and pin PC13 is driven LOW to activate the alert LED. When the percentage resides between 30% and 80%, the system maintains the 'OPTIMAL' state with the LED extinguished. Exceeding 80% transitions the system to 'TOO WET'."
+    ],
+    "bullets": []
+  },
+  "timestamp": 1793237060.4236677,
+  "elapsed": 3.9577484130859375e-05
+}

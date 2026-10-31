@@ -1,0 +1,13 @@
+{
+  "section_id": "3.3",
+  "title": "Circuit Diagram",
+  "data": {
+    "paragraphs": [
+      "The hardware connection and wiring schematic is illustrated in Figure 3.2. Digital pin PB0 connects to the sensor Trigger pin, while pin PB1 connects to the sensor Echo pin through a protective voltage divider.",
+      "Pins PB6 (SCL) and PB7 (SDA) connect to the 16x2 I2C LCD backpack. Pins PA1, PA2, and PA3 drive the active buzzer, red alert LED, and green status LED respectively through current-limiting resistors."
+    ],
+    "bullets": []
+  },
+  "timestamp": 1793236995.4352715,
+  "elapsed": 7.462501525878906e-05
+}

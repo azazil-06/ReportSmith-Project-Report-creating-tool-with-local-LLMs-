@@ -1,0 +1,13 @@
+{
+  "section_id": "3.6",
+  "title": "Algorithm and Flowchart",
+  "data": {
+    "paragraphs": [
+      "The operational firmware algorithm is represented by the flowchart in Figure 3.3. Upon system power-up, GPIO pins, I2C peripherals, and the LCD display are initialized. The main executive loop periodically triggers distance measurements every 500ms.",
+      "Acquired echo pulse durations are filtered through the 5-sample circular buffer. The resulting filtered distance is evaluated against the 15 cm overflow threshold and 30 cm warning threshold to determine system state and update audio-visual outputs."
+    ],
+    "bullets": []
+  },
+  "timestamp": 1793236995.4411175,
+  "elapsed": 8.535385131835938e-05
+}

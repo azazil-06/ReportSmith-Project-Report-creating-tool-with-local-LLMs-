@@ -1,0 +1,19 @@
+{
+  "section_id": "1.2",
+  "title": "Objectives",
+  "data": {
+    "paragraphs": [
+      "The technical objectives defined for the design and deployment of the Water Level Detection and Overflow Indicator system comprise the following specific technical milestones:"
+    ],
+    "bullets": [
+      "Interface an HC-SR04 ultrasonic distance sensor to the STM32F103C8T6 microcontroller utilizing GPIO trigger pin PB0 and echo pin PB1.",
+      "Implement a 5-sample digital moving average filter with a 500ms cadence to suppress fluid surface turbulence and acoustic noise.",
+      "Establish deterministic distance calculations based on the acoustic velocity of 343 m/s in air to detect when water approaches the 15 cm overflow threshold.",
+      "Develop an I2C communication interface on pins PB6 (SCL) and PB7 (SDA) to drive a 16x2 LCD display with real-time level metrics.",
+      "Configure an active buzzer on pin PA1 and dual visual status LEDs on pins PA2 (Red Alert) and PA3 (Green Safe) for immediate multi-sensory notification.",
+      "Provide serial telemetry over USART1 at 115200 baud for system calibration, debugging, and operational monitoring."
+    ]
+  },
+  "timestamp": 1793236995.403644,
+  "elapsed": 9.632110595703125e-05
+}

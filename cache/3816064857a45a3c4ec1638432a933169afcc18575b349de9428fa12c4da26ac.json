@@ -1,0 +1,13 @@
+{
+  "section_id": "4.7",
+  "title": "Implementation Challenges and Solutions",
+  "data": {
+    "paragraphs": [
+      "During initial integration, surface water ripples caused momentary fluctuations in raw acoustic readings. This challenge was resolved by introducing a 5-sample digital moving average filter and rejecting readings that exceeded expected tank boundaries.",
+      "Voltage domain translation between the 5V sensor rail and the 3.3V microcontroller IO was resolved using a passive resistive divider network, ensuring signal fidelity and device reliability."
+    ],
+    "bullets": []
+  },
+  "timestamp": 1793236995.457051,
+  "elapsed": 8.606910705566406e-05
+}

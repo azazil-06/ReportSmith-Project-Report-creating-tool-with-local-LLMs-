@@ -1,0 +1,13 @@
+{
+  "section_id": "4.3",
+  "title": "GPIO and Peripheral Configuration",
+  "data": {
+    "paragraphs": [
+      "GPIO initialization sets pin PB0 to digital output to generate the 10-microsecond trigger pulse. Pin PB1 is configured as an input to capture the echo pulse duration using the pulseIn timing function.",
+      "The I2C1 peripheral interface initializes bus communications with the PCF8574 expander at address 0x27, enabling 4-bit data transfers to the HD44780 LCD controller with minimal pin overhead."
+    ],
+    "bullets": []
+  },
+  "timestamp": 1793237060.4283116,
+  "elapsed": 2.9325485229492188e-05
+}

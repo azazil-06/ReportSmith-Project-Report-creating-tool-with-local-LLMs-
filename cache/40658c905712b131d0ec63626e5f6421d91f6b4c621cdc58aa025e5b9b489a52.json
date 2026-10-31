@@ -1,0 +1,14 @@
+{
+  "section_id": "abstract",
+  "title": "Abstract",
+  "data": {
+    "paragraphs": [
+      "This college micro-project report focuses on the development of a water level detection system using an STM32F103C8T6 microcontroller and arduino_stm32core framework. The system is designed to monitor and alert users about critical water levels, such as overflow or approaching high levels, through various hardware components and peripherals.",
+      "The project involves the use of a HC-SR04 ultrasonic distance sensor module for non-contact water level measurement, a 16x2 alphanumeric LCD display for local telemetry and level display, an active buzzer alert module for audible overflow warning, and red and green status indicator LEDs for visual level state annunciation. The system is powered by a LM2596 DC-DC buck converter step-down module with regulated power supply.",
+      "The hardware components are connected via pin interconnections, including GPIO pins for trigger, echo, buzzer, LED indicators, LCD I2C bus, and status LED. The operational constants and thresholds are defined to ensure accurate water level detection and alerting. The telemetry is transmitted through a USB-to-UART adapter at 115200 baud."
+    ],
+    "bullets": []
+  },
+  "timestamp": 1793237136.9114954,
+  "elapsed": 8.162718772888184
+}

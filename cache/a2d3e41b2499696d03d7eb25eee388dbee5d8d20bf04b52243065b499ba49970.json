@@ -1,0 +1,13 @@
+{
+  "section_id": "2.3",
+  "title": "Hardware Components and Sensors Used",
+  "data": {
+    "paragraphs": [
+      "The physical implementation integrates key hardware components designed to deliver precise environmental measurement and immediate local feedback. The primary sensory device is a capacitive soil moisture sensor v1.2. Unlike resistive probes that suffer from rapid electrolysis and galvanic corrosion, the capacitive sensor measures soil capacitance through insulated traces on the PCB, outputting an analog voltage inversely proportional to soil water content.",
+      "Visual telemetry is delivered by a 0.96-inch monochrome OLED display module featuring 128x64 resolution driven by the SSD1306 controller IC over the I2C serial protocol. Visual alert indication is managed by the onboard user LED attached to GPIO pin PC13 configured in active-low sink mode. Programming and in-circuit debugging are performed using an ST-Link V2 programmer communicating through the Serial Wire Debug (SWD) port."
+    ],
+    "bullets": []
+  },
+  "timestamp": 1793237060.402657,
+  "elapsed": 3.361701965332031e-05
+}

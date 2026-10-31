@@ -1,0 +1,13 @@
+{
+  "section_id": "abstract",
+  "title": "Abstract",
+  "data": {
+    "paragraphs": [
+      "The project aims to develop a plant watering reminder system using an STM32F103C8T6 microcontroller and a soil moisture sensor module. The system will monitor the soil moisture level and alert the user when it reaches critical thresholds, such as dry or wet conditions. The design includes a soil moisture sensor connected to the ADC input of the microcontroller, an active buzzer for audible notifications, and an onboard LED for visual feedback. The system operates at 72 MHz with a sample interval of 250 ms, collecting data from the soil moisture sensor over 8 samples. The project uses the arduino_stm32core framework, which is built on top of the STM32 HAL drivers. Calibration of the soil moisture sensor is necessary to ensure accurate readings. Expected operational responses include alerting the user when the soil moisture level falls below a critical threshold, providing visual feedback through the onboard LED, and allowing for debugging and monitoring via the serial USART1 interface.",
+      "The project's technical design includes a detailed schematic diagram of the system components, including the microcontroller, sensor, buzzer, LED, and USB-to-UART adapter. The system is designed to be robust and reliable, with error-checking mechanisms in place to prevent malfunctions. The project also includes a comprehensive test plan that covers all aspects of the system's functionality, from hardware setup to software implementation."
+    ],
+    "bullets": []
+  },
+  "timestamp": 1793235438.904156,
+  "elapsed": 8.398867845535278
+}

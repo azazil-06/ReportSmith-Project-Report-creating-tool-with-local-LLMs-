@@ -1,0 +1,13 @@
+{
+  "section_id": "3.2",
+  "title": "Block Diagram",
+  "data": {
+    "paragraphs": [
+      "The functional block diagram of the Water Level Detection and Overflow Indicator system is depicted in Figure 3.1. The diagram visualizes signal and power pathways connecting the primary hardware modules.",
+      "The STM32 microcontroller occupies the central control position, receiving digital echo signals from the HC-SR04 sensor and outputting control signals to the 16x2 LCD via I2C, visual LEDs, active buzzer, and USART1 telemetry."
+    ],
+    "bullets": []
+  },
+  "timestamp": 1793236995.4329457,
+  "elapsed": 9.393692016601562e-05
+}

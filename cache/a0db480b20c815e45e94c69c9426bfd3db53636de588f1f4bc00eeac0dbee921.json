@@ -1,0 +1,13 @@
+{
+  "section_id": "2.5",
+  "title": "STM32CubeIDE and STM32 HAL Library",
+  "data": {
+    "paragraphs": [
+      "The firmware development workflow utilizes the Arduino STM32 Core environment, which is architected directly upon STMicroelectronics' official STM32 Hardware Abstraction Layer (HAL) drivers. While high-level application sketches benefit from standard C++ APIs, the underlying core relies on HAL functions for clock distribution, GPIO register configuration, and peripheral initialization.",
+      "In a standalone STM32CubeIDE implementation, equivalent functionality is configured using STM32CubeMX graphical pin assignment. Pin PB0 is defined as GPIO_Output for trigger generation, PB1 as GPIO_Input for echo timing capture, and pins PB6 and PB7 as I2C1 Open-Drain with internal pull-up resistors."
+    ],
+    "bullets": []
+  },
+  "timestamp": 1793237060.408556,
+  "elapsed": 2.6702880859375e-05
+}

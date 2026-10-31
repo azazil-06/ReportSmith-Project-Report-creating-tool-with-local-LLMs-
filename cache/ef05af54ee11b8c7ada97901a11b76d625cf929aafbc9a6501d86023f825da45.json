@@ -1,0 +1,13 @@
+{
+  "section_id": "4.6",
+  "title": "Program Execution and Debugging",
+  "data": {
+    "paragraphs": [
+      "Firmware compilation and debugging were conducted iteratively. The ST-Link V2 programmer was connected via USB, and the code was flashed onto the STM32F103C8T6 Flash memory through the SWD interface.",
+      "Upon successful programming, the system executed the setup sequence, initializing the SSD1306 OLED display and verifying I2C ACK responses from address 0x3C. The onboard USART1 transmitter began streaming serial telemetry at 115200 baud, enabling immediate verification of sensor readings on the development host console."
+    ],
+    "bullets": []
+  },
+  "timestamp": 1793236146.8077724,
+  "elapsed": 9.489059448242188e-05
+}

@@ -1,0 +1,18 @@
+{
+  "section_id": "1.4",
+  "title": "Applications",
+  "data": {
+    "paragraphs": [
+      "The Water Level Detection and Overflow Indicator system is suitable for widespread deployment across residential, commercial, and industrial facilities. Key practical application domains include the following:"
+    ],
+    "bullets": [
+      "Overhead domestic and municipal water storage tank monitoring to prevent water overflow and structural seepage.",
+      "Commercial rainwater harvesting reservoirs and underground sump depth monitoring.",
+      "Industrial chemical storage tanks requiring non-contact fluid level measurement to avoid corrosive contact.",
+      "Agricultural irrigation cisterns and automated livestock drinking water troughs.",
+      "Laboratory fluid tanks and closed-loop liquid circulation test benches."
+    ]
+  },
+  "timestamp": 1793236995.4081054,
+  "elapsed": 0.00010633468627929688
+}

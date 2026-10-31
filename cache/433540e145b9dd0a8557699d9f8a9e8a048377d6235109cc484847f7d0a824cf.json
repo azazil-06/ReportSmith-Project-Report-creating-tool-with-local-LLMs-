@@ -1,0 +1,13 @@
+{
+  "section_id": "2.3",
+  "title": "Hardware Components and Sensors Used",
+  "data": {
+    "paragraphs": [
+      "The hardware configuration incorporates solid-state sensing and display components selected for precision, reliability, and low power consumption:",
+      "An HC-SR04 ultrasonic sensor provides non-contact distance measurement by transmitting a 40 kHz ultrasonic burst and measuring the round-trip echo pulse duration. A 16x2 alphanumeric LCD display equipped with an I2C backpack based on the PCF8574 expander provides local user readouts while minimizing microcontroller pin usage. Audio notification is driven by a 5V active buzzer, complemented by red (overflow alert) and green (normal level) status LEDs. An LM2596 step-down DC-DC buck converter regulates external battery power down to a stable 5V rail."
+    ],
+    "bullets": []
+  },
+  "timestamp": 1793236995.4170427,
+  "elapsed": 7.557868957519531e-05
+}

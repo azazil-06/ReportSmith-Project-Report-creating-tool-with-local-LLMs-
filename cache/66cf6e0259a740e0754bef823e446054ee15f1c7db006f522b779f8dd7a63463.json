@@ -1,0 +1,13 @@
+{
+  "section_id": "3.4",
+  "title": "Hardware Component Description",
+  "data": {
+    "paragraphs": [
+      "The hardware component description for Chapter 3 of the micro-project focuses on the system's components and their electrical interfaces. The STM32F103C8T6 microcontroller is utilized, with its onboard status LED connected to pin PC13. The soil moisture sensor is connected to pin PA0 via an ADC1_IN0 pin, which outputs an analog voltage that is then measured by the ADC. The active buzzer alert driver is connected to pin PA1, triggering an audible alert when the soil moisture level falls below a predefined threshold. The USB-to-UART adapter is used for serial communication, with data transmitted at 115200 baud and received through USART1_RX and USART1_TX pins. The calibration constants include values for the sensor pin, buzzer pin, LED pin, air value, water value, dry threshold percentage, wet threshold percentage, serial baud rate, sample interval in milliseconds, and samples per measurement.",
+      "The state classification logic is designed to classify the system's operational states based on the moisture level. The states are defined as NEEDS WATER (DRY), OPTIMAL, and TOO WET, with corresponding raw ranges for each state. The indicator logic uses an active-low onboard LED connected to PC13, turning it ON when the soil moisture level falls below a threshold percentage and OFF otherwise."
+    ],
+    "bullets": []
+  },
+  "timestamp": 1793235556.3733928,
+  "elapsed": 7.710715055465698
+}

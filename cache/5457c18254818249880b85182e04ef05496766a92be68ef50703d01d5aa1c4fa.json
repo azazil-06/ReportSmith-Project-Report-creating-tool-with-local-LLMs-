@@ -1,0 +1,17 @@
+{
+  "section_id": "4.6",
+  "title": "Program Execution and Debugging",
+  "data": {
+    "paragraphs": [
+      "The implementation details for the Program Execution and Debugging section in Chapter 4, focusing on the arduino_stm32core framework, are as follows:",
+      "- **Framework**: The project utilizes the Arduino STM32 Core (stm32duino built on STM32 HAL drivers), which is a robust and widely used platform for microcontroller development.",
+      "- **Programmer**: A ST-Link V2 programmer is employed via the SWD interface to program the microcontroller.",
+      "- **Code Stats**:\n      - File: plant_monitor.ino (96 lines, 61 code lines)\n      - Functions: readSoilMoistureAverage, calculateMoisturePercent, map, updateDisplay, setup, loop",
+      "- **Peripherals & Clocks**:\n      - System Core Clock: 72 MHz (HSE 8 MHz with PLL x9)\n      - APB1 Prescaler: /2 (36 MHz)\n      - APB2 Prescaler: /1 (72 MHz)\n      - ADC Prescaler: /6 (12 MHz ADCCLK)\n      - Pin PA0 (ADC1_IN0): Soil Moisture Sensor Analog Out - Analog soil moisture voltage measurement (12-bit ADC)\n      - Pin PA1 (GPIO): Active Buzzer Alert Driver - Audible alert trigger on low soil moisture\n      - Pin PC13 (GPIOC): Onboard Status LED - Active-low status alert indicator (lights when action needed)\n      - Pin PA9 (USART1_TX): USB-to-UART Adapter RX - Serial telemetry and debug monitoring at 115200 baud\n      - Pin PA10 (USART1_RX): USB-to-UART Adapter TX - Serial receiver interface",
+      "- **Operational Challenges & Techniques**:\n      - Eliminating sensor measurement noise through moving average filtering.\n      - Correct handling of inverted active-low onboard indicator logic on PC13.\n      - Reliable threshold or hysteresis state evaluation to avoid spurious state switching."
+    ],
+    "bullets": []
+  },
+  "timestamp": 1793235661.8364124,
+  "elapsed": 10.120391607284546
+}

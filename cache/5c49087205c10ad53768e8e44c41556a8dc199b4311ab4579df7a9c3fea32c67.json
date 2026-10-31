@@ -1,0 +1,18 @@
+{
+  "section_id": "2.5",
+  "title": "STM32CubeIDE and STM32 HAL Library",
+  "data": {
+    "paragraphs": [
+      "The implementation details for the STM32CubeIDE and STM32 HAL library in Chapter 4 of the project are as follows:",
+      "- **Framework**: The project utilizes the Arduino STM32 Core framework, which is built upon the STM32 HAL (Hardware Abstraction Layer) drivers. This allows for a seamless integration of hardware peripherals and provides a robust set of functions to simplify development.",
+      "- **Programmer**: The programmer uses the ST-Link V2 via SWD interface to program the microcontroller. This interface enables real-time debugging and configuration of the system.",
+      "- **Code Stats**: The plant_monitor.ino file contains 96 lines of code, with 61 code lines dedicated to implementing the main functionality of the project. It includes functions such as `readSoilMoistureAverage`, `calculateMoisturePercent`, `map`, and `updateDisplay`, which handle various aspects of the sensor data processing and display.",
+      "- **Peripherals & Clocks**: The system core clock is set to 72 MHz (HSE 8 MHz with PLL x9), with APB1 and APB2 prescalers set to /2 and /1, respectively. The ADC clock is divided by 6 to achieve a 12 MHz ADCCLK. The project uses the following peripherals: PA0 for soil moisture sensor analog out (ADC1_IN0), PA1 for active buzzer alert driver (GPIO), PC13 for onboard status LED (GPIOC), and PA9 and PA10 for USB-to-UART adapter RX and TX, respectively.",
+      "- **Operational Challenges & Techniques**: The implementation of the plant_monitor.ino file addresses several operational challenges. It employs a moving average filter to eliminate sensor measurement noise, corrects the inverted active-low onboard indicator logic on PC13, and reliably evaluates threshold or hysteresis state evaluation to avoid spurious state switching.",
+      "These details provide a comprehensive overview of the implementation process for the STM32CubeIDE and STM32 HAL library in Chapter 4 of the project."
+    ],
+    "bullets": []
+  },
+  "timestamp": 1793235521.2494893,
+  "elapsed": 10.381004810333252
+}

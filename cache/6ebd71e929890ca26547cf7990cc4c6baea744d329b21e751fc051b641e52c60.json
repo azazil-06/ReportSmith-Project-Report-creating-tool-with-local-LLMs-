@@ -1,0 +1,13 @@
+{
+  "section_id": "3.5",
+  "title": "Pin Configuration and Peripheral Mapping",
+  "data": {
+    "paragraphs": [
+      "The pin interconnection assignments for the STM32F103C8T6 microcontroller are summarized in the hardware peripheral mapping schedule. High-speed digital IO pins PB0 and PB1 manage the acoustic transducer interface.",
+      "Hardware I2C1 bus pins PB6 and PB7 communicate with the local alphanumeric LCD at 100 kHz standard mode. Dedicated GPIO pins PA1, PA2, and PA3 drive alert sounders and indicators, while USART1 pins PA9 and PA10 handle asynchronous serial telemetry."
+    ],
+    "bullets": []
+  },
+  "timestamp": 1793236995.4390357,
+  "elapsed": 0.00011277198791503906
+}

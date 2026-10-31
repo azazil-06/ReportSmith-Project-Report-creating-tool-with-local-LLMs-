@@ -1,0 +1,13 @@
+{
+  "section_id": "4.4",
+  "title": "Embedded C Program Development",
+  "data": {
+    "paragraphs": [
+      "The embedded application firmware is developed in Embedded C/C++ within the Arduino framework. The source code is organized into initialization, sensing, digital filtering, threshold logic, and telemetry output modules.",
+      "The distance measurement routine utilizes a circular buffer of size 5 to maintain a continuous moving average. This non-blocking implementation ensures that transient acoustic dropouts or surface reflections do not trigger false alarm states."
+    ],
+    "bullets": []
+  },
+  "timestamp": 1793236995.4509132,
+  "elapsed": 8.511543273925781e-05
+}
