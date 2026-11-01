@@ -1,0 +1,14 @@
+{
+  "section_id": "5.1",
+  "title": "Testing Methodology",
+  "data": {
+    "paragraphs": [
+      "The ScholarPredict project's testing methodology involves three distinct test cases, each designed to evaluate the system's ability to accurately classify a student's academic performance category based on various input attributes. The first test case, TC_01, focuses on fresh quality verification and aims to ensure that the classification model correctly identifies produce as 'Fresh' with high confidence when provided with an image of fresh produce sample with natural coloration.",
+      "The second test case, TC_02, simulates a scenario where produce has experienced some level of degradation but is still considered moderately fresh. This test case aims to validate that the classifier can accurately assign the appropriate category based on its distance from the 'Fresh' cluster in the feature space and neighbor consensus voting.",
+      "The third test case, TC_03, simulates a scenario where produce has experienced significant spoilage or rotting. The objective of this test is to confirm that the system correctly identifies such produce as 'Spoiled / Rotten' based on its distance from the 'Fresh' cluster and neighbor consensus voting."
+    ],
+    "bullets": []
+  },
+  "timestamp": 1793513812.6455212,
+  "elapsed": 18.99840545654297
+}

@@ -19,8 +19,38 @@ from docx.shared import Inches, Pt, RGBColor
 from reportsmith.brief import ProjectBrief
 from reportsmith.facts import ProjectFacts
 from reportsmith.outline import ReportOutline
+from reportsmith.llm import _is_prompt_echo
 
 logger = logging.getLogger(__name__)
+
+
+def _is_abstract_echo(text: str, abstract_text: Optional[str]) -> bool:
+    """Detect if text is an echo or copy-paste of the project abstract."""
+    if not text or not abstract_text:
+        return False
+    t_clean = re.sub(r"\s+", " ", text.strip().lower())
+    a_clean = re.sub(r"\s+", " ", abstract_text.strip().lower())
+    if len(t_clean) < 40 or len(a_clean) < 40:
+        return False
+
+    # Exact substring match (either way)
+    if len(t_clean) >= 60 and (t_clean in a_clean or a_clean in t_clean):
+        return True
+
+    # Prefix overlap (first 60 characters)
+    if len(t_clean) >= 60 and len(a_clean) >= 60:
+        if t_clean[:60] == a_clean[:60]:
+            return True
+
+    # Word-level Jaccard similarity
+    t_words = set(re.findall(r"\b[a-z]{3,}\b", t_clean))
+    a_words = set(re.findall(r"\b[a-z]{3,}\b", a_clean))
+    if len(t_words) >= 15 and len(a_words) >= 15:
+        overlap = len(t_words & a_words) / min(len(t_words), len(a_words))
+        if overlap > 0.80:
+            return True
+
+    return False
 
 
 def sanitize_paragraph_prose(text: str) -> List[str]:
@@ -149,37 +179,89 @@ def add_markdown_formatted_runs(
                 r.font.size = font_size
 
 
-# Standard embedded systems acronym dictionary for abbreviations table
+# Standard technical acronym dictionary for abbreviations table across domains
 KNOWN_ABBREVIATIONS = {
     "ADC": "Analog-to-Digital Converter",
+    "AI": "Artificial Intelligence",
+    "ALU": "Arithmetic Logic Unit",
+    "API": "Application Programming Interface",
     "ARM": "Advanced RISC Machines",
+    "AUC": "Area Under the Curve",
+    "CLI": "Command-Line Interface",
+    "CNN": "Convolutional Neural Network",
     "Cortex-M": "ARM Cortex Microcontroller Core",
+    "CPI": "Cycles Per Instruction",
+    "CPU": "Central Processing Unit",
+    "CRUD": "Create, Read, Update, Delete",
+    "CSV": "Comma-Separated Values",
+    "CUDA": "Compute Unified Device Architecture",
+    "CV": "Computer Vision",
     "DMA": "Direct Memory Access",
+    "EDA": "Exploratory Data Analysis",
     "Flash": "Electrically Erasable Programmable Flash Memory",
+    "FSM": "Finite State Machine",
+    "GLCM": "Gray-Level Co-occurrence Matrix",
     "GPIO": "General Purpose Input/Output",
+    "GPU": "Graphics Processing Unit",
+    "GUI": "Graphical User Interface",
     "HAL": "Hardware Abstraction Layer",
     "HSE": "High-Speed External Clock Oscillator",
+    "HSV": "Hue Saturation Value Color Space",
+    "HTTP": "Hypertext Transfer Protocol",
     "I2C": "Inter-Integrated Circuit Bus",
     "IDE": "Integrated Development Environment",
+    "IR": "Instruction Register",
+    "ISA": "Instruction Set Architecture",
+    "JDK": "Java Development Kit",
+    "JRE": "Java Runtime Environment",
+    "JSON": "JavaScript Object Notation",
+    "JVM": "Java Virtual Machine",
+    "KNN": "K-Nearest Neighbors",
     "LED": "Light Emitting Diode",
     "MCU": "Microcontroller Unit",
+    "ML": "Machine Learning",
+    "MMIO": "Memory-Mapped Input/Output",
+    "MVC": "Model-View-Controller",
     "NVIC": "Nested Vectored Interrupt Controller",
     "OLED": "Organic Light Emitting Diode",
+    "OOP": "Object-Oriented Programming",
+    "PC": "Program Counter",
     "PCB": "Printed Circuit Board",
+    "PIL": "Python Imaging Library",
     "PLL": "Phase-Locked Loop",
     "PWM": "Pulse Width Modulation",
     "RAM": "Random Access Memory",
+    "REST": "Representational State Transfer",
+    "RGB": "Red Green Blue Color Space",
     "RISC": "Reduced Instruction Set Computer",
+    "ROC": "Receiver Operating Characteristic",
     "RTC": "Real-Time Clock",
     "SDA": "Serial Data Line (I2C)",
     "SCL": "Serial Clock Line (I2C)",
     "SPI": "Serial Peripheral Interface",
+    "SQL": "Structured Query Language",
     "SRAM": "Static Random Access Memory",
+    "SVM": "Support Vector Machine",
     "SWD": "Serial Wire Debug",
     "UART": "Universal Asynchronous Receiver-Transmitter",
+    "UI": "User Interface",
     "USART": "Universal Synchronous/Asynchronous Receiver-Transmitter",
+    "BLoC": "Business Logic Component",
+    "DB": "Database",
+    "FCM": "Firebase Cloud Messaging",
+    "GPS": "Global Positioning System",
+    "HTTPS": "Hypertext Transfer Protocol Secure",
+    "MVVM": "Model-View-ViewModel",
+    "NoSQL": "Non-Relational (Not Only SQL) Database",
+    "OTP": "One-Time Password",
+    "PWA": "Progressive Web Application",
+    "QR": "Quick Response Code",
+    "SDK": "Software Development Kit",
+    "URL": "Uniform Resource Locator",
+    "UX": "User Experience",
     "USB": "Universal Serial Bus",
     "VCC": "Voltage Common Collector (Power Supply)",
+    "VRAM": "Video Random Access Memory",
     "GND": "Ground Reference",
 }
 
@@ -505,6 +587,7 @@ class DocxReportBuilder:
             if out_p.exists():
                 out_p.unlink()
             temp_p.rename(out_p)
+            self.saved_path = out_p
             logger.info(f"Saved complete docx report to {out_p}")
         except PermissionError:
             fallback_p = out_p.with_name(f"{out_p.stem}_updated{out_p.suffix}")
@@ -514,14 +597,20 @@ class DocxReportBuilder:
                 except Exception:
                     pass
             temp_p.rename(fallback_p)
+            self.saved_path = fallback_p
             logger.warning(
                 f"\n[WARNING] '{out_p}' is currently open in Microsoft Word or another application.\n"
                 f"Saved newly generated report to '{fallback_p}' instead!\n"
             )
             print(
-                f"\n[NOTE] '{out_p}' is currently open in Microsoft Word or another application.\n"
-                f"Saved newly generated report to '{fallback_p}' instead!\n"
-                f"To overwrite '{out_p}', close Microsoft Word and re-run build."
+                f"\n"
+                f"====================================================================\n"
+                f"[IMPORTANT NOTICE - TARGET FILE LOCKED BY WORD]\n"
+                f"'{out_p}' could not be overwritten because it is open in Microsoft Word.\n"
+                f"Your newly generated report has been saved to:\n"
+                f"  >>> {fallback_p.resolve()} <<<\n"
+                f"Close Microsoft Word to allow overwriting '{out_p}'.\n"
+                f"====================================================================\n"
             )
         return doc
 
@@ -770,12 +859,13 @@ class DocxReportBuilder:
         run_t.bold = True
         run_t.font.size = Pt(15)
 
-        paras = gen_data.get("paragraphs") or [
+        paras = [
             f"We hereby declare that the micro-project report entitled '{self.brief.project.title}' "
-            f"submitted to {self.brief.project.college} is a record of original work done by us "
-            f"under the supervision of {self.brief.people.guide.name}.",
+            f"submitted to {self.brief.project.college} in partial fulfillment of the requirements for the award of the Degree of "
+            f"Bachelor of Technology in {self.brief.project.department} is an authentic record of original work done by us "
+            f"under the supervision of {self.brief.people.guide.name}, {self.brief.people.guide.designation or 'Faculty Guide'}.",
             "We further declare that this report has not previously formed the basis for the award of any "
-            "degree, diploma, or other similar title of any university or institution.",
+            "degree, diploma, associateship, fellowship, or other similar title to any university or institution.",
         ]
 
         for p_text in paras:
@@ -808,24 +898,33 @@ class DocxReportBuilder:
         run_t.bold = True
         run_t.font.size = Pt(15)
 
-        paras = gen_data.get("paragraphs") or [
-            f"We express our sincere gratitude to our guide {self.brief.people.guide.name}, "
-            f"{self.brief.people.guide.designation or 'Faculty Guide'}, for continuous encouragement "
-            f"and invaluable guidance throughout the course of this project.",
-            f"We are deeply thankful to {self.brief.people.hod.name}, Head of the Department of "
-            f"{self.brief.project.department}, for providing the necessary laboratory infrastructure "
-            f"and technical support.",
-            "Finally, we wish to thank our parents and fellow classmates for their moral support "
-            "and constructive feedback during this endeavor.",
-        ]
-
-        for raw_p in paras:
+        clean_paras = []
+        raw_paras = gen_data.get("paragraphs") or []
+        for raw_p in raw_paras:
             for p_text in sanitize_paragraph_prose(raw_p):
-                p = doc.add_paragraph()
-                p.alignment = WD_ALIGN_PARAGRAPH.JUSTIFY
-                p.paragraph_format.line_spacing = 1.2
-                p.paragraph_format.space_after = Pt(10)
-                add_markdown_formatted_runs(p, p_text)
+                if not _is_prompt_echo(p_text) and len(p_text.split()) >= 6:
+                    clean_paras.append(p_text)
+
+        if not clean_paras:
+            clean_paras = [
+                f"We express our sincere gratitude to our project guide {self.brief.people.guide.name}, "
+                f"{self.brief.people.guide.designation or 'Faculty Guide'}, Department of {self.brief.project.department}, "
+                f"for continuous encouragement, constructive critique, and invaluable guidance throughout the course of this project.",
+                f"We are deeply thankful to {self.brief.people.hod.name}, Head of the Department of "
+                f"{self.brief.project.department}, for providing the necessary computing facilities, laboratory infrastructure, "
+                f"and administrative support.",
+                f"We also convey our sincere thanks to all faculty members of the Department of "
+                f"{self.brief.project.department} and our fellow classmates for their valuable feedback and cooperation.",
+                "Finally, we wish to express our heartfelt gratitude to our parents and family members for their moral support, "
+                "patience, and constant encouragement during this endeavor.",
+            ]
+
+        for p_text in clean_paras:
+            p = doc.add_paragraph()
+            p.alignment = WD_ALIGN_PARAGRAPH.JUSTIFY
+            p.paragraph_format.line_spacing = 1.2
+            p.paragraph_format.space_after = Pt(10)
+            add_markdown_formatted_runs(p, p_text)
 
         p_names = doc.add_paragraph()
         p_names.alignment = WD_ALIGN_PARAGRAPH.RIGHT
@@ -954,16 +1053,41 @@ class DocxReportBuilder:
         run_t.bold = True
         run_t.font.size = Pt(15)
 
-        # Collect abbreviations that actually match the brief and facts
+        # Collect abbreviations that actually match the brief, outline, and domain
         active_abbreviations = []
+        domain = getattr(self.brief, "domain", None) or getattr(self.outline, "domain", "GENERAL_ACADEMIC")
         full_text = (
             f"{self.brief.project.title} {self.brief.implementation.board.name} "
             f"{self.brief.implementation.board.core} {self.brief.implementation.framework} "
             f"{' '.join(p.peripheral for p in self.brief.implementation.pins)} "
-            f"{' '.join(c.interface for c in self.brief.implementation.components)}"
+            f"{' '.join(c.interface for c in self.brief.implementation.components)} "
+            f"{self.brief.abstract or ''} "
+            f"{' '.join(it.title for it in self.outline.items)}"
         )
+        hardware_banned = {
+            "ADC", "GPIO", "MCU", "I2C", "OLED", "UART", "USART", "SWD", "NVIC", "HAL",
+            "VCC", "GND", "ARM", "Cortex-M", "DMA", "Flash", "HSE", "PCB", "PLL", "PWM",
+            "RTC", "SDA", "SCL", "SPI", "SysTick", "MMIO", "ALU", "CPI", "FSM", "IR", "ISA", "PC", "RISC"
+        }
+        if domain in ("MACHINE_LEARNING", "DATA_ANALYTICS"):
+            default_core = ["AI", "AUC", "CNN", "CPU", "CUDA", "CV", "EDA", "GLCM", "GPU", "HSV", "KNN", "ML", "RGB", "ROC"]
+            banned_hardware = hardware_banned
+            full_text = f"{self.brief.project.title} {self.brief.abstract or ''} {' '.join(it.title for it in self.outline.items)}"
+        elif domain in ("SOFTWARE_APP", "WEB_CLOUD"):
+            default_core = ["API", "CLI", "CRUD", "DB", "GUI", "HTTP", "HTTPS", "IDE", "JSON", "NoSQL", "QR", "REST", "SDK", "SQL", "UI", "UX"]
+            banned_hardware = hardware_banned
+            full_text = f"{self.brief.project.title} {self.brief.abstract or ''} {' '.join(it.title for it in self.outline.items)}" 
+        elif domain == "COA_SYSTEMS":
+            default_core = ["ALU", "CPI", "FSM", "IR", "ISA", "MMIO", "PC", "RISC"]
+            banned_hardware = set()
+        else:
+            default_core = ["ADC", "GPIO", "I2C", "MCU", "OLED", "UART"]
+            banned_hardware = set()
+
         for abbr, desc in sorted(KNOWN_ABBREVIATIONS.items()):
-            if abbr in full_text or abbr in ["ADC", "GPIO", "I2C", "MCU", "OLED", "UART"]:
+            if abbr in banned_hardware:
+                continue
+            if re.search(r"\b" + re.escape(abbr) + r"\b", full_text) or abbr in default_core:
                 active_abbreviations.append((abbr, desc))
 
         tbl = doc.add_table(rows=len(active_abbreviations) + 1, cols=2)
@@ -985,6 +1109,8 @@ class DocxReportBuilder:
     def _build_body_chapters(self, doc: Document, generated_sections: Dict[str, Dict[str, Any]]):
         """Render all chapters, sections, tables, figures, and code blocks."""
         current_chapter: Optional[str] = None
+        seen_body_paragraphs: Set[str] = set()
+        seen_body_bullets: Set[str] = set()
 
         for item in self.outline.items:
             if item.kind == "chapter":
@@ -1026,20 +1152,44 @@ class DocxReportBuilder:
                 run_sec.font.size = Pt(12)
 
                 self.toc_entries.append((f"{item.number} {item.title}", "section", sec_id))
+                rendered_count = 0
 
                 # Render prose paragraphs
                 for raw_p in gen_data.get("paragraphs", []):
                     for p_text in sanitize_paragraph_prose(raw_p):
+                        if _is_prompt_echo(p_text):
+                            continue
+                        if _is_abstract_echo(p_text, self.brief.abstract):
+                            logger.info(f"Filtered out abstract echo in section {item.number} ({item.title})")
+                            continue
+                        norm_p = re.sub(r"\W+", "", p_text.lower())
+                        if len(norm_p) >= 45:
+                            if norm_p in seen_body_paragraphs:
+                                logger.info(f"Filtered duplicate paragraph in section {item.number} ({item.title})")
+                                continue
+                            seen_body_paragraphs.add(norm_p)
+
                         p = doc.add_paragraph()
                         p.alignment = WD_ALIGN_PARAGRAPH.JUSTIFY
                         p.paragraph_format.line_spacing = 1.15
                         p.paragraph_format.space_after = Pt(6)
                         add_markdown_formatted_runs(p, p_text)
+                        rendered_count += 1
 
                 # Render bullets if any
                 for raw_b in gen_data.get("bullets", []):
                     for b_text in sanitize_paragraph_prose(raw_b):
+                        if _is_prompt_echo(b_text):
+                            continue
+                        if _is_abstract_echo(b_text, self.brief.abstract):
+                            continue
                         b_clean = re.sub(r"^[\*\-•\u2022\s]+", "", b_text).strip()
+                        norm_b = re.sub(r"\W+", "", b_clean.lower())
+                        if len(norm_b) >= 45:
+                            if norm_b in seen_body_bullets:
+                                continue
+                            seen_body_bullets.add(norm_b)
+
                         if "List Bullet" in doc.styles:
                             p_b = doc.add_paragraph(style="List Bullet")
                             add_markdown_formatted_runs(p_b, b_clean)
@@ -1053,17 +1203,34 @@ class DocxReportBuilder:
                         p_b.alignment = WD_ALIGN_PARAGRAPH.JUSTIFY
                         p_b.paragraph_format.line_spacing = 1.15
                         p_b.paragraph_format.space_after = Pt(3)
+                        rendered_count += 1
+
+                # Clean fallback paragraph if all contents were filtered out
+                if rendered_count == 0:
+                    fallback_text = (
+                        f"This section discusses {item.title} within the scope of the {self.brief.project.title} project, "
+                        f"outlining the architectural decisions, operational criteria, and technical methodology "
+                        f"governing implementation in the {self.brief.domain} domain."
+                    )
+                    p = doc.add_paragraph()
+                    p.alignment = WD_ALIGN_PARAGRAPH.JUSTIFY
+                    p.paragraph_format.line_spacing = 1.15
+                    p.paragraph_format.space_after = Pt(6)
+                    p.add_run(fallback_text)
 
                 # Inject deterministic tables & figures for specific sections
                 self._inject_section_special_content(doc, sec_id, item)
 
     def _inject_section_special_content(self, doc: Document, sec_id: str, item: Any):
-        """Deterministically insert tables, diagrams, or placeholder boxes."""
-        # Section 2.2: Board Specifications Table
-        if sec_id == "2.2":
+        """Deterministically insert tables, diagrams, or placeholder boxes using semantic title and domain matching."""
+        title_lower = (item.title or "").lower()
+        domain = getattr(self.brief, "domain", None) or getattr(self.outline, "domain", "GENERAL_ACADEMIC")
+
+        # Section 2.2 / Specifications: Board / System / Hardware Specifications Table
+        if (sec_id == "2.2" and domain == "EMBEDDED_HARDWARE") or ("board specification" in title_lower) or ("development board" in title_lower):
             self.table_count += 1
             tbl_num = f"Table 2.{self.table_count}"
-            tbl_title = "STM32F103C8T6 (Blue Pill) Technical Specifications"
+            tbl_title = f"{self.brief.implementation.board.mcu_part_number} Technical Specifications"
             self._add_table_caption(doc, tbl_num, tbl_title)
 
             b = self.brief.implementation.board
@@ -1091,8 +1258,68 @@ class DocxReportBuilder:
             )
             self.table_entries.append((tbl_num, tbl_title, "pg"))
 
-        # Section 2.3: Hardware Components Table
-        elif sec_id == "2.3":
+        elif domain == "SOFTWARE_APP" and ("operational environment" in title_lower or "technology stack" in title_lower or (sec_id in ("2.1", "2.3") and "specifications" in title_lower)):
+            self.table_count += 1
+            tbl_num = f"Table 2.{self.table_count}"
+            tbl_title = "System Operational Environment and Software Specifications"
+            self._add_table_caption(doc, tbl_num, tbl_title)
+
+            b = self.brief.implementation.board
+            specs = [
+                ("Target Platform", b.name),
+                ("Execution Environment", b.mcu_part_number),
+                ("Processor Architecture", b.core),
+                ("Memory / Storage Requirement", f"{b.sram} / {b.flash}"),
+                ("Runtime Framework", self.brief.implementation.framework),
+                ("Data Persistence Method", "Encrypted / Formatted File Store (.txt / .json)"),
+                ("User Interface Mode", "Interactive Console / Graphical Terminal"),
+            ]
+            t = doc.add_table(rows=len(specs) + 1, cols=2)
+            t.rows[0].cells[0].paragraphs[0].text = "Specification Parameter"
+            t.rows[0].cells[1].paragraphs[0].text = "Value / Details"
+            for idx, (param, val) in enumerate(specs, start=1):
+                t.rows[idx].cells[0].paragraphs[0].text = param
+                t.rows[idx].cells[1].paragraphs[0].text = val
+
+            format_table(
+                t,
+                col_widths=[2.8, 3.4],
+                col_alignments=[WD_ALIGN_PARAGRAPH.LEFT, WD_ALIGN_PARAGRAPH.LEFT],
+            )
+            self.table_entries.append((tbl_num, tbl_title, "pg"))
+
+        elif domain == "COA_SYSTEMS" and ("target isa" in title_lower or "processor specifications" in title_lower or (sec_id == "2.1" and "isa" in title_lower)):
+            self.table_count += 1
+            tbl_num = f"Table 2.{self.table_count}"
+            tbl_title = "Target Processor Architectural Specifications and ISA Parameters"
+            self._add_table_caption(doc, tbl_num, tbl_title)
+
+            b = self.brief.implementation.board
+            specs = [
+                ("Target Architecture", b.name),
+                ("Instruction Set Family", b.mcu_part_number),
+                ("Datapath Pipeline Stages", b.core),
+                ("Clock Frequency", b.clock),
+                ("Instruction Memory Model", b.flash),
+                ("Data Memory Capacity", b.sram),
+                ("Simulation Environment", self.brief.implementation.framework),
+            ]
+            t = doc.add_table(rows=len(specs) + 1, cols=2)
+            t.rows[0].cells[0].paragraphs[0].text = "Architectural Parameter"
+            t.rows[0].cells[1].paragraphs[0].text = "Specification"
+            for idx, (param, val) in enumerate(specs, start=1):
+                t.rows[idx].cells[0].paragraphs[0].text = param
+                t.rows[idx].cells[1].paragraphs[0].text = val
+
+            format_table(
+                t,
+                col_widths=[2.8, 3.4],
+                col_alignments=[WD_ALIGN_PARAGRAPH.LEFT, WD_ALIGN_PARAGRAPH.LEFT],
+            )
+            self.table_entries.append((tbl_num, tbl_title, "pg"))
+
+        # Section 2.3: Hardware Components Table (only if component table has elements)
+        elif ("hardware components" in title_lower or "sensors used" in title_lower or (sec_id == "2.3" and domain == "EMBEDDED_HARDWARE")) and self.facts.component_table:
             self.table_count += 1
             tbl_num = f"Table 2.{self.table_count}"
             tbl_title = "System Hardware Components and Specifications"
@@ -1116,10 +1343,21 @@ class DocxReportBuilder:
             self.table_entries.append((tbl_num, tbl_title, "pg"))
 
         # Section 3.2: Block Diagram
-        elif sec_id == "3.2":
+        elif "block diagram" in title_lower or (sec_id == "3.2" and "diagram" in title_lower):
             self.figure_count += 1
             fig_num = f"Figure 3.{self.figure_count}"
-            fig_title = "Overall System Architecture and Hardware Block Diagram"
+            if domain in ("MACHINE_LEARNING", "DATA_ANALYTICS"):
+                fig_title = "Machine Learning Pipeline and Modular Architecture Diagram"
+                desc = "Pipeline block diagram illustrating image input, preprocessing, feature extraction, KNN classifier, and prediction"
+            elif domain in ("SOFTWARE_APP", "WEB_CLOUD"):
+                fig_title = "Overall System Architecture and Layered Block Diagram"
+                desc = "Block diagram illustrating presentation layer, application controller, service logic, and persistent storage store"
+            elif domain == "COA_SYSTEMS":
+                fig_title = "Instruction Datapath and Multi-Stage Pipeline Block Diagram"
+                desc = "Block diagram illustrating fetch, decode, execute, memory access, and writeback pipeline stages"
+            else:
+                fig_title = "Overall System Architecture and Hardware Block Diagram"
+                desc = "Block diagram showing sensor inputs, microcontroller unit, display interface, and output actuators"
 
             # Check if diagram image exists
             diag_path = Path("out/block_diagram.png")
@@ -1127,41 +1365,52 @@ class DocxReportBuilder:
                 p_img = doc.add_paragraph()
                 p_img.alignment = WD_ALIGN_PARAGRAPH.CENTER
                 p_img.paragraph_format.keep_with_next = True
-                p_img.add_run().add_picture(str(diag_path), width=Inches(5.5))
+                p_img.add_run().add_picture(str(diag_path), width=Inches(6.2))
             else:
                 add_placeholder_box(
                     doc,
-                    "Figure 3.1 Block Diagram",
-                    "Block diagram showing sensor inputs, STM32 MCU, OLED display, and LED output",
+                    f"Figure 3.{self.figure_count} Block Diagram",
+                    desc,
                 )
 
             self._add_figure_caption(doc, fig_num, fig_title)
             self.figure_entries.append((fig_num, fig_title, "pg"))
 
-        # Section 3.3: Circuit Diagram
-        elif sec_id == "3.3":
+        # Section 3.3: Circuit Diagram / Data Flow / Interconnect
+        elif "circuit diagram" in title_lower or "data flow" in title_lower or "communication path" in title_lower or (sec_id == "3.3" and "diagram" in title_lower):
             self.figure_count += 1
             fig_num = f"Figure 3.{self.figure_count}"
-            fig_title = "Complete Circuit Interconnection Diagram"
+            if domain in ("MACHINE_LEARNING", "DATA_ANALYTICS"):
+                fig_title = "Data Flow and Feature Pipeline Interaction Diagram"
+                desc = "Data flow diagram illustrating input image stream, preprocessing, color and GLCM texture descriptor extraction, and KNN prediction"
+            elif domain in ("SOFTWARE_APP", "WEB_CLOUD"):
+                fig_title = "Data Flow and Component Interaction Diagram"
+                desc = "Data flow diagram illustrating user inputs, controller processing, file persistence read/write cycles, and response formatting"
+            elif domain == "COA_SYSTEMS":
+                fig_title = "Memory Mapped I/O (MMIO) and Bus Interconnect Diagram"
+                desc = "Interconnection diagram depicting address bus decoders, data registers, and control lines"
+            else:
+                fig_title = "Complete Circuit Interconnection Diagram"
+                desc = f"Wiring diagram of {self.brief.implementation.board.name}, sensors, display module, and programming interface"
 
             conn_path = Path("out/connection_diagram.png")
             if conn_path.is_file():
                 p_img = doc.add_paragraph()
                 p_img.alignment = WD_ALIGN_PARAGRAPH.CENTER
                 p_img.paragraph_format.keep_with_next = True
-                p_img.add_run().add_picture(str(conn_path), width=Inches(5.5))
+                p_img.add_run().add_picture(str(conn_path), width=Inches(6.2))
             else:
                 add_placeholder_box(
                     doc,
-                    "Figure 3.2 Circuit Diagram",
-                    "Wiring diagram of STM32 Blue Pill, soil moisture sensor, SSD1306 OLED, and ST-Link",
+                    f"Figure 3.{self.figure_count} Interconnection Diagram",
+                    desc,
                 )
 
             self._add_figure_caption(doc, fig_num, fig_title)
             self.figure_entries.append((fig_num, fig_title, "pg"))
 
-        # Section 3.5: Pin Mapping Table
-        elif sec_id == "3.5":
+        # Section 3.5: Pin Mapping Table (only if pin table has elements)
+        elif ("pin configuration" in title_lower or "pin allocation" in title_lower or "peripheral mapping" in title_lower or (sec_id == "3.5" and domain == "EMBEDDED_HARDWARE")) and self.facts.pin_table:
             self.table_count += 1
             tbl_num = f"Table 3.{self.table_count}"
             tbl_title = "Microcontroller Pin Allocation and Peripheral Mapping"
@@ -1192,38 +1441,47 @@ class DocxReportBuilder:
             self.table_entries.append((tbl_num, tbl_title, "pg"))
 
         # Section 3.6: Algorithm and Flowchart
-        elif sec_id == "3.6":
+        elif "flowchart" in title_lower or "algorithm" in title_lower or (sec_id == "3.6" and domain == "EMBEDDED_HARDWARE"):
             self.figure_count += 1
             fig_num = f"Figure 3.{self.figure_count}"
-            fig_title = "Firmware Execution and Sampling Flowchart"
+            if domain in ("MACHINE_LEARNING", "DATA_ANALYTICS"):
+                fig_title = "KNN Classification and Freshness Decision Flowchart"
+            elif domain in ("SOFTWARE_APP", "WEB_CLOUD"):
+                fig_title = "Application Request Execution and Data Persistence Flowchart"
+            else:
+                fig_title = "System Execution and Logic Flowchart"
 
             flow_path = Path("out/flowchart.png")
             if flow_path.is_file():
                 p_img = doc.add_paragraph()
                 p_img.alignment = WD_ALIGN_PARAGRAPH.CENTER
                 p_img.paragraph_format.keep_with_next = True
-                p_img.add_run().add_picture(str(flow_path), width=Inches(4.5))
+                p_img.add_run().add_picture(str(flow_path), width=Inches(5.0))
             else:
                 add_placeholder_box(
                     doc,
-                    "Figure 3.3 System Flowchart",
-                    "Flowchart showing initialization, ADC reading, averaging, map() calculation, and state evaluation",
+                    f"Figure 3.{self.figure_count} System Flowchart",
+                    "Flowchart showing initialization, input validation, core algorithm evaluation, and state persistence workflows",
                 )
 
             self._add_figure_caption(doc, fig_num, fig_title)
             self.figure_entries.append((fig_num, fig_title, "pg"))
 
-        # Section 3.7: Calibration & State Table
-        elif sec_id == "3.7":
+        # Section 3.7: Calibration & State Table (only if state ranges has elements)
+        elif ("calibration" in title_lower or "state classification" in title_lower or "threshold" in title_lower or (sec_id == "3.7" and domain == "EMBEDDED_HARDWARE")) and self.facts.state_ranges:
             self.table_count += 1
             tbl_num = f"Table 3.{self.table_count}"
             is_night_lamp = any("DARK" in sr.state_name for sr in self.facts.state_ranges)
+            is_water = any("OVERFLOW" in sr.state_name for sr in self.facts.state_ranges)
             if is_night_lamp:
                 tbl_title = "Ambient Light ADC Thresholds and Hysteresis State Classification"
                 col2_name = "Illumination Level"
+            elif is_water:
+                tbl_title = "Water Tank Depth Thresholds and Alert State Classification"
+                col2_name = "Water Level %"
             else:
-                tbl_title = "ADC Calibration and Soil Moisture State Classification"
-                col2_name = "Moisture %"
+                tbl_title = "ADC Calibration and Operational State Classification"
+                col2_name = "Measurement Level"
             self._add_table_caption(doc, tbl_num, tbl_title)
 
             sr_list = self.facts.state_ranges
@@ -1231,7 +1489,7 @@ class DocxReportBuilder:
             t.rows[0].cells[0].paragraphs[0].text = "Operating State"
             t.rows[0].cells[1].paragraphs[0].text = "Condition"
             t.rows[0].cells[2].paragraphs[0].text = col2_name
-            t.rows[0].cells[3].paragraphs[0].text = "Raw ADC Range (12-bit)"
+            t.rows[0].cells[3].paragraphs[0].text = "Measurement Range"
             for idx, sr in enumerate(sr_list, start=1):
                 t.rows[idx].cells[0].paragraphs[0].text = sr.state_name
                 t.rows[idx].cells[1].paragraphs[0].text = sr.condition_desc
@@ -1250,8 +1508,8 @@ class DocxReportBuilder:
             )
             self.table_entries.append((tbl_num, tbl_title, "pg"))
 
-        # Section 5.2: Test Cases Table
-        elif sec_id == "5.2":
+        # Section 5.2: Test Cases Table (only if test table has elements)
+        elif ("test case" in title_lower or "test cases and observations" in title_lower or sec_id == "5.2") and self.facts.test_table:
             self.table_count += 1
             tbl_num = f"Table 5.{self.table_count}"
             tbl_title = "System Test Cases and Expected Operational Responses"
@@ -1281,21 +1539,87 @@ class DocxReportBuilder:
             )
             self.table_entries.append((tbl_num, tbl_title, "pg"))
 
-        # Section 5.3: Hardware Implementation Photographs
+        # Section 5.3: Photographs / Prototype Setup
+        elif "photograph" in title_lower or "prototype setup" in title_lower or (sec_id == "5.3" and domain == "EMBEDDED_HARDWARE"):
+            if domain == "SOFTWARE_APP":
+                add_placeholder_box(
+                    doc,
+                    "Photograph 5.1: Software Development and Execution Environment",
+                    "Please insert screenshot of the development environment, running terminal sessions, or GUI window layout.",
+                )
+            elif domain == "COA_SYSTEMS":
+                add_placeholder_box(
+                    doc,
+                    "Photograph 5.1: Simulation Platform and Datapath Execution Environment",
+                    "Please insert screenshot of the simulator environment displaying active register states and pipeline stages.",
+                )
+            else:
+                add_placeholder_box(
+                    doc,
+                    "Photograph 5.1: Hardware Prototype Setup",
+                    f"Please insert high-resolution photograph of the wired {self.brief.implementation.board.name} prototype setup.",
+                )
+
+        # Section 5.4: Screenshots / Telemetry
+        elif "screenshot" in title_lower or "telemetry" in title_lower or (sec_id == "5.4" and domain == "EMBEDDED_HARDWARE"):
+            if domain == "SOFTWARE_APP":
+                add_placeholder_box(
+                    doc,
+                    "Photograph 5.2: Application Output and Transaction Execution Logs",
+                    "Please insert screenshot of the terminal monitor displaying output logs, generated files, and user interactions.",
+                )
+            elif domain == "COA_SYSTEMS":
+                add_placeholder_box(
+                    doc,
+                    "Photograph 5.2: Memory Dump and Output Telemetry",
+                    "Please insert screenshot of memory dumps, simulated I/O traces, and register value logs.",
+                )
+            else:
+                add_placeholder_box(
+                    doc,
+                    "Photograph 5.2: Display and Telemetry Output",
+                    "Please insert photograph or screenshot of the output display screen and serial terminal monitor.",
+                )
         elif sec_id == "5.3":
-            add_placeholder_box(
-                doc,
-                "Photograph 5.1: Hardware Prototype Setup",
-                "Please insert high-resolution photograph of the wired STM32 Blue Pill, soil moisture sensor, and OLED display prototype.",
-            )
+            if self.brief.domain in ("EMBEDDED_HARDWARE", "EMBEDDED_IOT"):
+                add_placeholder_box(
+                    doc,
+                    "Photograph 5.1: Hardware Prototype Setup",
+                    "Please insert high-resolution photograph of the wired microcontroller, sensor, and display prototype.",
+                )
+            elif self.brief.domain == "MACHINE_LEARNING":
+                add_placeholder_box(
+                    doc,
+                    "Figure 5.1: Machine Learning Prototype and Classification Interface",
+                    "Please insert screenshot of the model execution environment, input produce image, and classification prediction interface.",
+                )
+            else:
+                add_placeholder_box(
+                    doc,
+                    "Figure 5.1: System Prototype Setup and User Interface",
+                    "Please insert screenshot of the application user interface and operational dashboard.",
+                )
 
         # Section 5.4: Output Screenshots
         elif sec_id == "5.4":
-            add_placeholder_box(
-                doc,
-                "Photograph 5.2: OLED Display and Telemetry Output",
-                "Please insert photograph or screenshot of the SSD1306 OLED display screen and serial terminal monitor.",
-            )
+            if self.brief.domain in ("EMBEDDED_HARDWARE", "EMBEDDED_IOT"):
+                add_placeholder_box(
+                    doc,
+                    "Photograph 5.2: Output Display and Telemetry Output",
+                    "Please insert photograph or screenshot of the output display screen and serial terminal monitor.",
+                )
+            elif self.brief.domain == "MACHINE_LEARNING":
+                add_placeholder_box(
+                    doc,
+                    "Figure 5.2: Output Confusion Matrix and Classification Metrics",
+                    "Please insert visual evaluation plot, confusion matrix, and category prediction results.",
+                )
+            else:
+                add_placeholder_box(
+                    doc,
+                    "Figure 5.2: System Output and Execution Telemetry",
+                    "Please insert screenshot of the application output telemetry and execution logs.",
+                )
 
     def _add_figure_caption(self, doc: Document, fig_num: str, caption_text: str):
         p = doc.add_paragraph()
@@ -1353,29 +1677,43 @@ class DocxReportBuilder:
             ref_clean = re.sub(r'^\*+\s*', '', ref_text).strip()
             add_markdown_formatted_runs(p, ref_clean)
 
-        # Appendix A: Complete Embedded C Source Code
-        doc.add_page_break()
-        p_app_a = doc.add_paragraph()
-        p_app_a.alignment = WD_ALIGN_PARAGRAPH.CENTER
-        p_app_a.paragraph_format.space_before = Pt(16)
-        p_app_a.paragraph_format.space_after = Pt(14)
-        run_app_a = p_app_a.add_run("APPENDIX A\nCOMPLETE EMBEDDED C SOURCE CODE")
-        run_app_a.bold = True
-        run_app_a.font.size = Pt(14)
+        # Appendix A: Source Code (only if code exists or outline specifies source code)
+        domain = getattr(self.brief, "domain", None) or getattr(self.outline, "domain", "GENERAL_ACADEMIC")
+        has_code_files = any(Path(c).is_file() for c in self.brief.code_files_list)
+        outline_has_code = any(item.id == "appendix_a_source_code" for item in self.outline.items)
 
-        self.toc_entries.append(("APPENDIX A: Complete Source Code", "chapter", "appendix_a"))
+        if has_code_files or outline_has_code:
+            doc.add_page_break()
+            p_app_a = doc.add_paragraph()
+            p_app_a.alignment = WD_ALIGN_PARAGRAPH.CENTER
+            p_app_a.paragraph_format.space_before = Pt(16)
+            p_app_a.paragraph_format.space_after = Pt(14)
+            if domain == "EMBEDDED_HARDWARE":
+                code_heading = "APPENDIX A\nCOMPLETE EMBEDDED C SOURCE CODE"
+            elif domain == "SOFTWARE_APP":
+                code_heading = "APPENDIX A\nCOMPLETE APPLICATION SOURCE CODE"
+            elif domain == "COA_SYSTEMS":
+                code_heading = "APPENDIX A\nCOMPLETE ASSEMBLY SOURCE CODE"
+            else:
+                code_heading = "APPENDIX A\nCOMPLETE SOURCE CODE"
 
-        for code_rel in self.brief.code_files_list:
-            code_path = Path(code_rel)
-            if code_path.is_file():
-                code_text = code_path.read_text(encoding="utf-8", errors="replace")
-                p_fn = doc.add_paragraph()
-                p_fn.paragraph_format.space_before = Pt(6)
-                p_fn.paragraph_format.space_after = Pt(4)
-                p_fn.add_run(f"Source File: {code_path.name} ({len(code_text.splitlines())} lines)").bold = True
-                add_code_block(doc, code_text)
+            run_app_a = p_app_a.add_run(code_heading)
+            run_app_a.bold = True
+            run_app_a.font.size = Pt(14)
 
-        # Appendix B: Additional Circuit Diagrams and Configuration Details
+            self.toc_entries.append(("APPENDIX A: Complete Source Code", "chapter", "appendix_a"))
+
+            for code_rel in self.brief.code_files_list:
+                code_path = Path(code_rel)
+                if code_path.is_file():
+                    code_text = code_path.read_text(encoding="utf-8", errors="replace")
+                    p_fn = doc.add_paragraph()
+                    p_fn.paragraph_format.space_before = Pt(6)
+                    p_fn.paragraph_format.space_after = Pt(4)
+                    p_fn.add_run(f"Source File: {code_path.name} ({len(code_text.splitlines())} lines)").bold = True
+                    add_code_block(doc, code_text)
+
+        # Appendix B: Additional Configuration Details
         doc.add_page_break()
         p_app_b = doc.add_paragraph()
         p_app_b.alignment = WD_ALIGN_PARAGRAPH.CENTER
@@ -1390,17 +1728,38 @@ class DocxReportBuilder:
         p_cfg = doc.add_paragraph()
         p_cfg.alignment = WD_ALIGN_PARAGRAPH.JUSTIFY
         p_cfg.paragraph_format.line_spacing = 1.15
-        p_cfg.add_run(
-            "Clock Tree and Power Consumption Details:\n"
-            "- HSE Crystal: 8.000 MHz\n"
-            "- PLL Multiplier: x9 (72 MHz System Core Clock)\n"
-            "- AHB Prescaler: /1 (72 MHz HCLK)\n"
-            "- APB1 Prescaler: /2 (36 MHz PCLK1 - Maximum allowable frequency)\n"
-            "- APB2 Prescaler: /1 (72 MHz PCLK2)\n"
-            "- ADC Prescaler: /6 (12 MHz ADCCLK - within 14 MHz specification limit)\n"
-            "- I2C Speed: Standard Mode 100 kHz\n"
-            "- Active Run Current: ~32 mA at 72 MHz\n"
-        )
+        if domain == "SOFTWARE_APP":
+            p_cfg.add_run(
+                "Application Runtime and Execution Environment Details:\n"
+                "- Runtime Platform: Java SE / Modern JVM / Python 3 Runtime\n"
+                "- Memory Management: Automatic Garbage Collection / Dynamic Heap Allocation\n"
+                "- Threading Model: Multi-Threaded Execution / Event Dispatch Loop\n"
+                "- Persistence Layer: Formatted Local File Store / Dynamic Transaction Log\n"
+                "- Data Encoding: UTF-8 Standard Encoding\n"
+                "- Exception Policy: Graceful Degradation with Structured Error Trapping\n"
+            )
+        elif domain == "COA_SYSTEMS":
+            p_cfg.add_run(
+                "Architectural Simulation and Datapath Timing Details:\n"
+                "- Target ISA: RISC-V RV32I / RV64I Base Integer Instruction Set\n"
+                "- Pipeline Stages: 5-Stage (Instruction Fetch, Decode, Execute, Memory, Writeback)\n"
+                "- Hazard Mitigation: Forwarding Unit and 1-Cycle Load-Use Stall Interlock\n"
+                "- Branch Prediction: Static / Dynamic 2-Bit Saturating Counter\n"
+                "- Memory Bus: Unified Memory Mapped I/O Bus (MMIO)\n"
+                "- Register File: 32 General-Purpose 32-bit Registers (x0 Hardwired to Zero)\n"
+            )
+        else:
+            p_cfg.add_run(
+                "Clock Tree and Power Consumption Details:\n"
+                "- HSE Crystal: 8.000 MHz\n"
+                "- PLL Multiplier: x9 (72 MHz System Core Clock)\n"
+                "- AHB Prescaler: /1 (72 MHz HCLK)\n"
+                "- APB1 Prescaler: /2 (36 MHz PCLK1 - Maximum allowable frequency)\n"
+                "- APB2 Prescaler: /1 (72 MHz PCLK2)\n"
+                "- ADC Prescaler: /6 (12 MHz ADCCLK - within 14 MHz specification limit)\n"
+                "- I2C Speed: Standard Mode 100 kHz\n"
+                "- Active Run Current: ~32 mA at 72 MHz\n"
+            )
 
         # Appendix C: Additional Output Images
         doc.add_page_break()
@@ -1421,22 +1780,58 @@ class DocxReportBuilder:
         )
 
     def _populate_toc_table(self, doc: Document):
-        """Populate Table of Contents entries."""
+        """Populate Table of Contents entries with structured Item numbers, Titles, and baseline page numbers."""
+        est_page = 1
         for title, level, anchor in self.toc_entries:
             row = self.toc_table.add_row()
+            item_text = ""
+            title_text = title
+            is_bold = False
+
             if level == "chapter":
-                row.cells[0].paragraphs[0].text = ""
-                row.cells[1].paragraphs[0].text = title
-                row.cells[1].paragraphs[0].runs[0].bold = True
-                row.cells[2].paragraphs[0].text = ""  # Populated during pagenums pass
+                is_bold = True
+                m_ch = re.match(r"^CHAPTER\s+(\d+)[:\s]+(.*)", title, re.IGNORECASE)
+                if m_ch:
+                    item_text = f"Chapter {m_ch.group(1)}"
+                    title_text = m_ch.group(2).strip()
+                elif title.startswith("APPENDIX"):
+                    m_app = re.match(r"^(APPENDIX\s+[A-Z])[:\s–—]+(.*)", title, re.IGNORECASE)
+                    if m_app:
+                        item_text = m_app.group(1).title()
+                        title_text = m_app.group(2).strip()
+                    else:
+                        item_text = title.split(":")[0].strip().title()
+                        title_text = title.split(":")[-1].strip()
+                elif title.upper() == "REFERENCES":
+                    item_text = ""
+                    title_text = "REFERENCES"
+
+                if m_ch:
+                    ch_idx = int(m_ch.group(1))
+                    est_page = 1 + (ch_idx - 1) * 2
             else:
-                row.cells[0].paragraphs[0].text = ""
-                row.cells[1].paragraphs[0].text = f"    {title}"
-                row.cells[2].paragraphs[0].text = ""
+                m_sec = re.match(r"^(\d+\.\d+(?:\.\d+)?)\s+(.*)", title)
+                if m_sec:
+                    item_text = f"  {m_sec.group(1)}"
+                    title_text = f"  {m_sec.group(2).strip()}"
+                else:
+                    item_text = ""
+                    title_text = f"  {title}"
+
+            row.cells[0].paragraphs[0].text = item_text
+            if is_bold and row.cells[0].paragraphs[0].runs:
+                row.cells[0].paragraphs[0].runs[0].bold = True
+
+            row.cells[1].paragraphs[0].text = title_text
+            if is_bold and row.cells[1].paragraphs[0].runs:
+                row.cells[1].paragraphs[0].runs[0].bold = True
+
+            row.cells[2].paragraphs[0].text = str(est_page)
+            row.cells[2].paragraphs[0].alignment = WD_ALIGN_PARAGRAPH.RIGHT
 
         format_table(
             self.toc_table,
-            col_widths=[0.8, 4.6, 0.8],
+            col_widths=[1.2, 4.2, 0.8],
             col_alignments=[WD_ALIGN_PARAGRAPH.LEFT, WD_ALIGN_PARAGRAPH.LEFT, WD_ALIGN_PARAGRAPH.RIGHT],
         )
 
@@ -1446,7 +1841,8 @@ class DocxReportBuilder:
             row = self.lof_table.add_row()
             row.cells[0].paragraphs[0].text = num
             row.cells[1].paragraphs[0].text = title
-            row.cells[2].paragraphs[0].text = ""  # Populated during pagenums pass
+            row.cells[2].paragraphs[0].text = "1"
+            row.cells[2].paragraphs[0].alignment = WD_ALIGN_PARAGRAPH.RIGHT
 
         format_table(
             self.lof_table,
@@ -1460,7 +1856,8 @@ class DocxReportBuilder:
             row = self.lot_table.add_row()
             row.cells[0].paragraphs[0].text = num
             row.cells[1].paragraphs[0].text = title
-            row.cells[2].paragraphs[0].text = ""  # Populated during pagenums pass
+            row.cells[2].paragraphs[0].text = "1"
+            row.cells[2].paragraphs[0].alignment = WD_ALIGN_PARAGRAPH.RIGHT
 
         format_table(
             self.lot_table,

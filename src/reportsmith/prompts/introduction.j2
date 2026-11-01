@@ -5,13 +5,13 @@ Target Length: {{ target_words }} words
 
 PROJECT CONTEXT:
 - Title: {{ brief.project.title }}
-- Microcontroller: {{ brief.implementation.board.name }} ({{ brief.implementation.board.mcu_part_number }}, {{ brief.implementation.board.clock }}, {{ brief.implementation.board.flash }} Flash, {{ brief.implementation.board.sram }} SRAM)
+- {% if brief.domain in ['MACHINE_LEARNING', 'SOFTWARE_APP', 'DATA_ANALYTICS', 'WEB_CLOUD'] %}Platform / Environment: {{ brief.implementation.board.name }} ({{ brief.implementation.board.mcu_part_number }}){% else %}Microcontroller: {{ brief.implementation.board.name }} ({{ brief.implementation.board.mcu_part_number }}, {{ brief.implementation.board.clock }}, {{ brief.implementation.board.flash }} Flash, {{ brief.implementation.board.sram }} SRAM){% endif %}
 - Framework: {{ brief.implementation.framework }}
 - Purpose: {{ brief.extra_notes or brief.project.title }}
-- Components & Interfaces:
+- Subsystems & Modules:
 {% for c in brief.implementation.components %}
   - {{ c.name }}: {{ c.role }} ({{ c.interface }})
 {% endfor %}
-- Scope Boundaries: Focuses on {{ brief.project.title }} using {{ brief.implementation.board.name }} with {{ brief.implementation.peripherals | join(', ') }}. System is self-contained with deterministic onboard control and telemetry.
+- Scope Boundaries: Focuses on {{ brief.project.title }} using {{ brief.implementation.board.name }} with {{ brief.implementation.peripherals | join(', ') }}. System is self-contained with deterministic workflow execution.
 
 Write formal technical prose. Output JSON: {"paragraphs": ["..."], "bullets": []}

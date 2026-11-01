@@ -1,0 +1,19 @@
+{
+  "section_id": "1.1",
+  "title": "Project Overview",
+  "data": {
+    "paragraphs": [
+      "- The ScholarPredict project aims to develop a data-driven machine learning system for predicting the academic performance category of students using the Random Forest algorithm.",
+      "- The primary objective is to build an accurate and interpretable ensemble classification model that identifies students who are likely to perform poorly early in the semester, demonstrating practical applications of educational data mining and machine learning.",
+      "- A suitable student dataset containing attributes such as attendance percentage, internal assessment marks, assignment scores, previous semester grades, weekly study hours, and participation in extracurricular activities is used for model development.",
+      "- The data is cleaned and prepared using preprocessing techniques including missing-value imputation, categorical encoding, feature scaling, and class balancing using SMOTE, with the records divided into training and testing sets. Correlation analysis helps understand which factors influence performance most.",
+      "- The Random Forest classifier builds a large number of decision trees on random subsets of data and features, making predictions based on majority voting across all trees.",
+      "- Performance is evaluated using accuracy, precision, recall, F1-score, and a confusion matrix, with hyperparameter tuning using cross-validation and feature-importance analysis to improve results. The model is compared against Decision Tree and Logistic Regression baselines.",
+      "- ScholarPredict provides a practical and interpretable approach for early academic intervention, offering potential extensions to applications such as mentor dashboards, personalized study recommendations, dropout risk detection, and institutional performance analysis.",
+      "- It also demonstrates how an ensemble learning algorithm like Random Forest can be applied effectively in solving real-world educational problems."
+    ],
+    "bullets": []
+  },
+  "timestamp": 1793513247.3990939,
+  "elapsed": 30.428333282470703
+}

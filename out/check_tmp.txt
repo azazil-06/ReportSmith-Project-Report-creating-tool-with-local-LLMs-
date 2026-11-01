@@ -1,0 +1,12 @@
+============================================================
+REPORTSMITH VERIFICATION REPORT
+============================================================
+Target Document: out\report.docx
+Project: PARKEASE: A FLUTTER-BASED SMART PARKING SLOT FINDER AND RESERVATION APP
+Status: FAILED
+
+Total Errors: 1
+Total Warnings: 0
+
+ERRORS:
+  [X] Ungrounded number '97' detected in prose: "2. Precision: The precision of the model is 97%. This means that when the model ..."

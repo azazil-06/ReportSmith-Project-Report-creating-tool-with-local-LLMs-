@@ -5,14 +5,14 @@ Target Length: {{ target_words }} words
 
 PROJECT SUMMARY:
 - Title: {{ brief.project.title }}
-- Microcontroller: {{ brief.implementation.board.mcu_part_number }} on {{ brief.implementation.board.name }}
-- Peripherals Used: {{ brief.implementation.peripherals | join(', ') }}
+- {% if brief.domain in ['MACHINE_LEARNING', 'SOFTWARE_APP', 'DATA_ANALYTICS', 'WEB_CLOUD'] %}Platform / Environment: {{ brief.implementation.board.name }} ({{ brief.implementation.board.mcu_part_number }}){% else %}Microcontroller: {{ brief.implementation.board.mcu_part_number }} on {{ brief.implementation.board.name }}{% endif %}
+- Framework & Modules: {{ brief.implementation.framework }}
 - System Modules:
 {% for c in brief.implementation.components %}
   - {{ c.name }}: {{ c.role }}
 {% endfor %}
-- Architecture Notes: {{ brief.extra_notes or "Integrated embedded microcontroller design." }}
-- Operational Scope: Real-time acquisition, deterministic logic evaluation, and autonomous actuation without cloud dependency.
+- Architecture Notes: {% if brief.domain in ['MACHINE_LEARNING', 'DATA_ANALYTICS'] %}End-to-end Machine Learning data pipeline, feature extraction, and predictive inference.{% elif brief.domain in ['SOFTWARE_APP', 'WEB_CLOUD'] %}Modular software architecture with clear separation of concerns and data persistence.{% else %}{{ brief.extra_notes or "Integrated embedded microcontroller design." }}{% endif %}
+- Operational Scope: {% if brief.domain in ['MACHINE_LEARNING', 'DATA_ANALYTICS'] %}Offline model evaluation, dataset ingestion, and predictive classification without cloud latency.{% elif brief.domain in ['SOFTWARE_APP', 'WEB_CLOUD'] %}Reliable application execution, structured data storage, and modular request handling.{% else %}Real-time acquisition, deterministic logic evaluation, and autonomous actuation without cloud dependency.{% endif %}
 
-Write formal engineering prose summarizing achievements or operational limitations for {{ section_title }}.
+Write formal engineering prose summarizing achievements, limitations, or future scope for {{ section_title }}. DO NOT repeat the abstract.
 Output strictly JSON: {"paragraphs": ["..."], "bullets": []}

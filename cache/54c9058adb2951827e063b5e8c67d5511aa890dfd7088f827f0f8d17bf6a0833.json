@@ -1,0 +1,21 @@
+{
+  "section_id": "4.3",
+  "title": "Handcrafted Feature Extraction Engine Module Implementation",
+  "data": {
+    "paragraphs": [
+      "The Handcrafted Feature Extraction Engine module is a critical component in the ScholarPredict system, responsible for extracting hand-crafted visual features from produce images. The implementation details of this module are as follows:",
+      "- Target Platform: Python Machine Learning Workstation",
+      "- Deployment / Tooling: pip / conda",
+      "- Image Preprocessing Pipeline: Image normalization, resizing, and illumination correction (OpenCV/PIL)",
+      "- Feature Extraction Engine: Handcrafted visual descriptor computation (Color Histograms & GLCM) (scikit-image/NumPy)",
+      "- KNN Classification Engine: Instance-based distance calculation and majority-vote prediction (scikit-learn)",
+      "- Dataset Management Subsystem: Dataset ingestion, label encoding, and train/test partition (pandas/File System)",
+      "- Implementation Considerations:",
+      "- Modular code separation, exception handling, and input validation",
+      "- High computational efficiency, vectorized operations, and reproducible execution"
+    ],
+    "bullets": []
+  },
+  "timestamp": 1793513630.8582983,
+  "elapsed": 9.072134256362915
+}

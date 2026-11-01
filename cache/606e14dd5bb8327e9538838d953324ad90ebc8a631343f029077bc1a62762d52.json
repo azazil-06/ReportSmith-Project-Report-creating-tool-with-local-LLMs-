@@ -1,0 +1,20 @@
+{
+  "section_id": "4.7",
+  "title": "Program Execution and System Integration",
+  "data": {
+    "paragraphs": [
+      "The ScholarPredict project is a data-driven machine learning system developed to predict the academic performance category of a student using the Random Forest algorithm. The primary objective of the project is to build an accurate and interpretable ensemble classification model that identifies students who are likely to perform poorly early in the semester, so that mentors and faculty can provide timely academic support, demonstrating a practical application of educational data mining and machine learning to improve student outcomes. A suitable student dataset containing attributes such as attendance percentage, internal assessment marks, assignment scores, previous semester grades, weekly study hours, and participation in extracurricular activities is used for model development. The data is cleaned and prepared using preprocessing techniques including missing-value imputation, categorical encoding, feature scaling, and class balancing using SMOTE, and the records are divided into training and testing sets, with correlation analysis used to understand which factors influence performance the most. The Random Forest classifier builds a large number of decision trees on random subsets of the data and features, and the final category, such as High, Average, or At-Risk, is decided by majority voting across all trees. The performance of the model is evaluated using accuracy, precision, recall, F1-score, and a confusion matrix, while hyperparameter tuning with cross-validation and feature-importance analysis are used to improve results and explain which attributes contribute most to each prediction, and the model is compared against Decision Tree and Logistic Regression baselines. The proposed ScholarPredict system provides a practical and interpretable approach to early academic intervention, with potential extensions to applications such as mentor dashboards, personalized study recommendations, dropout risk detection, and institutional performance analysis. It also offers practical exposure to the complete machine learning workflow, including data collection, preprocessing, feature analysis, ensemble model training, hyperparameter tuning, and performance evaluation, demonstrating how an ensemble learning algorithm like Random Forest can be applied to solve a real-world educational problem in an effective and accessible manner."
+    ],
+    "bullets": [
+      "Target Platform: Python Machine Learning Workstation",
+      "Deployment / Tooling: pip / conda",
+      "Image Preprocessing Pipeline: Image normalization, resizing, and illumination correction (OpenCV / PIL) - Standardizes input produce images to uniform resolution and color balance",
+      "Feature Extraction Engine: Handcrafted visual descriptor computation (Color Histograms & GLCM) (scikit-image / NumPy) - Extracts color distributions (RGB/HSV) and texture irregularity measures",
+      "KNN Classification Engine: Instance-based distance calculation and majority-vote prediction (scikit-learn) - Computes Euclidean distances to training vectors and assigns freshness category",
+      "Dataset Management Subsystem: Dataset ingestion, label encoding, and train/test partition (pandas / File System) - Maintains annotated produce image corpus across freshness stages",
+      "Performance Evaluation Module: Model metrics and validation matrix calculation (scikit-learn.metrics) - Evaluates accuracy, precision, recall, F1-score, and confusion matrix"
+    ]
+  },
+  "timestamp": 1793513781.4279795,
+  "elapsed": 87.69397115707397
+}

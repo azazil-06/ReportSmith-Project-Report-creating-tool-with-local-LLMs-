@@ -1,33 +1,55 @@
 """Section generation orchestrator with disk caching, progress logging, and resume support."""
 
+from concurrent.futures import ThreadPoolExecutor, as_completed
 import hashlib
 import json
 import logging
+import os
 import time
 from pathlib import Path
 from typing import Any, Dict, List, Optional, Set, Union
 
 from reportsmith.brief import ProjectBrief
 from reportsmith.config import ReportSmithConfig
+from reportsmith.cuda_utils import get_optimal_parallel_workers, is_cuda_available
 from reportsmith.facts import ProjectFacts
 from reportsmith.llm import LLMClient, OpenAILLMClient, StubLLM
 from reportsmith.outline import ReportOutline
+from reportsmith.progress import ProgressBar
 
 logger = logging.getLogger(__name__)
 
-SYSTEM_PROMPT = """You are an expert embedded systems engineer writing a formal college micro-project report.
+def get_system_prompt(domain: Optional[str] = None) -> str:
+    """Generate domain-adaptive system prompt so the LLM adopts the appropriate engineering role."""
+    dom = (domain or "GENERAL_ACADEMIC").upper()
+    if dom in ("SOFTWARE_APP", "WEB_CLOUD"):
+        role = "expert software and cloud systems engineer"
+        framework_rule = "Describe software components, client-server workflows, APIs, databases, and UI states strictly as declared."
+    elif dom in ("MACHINE_LEARNING", "DATA_ANALYTICS"):
+        role = "expert machine learning and data science engineer"
+        framework_rule = "Describe model architecture, data pipelines, feature extraction, evaluation metrics, and algorithms strictly as declared."
+    elif dom == "COA_SYSTEMS":
+        role = "expert computer organization and processor architecture engineer"
+        framework_rule = "Describe instruction sets, microarchitecture, datapath, control units, and pipeline stages strictly as declared."
+    else:
+        role = "expert embedded systems engineer"
+        framework_rule = "Describe microcontrollers, peripheral interfaces, pin mappings, and firmware execution strictly as declared."
+
+    return f"""You are an {role} writing a formal college micro-project report.
 Write in formal, third-person technical style (Indian/UK English).
 Do not use marketing language. Do not use first-person pronouns unless specifically requested.
 
 CRITICAL GROUNDING RULES:
-1. Use ONLY the facts, numbers, pin names, and brief fields provided in the prompt.
+1. Use ONLY the facts, numbers, specifications, and brief fields provided in the prompt.
 2. DO NOT invent or add any part numbers, voltages, clock speeds, pin names, timing values, costs, or accuracy percentages that are not given.
 3. NEVER write test results, measured accuracy claims, or 'the system was tested and found to...' unless observed values are explicitly given in the prompt. Always state expected behavior as 'expected'.
-4. If the project is hardware, do not claim photos exist. If it is simulation, state clearly that it is a simulation.
-5. If the framework is Arduino STM32 core and the section asks about STM32CubeIDE/HAL/CubeMX, state honestly that the core builds on the HAL drivers and explain the equivalent settings. Do not claim a CubeMX project was generated.
+4. If the project mode is hardware, do not claim photos exist. If it is simulation, state clearly that it is a simulation.
+5. Framework Transparency: {framework_rule}
 6. Do not cite sources that are not in the supplied references list.
-7. Return strictly valid JSON: {"paragraphs": ["..."], "bullets": ["..."]} without markdown formatting or conversational commentary.
+7. Return strictly valid JSON: {{"paragraphs": ["..."], "bullets": ["..."]}} without markdown formatting or conversational commentary.
 """
+
+SYSTEM_PROMPT = get_system_prompt()
 
 
 import jinja2
@@ -123,8 +145,11 @@ class SectionGenerator:
         allowed_sections: Optional[Set[str]] = None,
         resume: bool = True,
         dry_run: bool = False,
+        concurrency: Optional[int] = None,
     ) -> Dict[str, Dict[str, Any]]:
-        """Generate all prose sections in outline, using cache where available."""
+        """Generate all prose sections in outline, using cache where available.
+        Supports parallel section generation accelerated by CUDA and multithreading.
+        """
         results: Dict[str, Dict[str, Any]] = {}
 
         # Items that require LLM prose generation
@@ -140,43 +165,70 @@ class SectionGenerator:
             ("declaration", "Declaration"),
         ]
 
-        total_items = len(llm_sections) + len(standalone_items)
-        current_idx = 0
-
-        # Process standalone prelim sections
+        # Gather all sections in defined order
+        tasks_meta = []
         for sec_id, sec_title in standalone_items:
-            current_idx += 1
             if allowed_sections and sec_id not in allowed_sections:
                 continue
+            tasks_meta.append((sec_id, sec_title))
 
-            target_words = self.config.get_word_target(sec_id)
-            prompt = build_section_prompt(sec_id, sec_title, brief, facts, target_words)
+        for item in llm_sections:
+            if allowed_sections and item.id not in allowed_sections:
+                continue
+            tasks_meta.append((item.id, item.title))
 
-            if dry_run:
+        if dry_run:
+            for sec_id, sec_title in tasks_meta:
+                target_words = self.config.get_word_target(sec_id)
+                prompt = build_section_prompt(sec_id, sec_title, brief, facts, target_words)
                 print(f"\n[DRY RUN] Section {sec_id} ({sec_title}):")
                 print(prompt[:300] + "...\n")
-                continue
+            return results
 
-            res = self._generate_single_section(sec_id, sec_title, prompt, target_words, resume)
-            results[sec_id] = res
-
-        # Process outline body sections
-        for item in llm_sections:
-            current_idx += 1
-            sec_id = item.id
-            if allowed_sections and sec_id not in allowed_sections:
-                continue
-
+        # Determine optimal concurrency (auto-detects CUDA GPU capabilities)
+        workers = get_optimal_parallel_workers(concurrency)
+        tasks = []
+        for sec_id, sec_title in tasks_meta:
             target_words = self.config.get_word_target(sec_id)
-            prompt = build_section_prompt(sec_id, item.title, brief, facts, target_words)
+            prompt = build_section_prompt(sec_id, sec_title, brief, facts, target_words)
+            tasks.append((sec_id, sec_title, prompt, target_words))
 
-            if dry_run:
-                print(f"\n[DRY RUN] Section {sec_id} ({item.title}):")
-                print(prompt[:300] + "...\n")
-                continue
-
-            res = self._generate_single_section(sec_id, item.title, prompt, target_words, resume)
-            results[sec_id] = res
+        sys_prompt = get_system_prompt(brief.domain)
+        pbar = ProgressBar(total=len(tasks), desc="Generating Report Sections", unit="sec")
+        try:
+            if workers > 1 and len(tasks) > 1:
+                cuda_status = "CUDA Accelerated" if is_cuda_available() else "Multi-Threaded CPU"
+                logger.info(f"Parallel section generation active: {workers} workers ({cuda_status})")
+                with ThreadPoolExecutor(max_workers=workers) as executor:
+                    future_to_id = {
+                        executor.submit(
+                            self._generate_single_section,
+                            sec_id,
+                            sec_title,
+                            prompt,
+                            target_words,
+                            resume,
+                            sys_prompt,
+                        ): (sec_id, sec_title)
+                        for sec_id, sec_title, prompt, target_words in tasks
+                    }
+                    for future in as_completed(future_to_id):
+                        sec_id, sec_title = future_to_id[future]
+                        try:
+                            res = future.result()
+                            results[sec_id] = res
+                            pbar.update(1, status=f"Done {sec_id}")
+                        except Exception as e:
+                            logger.error(f"Error generating section {sec_id}: {e}")
+                            raise
+            else:
+                for sec_id, sec_title, prompt, target_words in tasks:
+                    pbar.set_status(f"Generating {sec_id}...")
+                    res = self._generate_single_section(sec_id, sec_title, prompt, target_words, resume, sys_prompt)
+                    results[sec_id] = res
+                    pbar.update(1, status=f"Done {sec_id}")
+        finally:
+            pbar.close()
 
         return results
 
@@ -187,6 +239,7 @@ class SectionGenerator:
         prompt: str,
         target_words: int,
         resume: bool,
+        system_prompt: Optional[str] = None,
     ) -> Dict[str, Any]:
         """Generate a single section with disk caching."""
         cache_key = compute_cache_key(
@@ -211,7 +264,7 @@ class SectionGenerator:
         logger.info(f"Generating Section {section_id}: {section_title}...")
         res = self.llm.generate(
             prompt=prompt,
-            system_prompt=SYSTEM_PROMPT,
+            system_prompt=system_prompt or SYSTEM_PROMPT,
             section_id=section_id,
             target_words=target_words,
         )
@@ -225,10 +278,10 @@ class SectionGenerator:
             f"[DONE] Section {section_id} ({section_title}) | {words} words in {elapsed:.1f}s (~{tok_speed:.1f} tok/s)"
         )
 
-        # Write to cache atomically
+        # Write to cache atomically and thread-safely
         try:
-            temp_cache = cache_file.with_suffix(".tmp")
-            with open(temp_cache, "w", encoding="utf-8") as f:
+            unique_tmp = cache_file.with_name(f"{cache_file.stem}_{os.getpid()}_{time.time_ns()}.tmp")
+            with open(unique_tmp, "w", encoding="utf-8") as f:
                 json.dump(
                     {
                         "section_id": section_id,
@@ -240,7 +293,7 @@ class SectionGenerator:
                     f,
                     indent=2,
                 )
-            temp_cache.rename(cache_file)
+            unique_tmp.replace(cache_file)
         except Exception as e:
             logger.warning(f"Could not write cache file {cache_file}: {e}")
 

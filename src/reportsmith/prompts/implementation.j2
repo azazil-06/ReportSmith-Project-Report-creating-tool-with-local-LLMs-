@@ -4,25 +4,37 @@ TASK: Write Section {{ section_id }}: {{ section_title }} for Chapter 4 (Impleme
 Target Length: {{ target_words }} words
 
 IMPLEMENTATION DETAILS:
-- Framework: {{ brief.implementation.framework }} (Arduino STM32 Core / stm32duino built on STM32 HAL drivers)
-- Programmer: {{ brief.implementation.programmer }} via SWD interface
+- Target Platform: {{ brief.implementation.board.name }}
+- Framework / Language: {{ brief.implementation.framework }}
+{% if brief.implementation.programmer %}
+- Deployment / Tooling: {{ brief.implementation.programmer }}
+{% endif %}
+{% if facts.code_stats %}
 - Code Stats:
 {% for cs in facts.code_stats %}
   - File: {{ cs.filename }} ({{ cs.total_lines }} lines, {{ cs.code_lines }} code lines)
   - Functions: {{ cs.functions | join(', ') }}
 {% endfor %}
+{% endif %}
+{% if brief.domain in ('EMBEDDED_HARDWARE', 'EMBEDDED_IOT') %}
 - Peripherals & Clocks:
-  - System Core Clock: 72 MHz (HSE 8 MHz with PLL x9)
-  - APB1 Prescaler: /2 (36 MHz)
-  - APB2 Prescaler: /1 (72 MHz)
-  - ADC Prescaler: /6 (12 MHz ADCCLK)
+  - System Core Clock: {{ brief.implementation.board.clock }}
 {% for p in brief.implementation.pins %}
   - Pin {{ p.pin }} ({{ p.peripheral }}): {{ p.connected_to }} - {{ p.function }}
 {% endfor %}
 - Operational Challenges & Techniques:
   - Eliminating sensor measurement noise through moving average filtering.
-  - Correct handling of inverted active-low onboard indicator logic on PC13.
+  - Correct handling of active-low indicator logic.
   - Reliable threshold or hysteresis state evaluation to avoid spurious state switching.
+{% else %}
+- Computational Subsystems & Components:
+{% for c in brief.implementation.components %}
+  - {{ c.name }}: {{ c.role }} ({{ c.interface }}) - {{ c.notes }}
+{% endfor %}
+- Implementation Considerations:
+  - Modular code separation, exception handling, and input validation.
+  - High computational efficiency, vectorized operations, and reproducible execution.
+{% endif %}
 
 Write formal engineering prose detailing the implementation of {{ section_title }}.
 Output strictly JSON: {"paragraphs": ["..."], "bullets": []}

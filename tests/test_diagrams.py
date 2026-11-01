@@ -74,3 +74,24 @@ def test_night_lamp_topic_adaptation(tmp_path):
     assert block_png.is_file() and block_png.stat().st_size > 1000
     assert conn_png.is_file() and conn_png.stat().st_size > 1000
     assert flow_png.is_file() and flow_png.stat().st_size > 1000
+
+
+def test_machine_learning_diagrams_generation(tmp_path):
+    """Verify that MACHINE_LEARNING projects generate pipeline, data flow, and ML flowchart with zero MCU pins."""
+    brief_path = Path("out/analyzed_brief.yaml")
+    if brief_path.is_file():
+        brief = load_brief(brief_path)
+    else:
+        brief = load_brief("examples/brief.yaml")
+        brief.domain = "MACHINE_LEARNING"
+        brief.project.title = "FreshKNN: Fruit and Vegetable Freshness Classification"
+
+    facts = derive_facts(brief, base_dir=Path("."))
+
+    diag_dir = tmp_path / "ml_diags"
+    diagrams = generate_all_diagrams(brief, facts, out_dir=diag_dir)
+
+    for key, path in diagrams.items():
+        p = Path(path)
+        assert p.is_file(), f"{key} must exist"
+        assert p.stat().st_size > 5000, f"{key} must have content"

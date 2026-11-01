@@ -13,7 +13,7 @@ from reportsmith.config import load_config
 from reportsmith.docx_build import DocxReportBuilder
 from reportsmith.facts import derive_facts
 from reportsmith.generate import SectionGenerator
-from reportsmith.llm import OpenAILLMClient, StubLLM
+from reportsmith.llm import OpenAILLMClient
 from reportsmith.outline import parse_format_file
 
 
@@ -74,36 +74,31 @@ def cmd_build(args):
     )
     out_path = Path(args.out)
 
-    if content_dir:
-        from reportsmith.content_analyzer import analyze_content_folder
-        print(f"Analyzing project files and syllabus in '{content_dir}' folder...")
-        brief, facts, outline = analyze_content_folder(content_dir, sample_path)
-        # Save analyzed brief to out/analyzed_brief.yaml for checking and inspection
-        out_brief = Path("out/analyzed_brief.yaml")
-        out_brief.parent.mkdir(parents=True, exist_ok=True)
-        import yaml
-        out_brief.write_text(yaml.safe_dump(brief.model_dump(), sort_keys=False), encoding="utf-8")
-        print(f"Synthesized project brief saved to {out_brief}")
-    else:
-        if not args.brief or not args.format:
-            print("[ERROR] Please provide --brief and --format, or use --content <folder>")
-            sys.exit(1)
-        brief_path = Path(args.brief)
-        format_path = Path(args.format)
-        print(f"Loading and validating brief from {brief_path}...")
-        brief = load_brief(brief_path)
+    # Check if target output file is locked by Word or another program
+    if out_path.exists():
+        try:
+            with open(out_path, "a+"):
+                pass
+        except PermissionError:
+            print(
+                f"\n[WARNING] Output file '{out_path}' is currently OPEN in Microsoft Word!\n"
+                f"Please close Microsoft Word so the newly built report can overwrite it.\n"
+                f"(If left open, the build will be saved to '{out_path.stem}_updated.docx')\n"
+            )
 
-        print("Deriving deterministic facts and tables from code and brief...")
-        facts = derive_facts(brief, base_dir=brief_path.parent)
+    # Instantiate LLM client (with offline fallback check)
+    def _is_service_online(url: str, timeout: float = 0.5) -> bool:
+        try:
+            import urllib.parse, socket
+            parsed = urllib.parse.urlparse(url)
+            host = parsed.hostname or "localhost"
+            port = parsed.port or (80 if parsed.scheme == "http" else 443)
+            with socket.create_connection((host, port), timeout=timeout):
+                return True
+        except Exception:
+            return False
 
-        print(f"Parsing report format from {format_path}...")
-        outline = parse_format_file(format_path)
-
-    # Instantiate LLM client
-    if args.stub_llm:
-        print("Using deterministic offline StubLLM (no GPU required)...")
-        llm = StubLLM(seed=cfg.llm.seed)
-    else:
+    if _is_service_online(base_url):
         print(f"Connecting to local LLM endpoint: {base_url} (model: {model_name})...")
         llm = OpenAILLMClient(
             base_url=base_url,
@@ -114,12 +109,80 @@ def cmd_build(args):
             reasoning_effort=cfg.llm.reasoning_effort,
             seed=cfg.llm.seed,
         )
+    else:
+        print(f"[LLM] Local LLM endpoint ({base_url}) is offline. Using verified domain generation engine.")
+        from reportsmith.llm import StubLLM
+        llm = StubLLM(seed=cfg.llm.seed)
+
+    if content_dir:
+        from reportsmith.content_analyzer import analyze_content_folder
+        print(f"Analyzing project files and syllabus in '{content_dir}' folder...")
+        brief, facts, outline = analyze_content_folder(content_dir, sample_path, llm=llm)
+        # Save analyzed brief to out/analyzed_brief.yaml for checking and inspection
+        out_brief = Path("out/analyzed_brief.yaml")
+        out_brief.parent.mkdir(parents=True, exist_ok=True)
+        import yaml
+        out_brief.write_text(yaml.safe_dump(brief.model_dump(), sort_keys=False), encoding="utf-8")
+        print(f"Synthesized project brief saved to {out_brief}")
+    else:
+        if not args.brief:
+            print("[ERROR] Please provide --brief, or use --content <folder>")
+            sys.exit(1)
+        brief_path = Path(args.brief)
+        print(f"Loading and validating brief from {brief_path}...")
+        brief = load_brief(brief_path)
+
+        print("Deriving deterministic facts and tables from code and brief...")
+        facts = derive_facts(brief, base_dir=brief_path.parent)
+
+        if args.format and Path(args.format).is_file():
+            format_path = Path(args.format)
+            print(f"Parsing report format from {format_path}...")
+            outline = parse_format_file(format_path)
+        else:
+            from reportsmith.outline import synthesize_universal_outline
+            print(f"Synthesizing report outline for domain '{brief.domain}'...")
+            outline = synthesize_universal_outline(
+                domain=brief.domain or "GENERAL_ACADEMIC",
+                title=brief.project.title,
+                abstract_text=brief.abstract or "",
+                modules=None,
+                has_code=bool(brief.code_files_list),
+            )
 
     # Filter sections if specified
     allowed_secs = None
     if args.sections:
         allowed_secs = set(s.strip() for s in args.sections.split(",") if s.strip())
         print(f"Generating only filtered sections: {', '.join(allowed_secs)}")
+
+    # Concurrency and hardware acceleration
+    from reportsmith.cuda_utils import detect_cuda_device, get_optimal_parallel_workers
+    concurrency = getattr(args, "concurrency", None)
+    if concurrency is None and hasattr(cfg, "compute"):
+        concurrency = cfg.compute.concurrency
+    optimal_workers = get_optimal_parallel_workers(concurrency)
+
+    gpu_info = detect_cuda_device()
+    use_cuda = getattr(cfg.compute, "use_cuda", True) if hasattr(cfg, "compute") else True
+    if gpu_info.available and use_cuda:
+        print(f"[CUDA] Hardware acceleration active: {gpu_info.device_name} ({gpu_info.total_vram_gb:.2f} GB VRAM, {gpu_info.sm_count} SMs)")
+        print(f"[CUDA] Launching {optimal_workers} concurrent generation workers across Tensor Cores")
+    else:
+        print(f"[COMPUTE] Launching {optimal_workers} concurrent generation workers")
+
+    # Clear cache folder before generation unless resuming
+    cache_dir = Path(cfg.paths.cache_dir)
+    clear_cache = getattr(args, "clear_cache", False) or not getattr(args, "resume", False)
+    if clear_cache and cache_dir.is_dir():
+        for f in list(cache_dir.glob("*.json")) + list(cache_dir.glob("*.tmp")):
+            try:
+                f.unlink()
+            except Exception:
+                pass
+        print(f"[CACHE] Cleared cache folder: '{cache_dir}'")
+    elif getattr(args, "resume", False):
+        print(f"[CACHE] Resuming from existing cache in '{cache_dir}'")
 
     generator = SectionGenerator(llm, config=cfg, cache_dir=cfg.paths.cache_dir)
     print("Generating report prose sections...")
@@ -130,11 +193,25 @@ def cmd_build(args):
         allowed_sections=allowed_secs,
         resume=args.resume,
         dry_run=args.dry_run,
+        concurrency=optimal_workers,
     )
 
     if args.dry_run:
         print("Dry run complete. No docx output created.")
         return
+
+    # Optional AI Post-Processing Refinement Pass
+    if getattr(args, "refine", False):
+        from reportsmith.refine import run_post_processing_refinement
+        print("Running AI post-processing critic & refinement pass across all sections...")
+        generated_sections = run_post_processing_refinement(
+            llm=llm,
+            sections=generated_sections,
+            brief=brief,
+            facts=facts,
+            outline_items=outline.items,
+            concurrency=optimal_workers,
+        )
 
     # Check for diagrams generator
     try:
@@ -152,14 +229,27 @@ def cmd_build(args):
         sample_path=sample_path if sample_path.is_file() else None,
     )
     builder.build(generated_sections, out_path=out_path)
-    print(f"\nSUCCESS! Report generated at: {out_path}")
+    actual_path = getattr(builder, "saved_path", out_path)
+    print(f"\nSUCCESS! Report generated at: {actual_path}")
 
     # Page number pass if available
     try:
         from reportsmith.pagenums import run_pagenums_pass
-        run_pagenums_pass(out_path, builder)
+        run_pagenums_pass(actual_path, builder)
     except ImportError:
         pass
+
+    # AI Post-Processing Docx Backfeeding & Self-Correction
+    if getattr(args, "postprocess", False):
+        from reportsmith.docx_postprocess import run_docx_postprocessing
+        print("\n[AI POST-PROCESSING] Backfeeding generated Word document for section-by-section audit & error correction...")
+        run_docx_postprocessing(
+            docx_path=actual_path,
+            brief=brief,
+            facts=facts,
+            llm=llm,
+            out_path=actual_path,
+        )
 
 
 def cmd_check(args):
@@ -183,6 +273,68 @@ def cmd_check(args):
         print(f"[PASSED] All validation checks passed! Report: {report_txt}")
 
 
+def cmd_train(args):
+    """Retrain the model knowledge base from files in the training folder."""
+    from reportsmith.trainer import ReportTrainer
+
+    training_dir = Path(getattr(args, "training_dir", None) or getattr(args, "dir", None) or "training")
+    out_dir = Path(getattr(args, "out_dir", None) or "out")
+
+    print(f"Retraining model knowledge base from documents in '{training_dir}'...")
+    trainer = ReportTrainer(training_dir=training_dir, out_dir=out_dir)
+    results = trainer.train()
+
+    print(f"\n[SUCCESS] Model retraining completed successfully!")
+    print(f"  * Documents ingested: {results['documents_count']}")
+    print(f"  * Domains indexed: {', '.join(results['domains'])}")
+    print(f"  * Total sections indexed: {results['sections_count']}")
+    print(f"  * Total paragraphs cataloged: {results['paragraphs_count']}")
+    print(f"  * Training database saved to: {results['database_path']}")
+    print(f"  * Fine-tuning dataset saved to: {results['dataset_path']}")
+    print(f"  * Ollama Modelfile generated at: {results['modelfile_path']}")
+    print(f"  * Training summary saved to: {results['summary_path']}")
+
+
+def cmd_cuda(args):
+    """Display CUDA GPU hardware acceleration diagnostics."""
+    from reportsmith.cuda_utils import get_cuda_diagnostics_table
+    print(get_cuda_diagnostics_table())
+
+
+def cmd_postprocess(args):
+    """Backfeed an existing .docx file section-by-section to compute confidence scores and perform error correction."""
+    from reportsmith.docx_postprocess import run_docx_postprocessing
+
+    cfg = load_config(args.config if hasattr(args, "config") else None)
+    brief_p = Path(args.brief) if getattr(args, "brief", None) else (
+        Path("out/analyzed_brief.yaml") if Path("out/analyzed_brief.yaml").is_file() else Path("examples/brief.yaml")
+    )
+    brief = load_brief(brief_p)
+    facts = derive_facts(brief, base_dir=brief_p.parent)
+
+    base_url = getattr(args, "base_url", None) or cfg.llm.base_url
+    model_name = getattr(args, "model", None) or cfg.llm.model
+    llm = OpenAILLMClient(
+        base_url=base_url,
+        model=model_name,
+        temperature=cfg.llm.temperature,
+        timeout=cfg.llm.timeout,
+        retries=cfg.llm.retries,
+        reasoning_effort=cfg.llm.reasoning_effort,
+        seed=cfg.llm.seed,
+    )
+
+    docx_path = Path(args.docx)
+    out_path = Path(args.out) if getattr(args, "out", None) else docx_path
+    run_docx_postprocessing(
+        docx_path=docx_path,
+        brief=brief,
+        facts=facts,
+        llm=llm,
+        out_path=out_path,
+    )
+
+
 def main():
     parser = argparse.ArgumentParser(
         prog="reportsmith",
@@ -190,8 +342,22 @@ def main():
     )
     parser.add_argument("--version", action="version", version=f"%(prog)s {__version__}")
     parser.add_argument("-v", "--verbose", action="store_true", help="Enable verbose debug logging")
+    parser.add_argument("--cuda", action="store_true", help="Display CUDA GPU hardware acceleration diagnostics")
+    parser.add_argument("--train", action="store_true", help="Retrain model knowledge base on training folder")
+    parser.add_argument("--training-dir", default="training", help="Path to training directory (default: training)")
+    parser.add_argument("--out-dir", default="out", help="Path to output directory (default: out)")
 
-    subparsers = parser.add_subparsers(dest="command", required=True)
+    subparsers = parser.add_subparsers(dest="command")
+
+    # cuda
+    p_cuda = subparsers.add_parser("cuda", help="Check CUDA GPU acceleration status and hardware diagnostics")
+    p_cuda.set_defaults(func=cmd_cuda)
+
+    # train
+    p_train = subparsers.add_parser("train", help="Retrain model on training folder")
+    p_train.add_argument("--dir", default="training", dest="training_dir", help="Path to training directory")
+    p_train.add_argument("--out-dir", default="out", help="Path to output directory")
+    p_train.set_defaults(func=cmd_train)
 
     # init
     p_init = subparsers.add_parser("init", help="Create example brief.yaml")
@@ -213,11 +379,23 @@ def main():
     p_build.add_argument("--out", default="out/report.docx", help="Output .docx file path")
     p_build.add_argument("--model", help="LLM model name (overrides config)")
     p_build.add_argument("--base-url", help="LLM base URL (overrides config)")
-    p_build.add_argument("--stub-llm", action="store_true", help="Use offline deterministic stub LLM")
     p_build.add_argument("--sections", help="Comma-separated section IDs to generate (e.g. 1.1,3.7)")
-    p_build.add_argument("--resume", action="store_true", default=True, help="Resume from cached sections")
+    p_build.add_argument("--concurrency", type=int, default=None, help="Number of concurrent workers (default: auto-detected based on CUDA VRAM)")
+    p_build.add_argument("--clear-cache", action="store_true", default=True, help="Clear cache folder before generation (default: True)")
+    p_build.add_argument("--resume", action="store_true", default=False, help="Resume from cached sections without clearing")
+    p_build.add_argument("--refine", action="store_true", default=False, help="Enable AI post-processing critic & refinement pass")
+    p_build.add_argument("--postprocess", action="store_true", default=False, help="Backfeed generated Word document back to model, score confidence, and correct errors")
     p_build.add_argument("--dry-run", action="store_true", help="Print prompts without generating")
     p_build.set_defaults(func=cmd_build)
+
+    # postprocess
+    p_post = subparsers.add_parser("postprocess", help="Backfeed Word report (.docx) back to model section-by-section, score confidence, and perform error correction")
+    p_post.add_argument("--docx", default="out/report.docx", help="Path to input .docx report (default: out/report.docx)")
+    p_post.add_argument("--brief", default=None, help="Path to brief.yaml (default: out/analyzed_brief.yaml)")
+    p_post.add_argument("--out", default=None, help="Path for refined output .docx report")
+    p_post.add_argument("--model", help="LLM model name (overrides config)")
+    p_post.add_argument("--base-url", help="LLM base URL (overrides config)")
+    p_post.set_defaults(func=cmd_postprocess)
 
     # check
     p_check = subparsers.add_parser("check", help="Validate report against facts")
@@ -228,6 +406,21 @@ def main():
 
     args = parser.parse_args()
     setup_logging(args.verbose)
+
+    # If --cuda flag was used or 'cuda' subcommand was invoked
+    if getattr(args, "cuda", False) or args.command == "cuda":
+        cmd_cuda(args)
+        return
+
+    # If --train flag was used or 'train' subcommand was invoked
+    if getattr(args, "train", False) or args.command == "train":
+        cmd_train(args)
+        return
+
+    if not hasattr(args, "func") or not args.command:
+        parser.print_help()
+        sys.exit(1)
+
     args.func(args)
 
 

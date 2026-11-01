@@ -1,0 +1,19 @@
+======================================================================
+REPORTSMITH MODEL RETRAINING SUMMARY
+======================================================================
+Timestamp: 2026-11-01T00:56:43.564279
+Training Directory: C:\Users\ryuka\Arjun\Projects\Report Builder\training
+Documents Processed: 9
+Total Sections Indexed: 300
+Total Paragraphs Cataloged: 3301
+
+Domain Distribution:
+  - COA_SYSTEMS: 1 documents
+  - EMBEDDED_HARDWARE: 4 documents
+  - SOFTWARE_APP: 4 documents
+
+Artifacts Generated:
+  1. Database: C:\Users\ryuka\Arjun\Projects\Report Builder\out\training_database.json
+  2. Fine-Tuning JSONL: C:\Users\ryuka\Arjun\Projects\Report Builder\out\train_dataset.jsonl
+  3. Ollama Modelfile: C:\Users\ryuka\Arjun\Projects\Report Builder\out\Modelfile
+======================================================================

@@ -1,0 +1,16 @@
+============================================================
+REPORTSMITH VERIFICATION REPORT
+============================================================
+Target Document: out\test_end_to_end_debug.docx
+Project: Freshknn: Fruit And Vegetable Freshness Classification Using Knn-Based Image Analysis
+Status: FAILED
+
+Total Errors: 5
+Total Warnings: 0
+
+ERRORS:
+  [X] Ungrounded number '91' detected in prose: "Quantitative evaluation demonstrates superior separation between Fresh and Spoil..."
+  [X] Ungrounded number '91' detected in prose: "Quantitative evaluation demonstrates superior separation between Fresh and Spoil..."
+  [X] Ungrounded number '91' detected in prose: "Quantitative evaluation demonstrates superior separation between Fresh and Spoil..."
+  [X] Ungrounded number '91' detected in prose: "Quantitative evaluation demonstrates superior separation between Fresh and Spoil..."
+  [X] Ungrounded number '91' detected in prose: "Quantitative evaluation demonstrates superior separation between Fresh and Spoil..."

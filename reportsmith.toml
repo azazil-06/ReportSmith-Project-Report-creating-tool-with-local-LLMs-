@@ -1,16 +1,20 @@
 # reportsmith configuration file
 [llm]
-model = "qwen2.5-coder-1.5b-instruct"
+model = "qwen2.5-coder-3b"
 base_url = "http://localhost:1234/v1"
-timeout = 600
+timeout = 10000
 temperature = 0.3
-reasoning_effort = "low"
+reasoning_effort = "medium"
 seed = 42
 retries = 2
 
 [paths]
 cache_dir = "cache"
 out_dir = "out"
+
+[compute]
+use_cuda = true
+concurrency = 1
 
 [word_targets]
 abstract = 250
@@ -41,5 +45,5 @@ abstract = 250
 "6.3" = 150
 "6.4" = 150
 acknowledgement = 120
-declaration = 80
+declaration = 100
 default = 200

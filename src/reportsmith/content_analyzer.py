@@ -27,7 +27,12 @@ from reportsmith.brief import (
     TestCase,
 )
 from reportsmith.facts import derive_facts, ProjectFacts
-from reportsmith.outline import parse_format_file, ReportOutline
+from reportsmith.outline import (
+    extract_abstract_modules,
+    parse_format_file,
+    synthesize_universal_outline,
+    ReportOutline,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -131,7 +136,15 @@ def _parse_member_line(line: str) -> Optional[TeamMember]:
         elif _is_valid_roll_no(p1) and _is_valid_student_name(p2):
             return TeamMember(name=p2.title(), roll_no=p1.upper())
 
-    # 2. Separated by delimiter [-–—:,|\t] or 2+ spaces
+    # 2. Match Name with optional serial/class roll number followed by university roll number
+    # e.g. "Kashinath R Krishna 45 SBC24CS134" or "Arjun Prasad SBC24CS073"
+    m_serial = re.match(r"^([A-Za-z\s\.\']+?)\s+(?:\d{1,3}\s+)?([A-Za-z]{2,5}\d{2}[A-Za-z]{1,4}\d{2,4}|[A-Za-z0-9\-_/]{6,16})$", clean)
+    if m_serial:
+        p1, p2 = m_serial.group(1).strip(), m_serial.group(2).strip()
+        if _is_valid_roll_no(p2) and _is_valid_student_name(p1):
+            return TeamMember(name=p1.title(), roll_no=p2.upper())
+
+    # 3. Separated by delimiter [-–—:,|\t] or 2+ spaces
     parts = re.split(r"\s*(?:[-–—:,|\t]|\s{2,})\s*", clean, maxsplit=1)
     if len(parts) == 2:
         p1, p2 = parts[0].strip(), parts[1].strip()
@@ -288,6 +301,28 @@ def parse_project_doc(doc_path: Path) -> Dict[str, Any]:
         if block_team:
             res["team"] = block_team
 
+    # If still no team, try to find plain name-only lists after "Group Members" or similar
+    if not res["team"]:
+        in_names_block = False
+        name_only_team = []
+        for l in text_all.splitlines():
+            l_str = l.strip()
+            if not l_str:
+                continue
+            if re.search(r"(?:group\s+members?|team\s+members?|submitted\s+by|prepared\s+by)", l_str, re.IGNORECASE):
+                in_names_block = True
+                continue
+            if in_names_block:
+                # Stop if we hit a section header or non-name content
+                if re.search(r"(?:abstract|introduction|chapter|contents|table|guide|department|college|references)", l_str, re.IGNORECASE):
+                    break
+                # Check if line looks like a plain human name (2-4 words, all alpha)
+                name_cand = l_str.strip()
+                if _is_valid_student_name(name_cand) and 2 <= len(name_cand.split()) <= 5:
+                    name_only_team.append(TeamMember(name=name_cand.title(), roll_no="N/A"))
+        if name_only_team:
+            res["team"] = name_only_team
+
     # 3. Guide (if not already extracted)
     if not res["guide"]:
         g_match = re.search(r"(?:SUBMITTED\s+TO|GUIDED\s+BY|FACULTY\s+GUIDE|PROJECT\s+GUIDE|GUIDE)\s*[:\-]?\s*([^\n]+)", text_p0 or text_all, re.IGNORECASE)
@@ -302,7 +337,14 @@ def parse_project_doc(doc_path: Path) -> Dict[str, Any]:
                 else:
                     res["guide"] = cand.title()
 
-    # 4. Course code
+    # 4. Course code and Department
+    res["department"] = None
+    m_dept = re.search(r"DEPARTMENT\s+OF\s+([A-Za-z\s\&\,]+?)(?:\n|\r|\Z|SREE|COLLEGE)", text_all or text_p0, re.IGNORECASE)
+    if m_dept:
+        dept_name = m_dept.group(1).strip()
+        dept_name = re.sub(r"\s+", " ", dept_name)
+        res["department"] = f"Department of {dept_name.title()}"
+
     c_match = re.search(r"\((P[A-Z0-9]+)\)", text_p0)
     if not c_match:
         c_match = re.search(r"\b(P[A-Z0-9]{5,8})\b", text_p0)
@@ -330,16 +372,50 @@ def parse_project_doc(doc_path: Path) -> Dict[str, Any]:
             cand_title = re.sub(r"\bSTEM32\b", "STM32", cand_title, flags=re.IGNORECASE)
             res["title"] = cand_title.title()
 
-    if not res["title"] and text_p1:
-        m_abs_title = re.search(r"ABSTRACT\s*\n\s*(?:The\s+)?([A-Za-z0-9\s\-]+?)\s+is\s+designed\s+to", text_p1, re.IGNORECASE)
-        if m_abs_title:
-            res["title"] = f"{m_abs_title.group(1).strip().title()} using STM32"
+    # Universal title: first non-trivial line before "Abstract" or "submitted by"
+    if not res["title"] and lines_p0:
+        stop_keywords = ["abstract", "submitted", "group member", "team member",
+                         "department", "college", "project report", "table of contents"]
+        for l in lines_p0:
+            l_lower = l.lower().strip()
+            if any(kw in l_lower for kw in stop_keywords):
+                break
+            # Skip very short lines, page numbers, dates
+            if len(l.strip()) < 5 or l.strip().isdigit():
+                continue
+            # Skip lines that are just labels
+            if re.match(r"^(?:a\s+)?(?:micro\s+project|mini\s+project|project\s+report|report|internship)\s*$", l, re.IGNORECASE):
+                continue
+            # This looks like a title line
+            cand_title = l.strip()
+            if 5 < len(cand_title) < 200:
+                res["title"] = cand_title.title()
+                break
 
     if not res["title"] and lines_p0:
-        cand_title = lines_p0[-1].strip()
-        if "PLANT" in cand_title.upper() or "REMINDER" in cand_title.upper() or "STM32" in cand_title.upper() or "WATER" in cand_title.upper():
-            cand_title = re.sub(r"\bSTEM32\b", "STM32", cand_title, flags=re.IGNORECASE)
-            res["title"] = cand_title.title()
+        # Check lines before 'submitted by' or 'submitted to'
+        pre_sub_lines = []
+        for l in lines_p0:
+            if re.search(r"submitted\s+(?:to|by)", l, re.IGNORECASE):
+                break
+            if not re.search(r"^(?:a\s+)?(?:micro\s+project|mini\s+project|project\s+report|report|internship)\b", l, re.IGNORECASE):
+                pre_sub_lines.append(l)
+        if pre_sub_lines:
+            cand_title = " ".join(pre_sub_lines).strip()
+            if cand_title and len(cand_title) < 150:
+                res["title"] = cand_title.title()
+
+    if not res["title"] and text_p1:
+        m_abs_title = re.search(r"ABSTRACT\s*\n\s*(?:The\s+)?([A-Za-z0-9\s\-]+?)\s+(?:is\s+designed\s+to|is\s+a[n]?\s+)", text_p1, re.IGNORECASE)
+        if m_abs_title:
+            res["title"] = m_abs_title.group(1).strip().title()
+
+    if not res["title"]:
+        # Extract title from abstract opening: "The <ProjectName> project is..." or "<Name> is a..."
+        abs_text = res.get("abstract") or text_all
+        m_intro = re.search(r"\b(?:The\s+)?([A-Z][a-zA-Z0-9]+(?:\s+[A-Z][a-zA-Z0-9]+)*)\s+(?:project\s+)?is\s+(?:a[n]?\s+)", abs_text)
+        if m_intro:
+            res["title"] = m_intro.group(1).strip().title()
 
     # 6. Abstract
     if text_p1:
@@ -698,12 +774,160 @@ def analyze_code_content(code_path: Path) -> Dict[str, Any]:
     }
 
 
+def llm_extract_project_metadata(text: str, llm: Optional[Any] = None) -> Dict[str, Any]:
+    """Run abstract or project document through LLM to extract key project entities:
+    title, domain, course, students, guide, HOD, framework, components, categories, tests, references.
+    """
+    if not text or len(text.strip()) < 20:
+        return {}
+
+    prompt = f"""Read the project document/abstract below and extract key project entities into a JSON object.
+
+PROJECT DOCUMENT:
+{text[:3000]}
+
+Respond ONLY with a valid JSON object matching this exact schema:
+
+{{
+  "title": "Exact Title of the project in title case",
+  "domain": "One of: MACHINE_LEARNING, EMBEDDED_IOT, EMBEDDED_HARDWARE, SOFTWARE_APP, WEB_CLOUD, DATA_ANALYTICS, COA_SYSTEMS, GENERAL_ACADEMIC",
+  "course_name": "Suggested course name",
+  "course_code": "Course code if found or PBCST504",
+  "students": [
+    {{"name": "Full Student Name", "roll_no": "Roll number or N/A"}}
+  ],
+  "guide": {{"name": "Faculty guide name if found", "designation": "Assistant Professor"}},
+  "hod": {{"name": "Dr. S Suresh Babu", "designation": "Professor and Head"}},
+  "framework": "Primary technology or framework (e.g. Python / scikit-learn / OpenCV)",
+  "platform": "Runtime or hardware (e.g. Python ML Environment)",
+  "modules": [
+    "Module 1",
+    "Module 2",
+    "Module 3"
+  ],
+  "components": [
+    {{"name": "Component Name", "role": "Role in system", "interface": "Interface/Protocol", "notes": "Notes"}}
+  ],
+  "categories": ["Category 1", "Category 2", "Category 3"],
+  "tests": [
+    {{"id": "TC_01", "name": "Test Name", "condition": "Condition", "expected": "Expected result"}}
+  ],
+  "references": [
+    "Academic Reference 1",
+    "Academic Reference 2"
+  ]
+}}
+
+
+"""
+
+
+    content = None
+    import requests
+    from reportsmith.llm import clean_reasoning_harmony
+    import json
+
+    # 1. Try provided LLMClient instance
+    def _is_service_online(url: str, timeout: float = 0.5) -> bool:
+        try:
+            import urllib.parse, socket
+            parsed = urllib.parse.urlparse(url)
+            host = parsed.hostname or "localhost"
+            port = parsed.port or (80 if parsed.scheme == "http" else 443)
+            with socket.create_connection((host, port), timeout=timeout):
+                return True
+        except Exception:
+            return False
+
+    if llm and hasattr(llm, "base_url") and _is_service_online(llm.base_url):
+        try:
+            url = f"{llm.base_url}/chat/completions"
+            payload = {
+                "model": llm.model,
+                "messages": [
+                    {"role": "system", "content": "You are a specialized JSON extraction API. Output ONLY valid JSON starting with '{'. Never repeat or echo the input text, and do not include markdown backticks or commentary."},
+                    {"role": "user", "content": prompt},
+                ],
+                "temperature": 0.0,
+                "max_tokens": 1200,
+            }
+            effective_timeout = max(180, int(getattr(llm, "timeout", 300) or 300)) if llm else 180
+            resp = requests.post(url, json=payload, timeout=effective_timeout)
+            if resp.status_code == 200:
+                content = resp.json()["choices"][0]["message"]["content"]
+        except Exception as e:
+            logger.warning(f"Direct LLM metadata extraction failed: {e}")
+
+    # 2. Try default local endpoints if no content yet
+    if not content:
+        for ep in ["http://localhost:1234/v1", "http://localhost:11434/v1"]:
+            if not _is_service_online(ep):
+                continue
+            try:
+                resp = requests.post(
+                    f"{ep}/chat/completions",
+                    json={
+                        "model": "qwen2.5-coder-3b" if "1234" in ep else "gpt-oss:20b",
+                        "messages": [
+                            {"role": "system", "content": "You are a specialized JSON extraction API. Output ONLY valid JSON starting with '{'. Never repeat or echo the input text, and do not include markdown backticks or commentary."},
+                            {"role": "user", "content": prompt},
+                        ],
+                        "temperature": 0.0,
+                        "max_tokens": 1200,
+                    },
+                    timeout=120,
+                )
+                if resp.status_code == 200:
+                    content = resp.json()["choices"][0]["message"]["content"]
+                    break
+            except Exception:
+                continue
+
+    if not content:
+        return {}
+
+    content_clean = clean_reasoning_harmony(content)
+    m_json = re.search(r"```(?:json)?\s*(\{.*?\})\s*```", content_clean, re.DOTALL)
+    if m_json:
+        content_clean = m_json.group(1)
+    else:
+        m_brace = None
+    idx = content_clean.find("{")
+    while idx != -1:
+        try:
+            data, _ = json.JSONDecoder().raw_decode(content_clean[idx:])
+            if isinstance(data, dict):
+                return data
+        except Exception:
+            pass
+        idx = content_clean.find("{", idx + 1)
+
+
+
+    try:
+        data = json.loads(content_clean)
+        if isinstance(data, dict):
+            return data
+    except Exception:
+        try:
+            cleaned = re.sub(r",\s*([}\]])", r"\1", content_clean)
+            data = json.loads(cleaned)
+            if isinstance(data, dict):
+                return data
+        except Exception as e:
+            logger.warning(f"Could not parse LLM metadata JSON: {e}")
+
+    return {}
+
+
 def analyze_content_folder(
     content_dir: Union[str, Path] = "Content",
     sample_docx_path: Optional[Union[str, Path]] = "COA_report.docx",
+    llm: Optional[Any] = None,
 ) -> Tuple[ProjectBrief, ProjectFacts, ReportOutline]:
     """Comprehensively analyze files in Content/ folder and sample docx
     to produce a deterministic ProjectBrief, ProjectFacts, and ReportOutline.
+    Dynamically adapts to any subject/domain (Machine Learning, Embedded IoT, Software, etc.).
     """
     c_dir = Path(content_dir)
     if not c_dir.is_dir():
@@ -713,73 +937,212 @@ def analyze_content_folder(
     rules_file = None
     for f in c_dir.iterdir():
         name_l = f.name.lower()
-        if f.suffix.lower() in (".pdf", ".txt", ".md") and ("rule" in name_l or "format" in name_l or "syllabus" in name_l):
+        if f.suffix.lower() in (".pdf", ".txt", ".md", ".docx") and any(
+            k in name_l for k in ("rule", "format", "syllabus", "guideline")
+        ):
             rules_file = f
             break
-    if not rules_file:
-        for f in c_dir.iterdir():
-            if f.suffix.lower() in (".pdf", ".txt", ".md") and "project" not in f.name.lower():
-                rules_file = f
-                break
 
-    if not rules_file:
-        rules_file = Path("examples/format.txt")
-
-    logger.info(f"Using rules/format file: {rules_file}")
-    outline = parse_format_file(rules_file)
-
-    # 2. Locate project specification document in Content/ (e.g. Project.pdf)
+    # 2. Locate project specification document in Content/ (e.g. Project.docx, Project.pdf, abstract.pdf)
     project_doc = None
     for f in c_dir.iterdir():
+        name_l = f.name.lower()
         if f.suffix.lower() in (".pdf", ".docx", ".txt", ".md") and f != rules_file:
-            project_doc = f
-            break
+            if any(k in name_l for k in ("project", "abstract", "brief", "spec")):
+                project_doc = f
+                break
+    if not project_doc:
+        for f in c_dir.iterdir():
+            if f.suffix.lower() in (".pdf", ".docx", ".txt", ".md") and f != rules_file:
+                project_doc = f
+                break
 
     doc_meta = parse_project_doc(project_doc) if project_doc else {}
+
+    # Extract raw text from project doc for LLM pre-analysis
+    project_text = ""
+    if project_doc and project_doc.is_file():
+        try:
+            if project_doc.suffix.lower() == ".docx":
+                d_tmp = docx.Document(str(project_doc))
+                project_text = "\n".join(p.text.strip() for p in d_tmp.paragraphs if p.text.strip())
+            elif project_doc.suffix.lower() == ".pdf":
+                r_tmp = PdfReader(str(project_doc))
+                project_text = "\n".join(p.extract_text() or "" for p in r_tmp.pages)
+            else:
+                project_text = project_doc.read_text(encoding="utf-8", errors="replace")
+        except Exception as e:
+            logger.warning(f"Failed extracting raw text from {project_doc}: {e}")
+
+    # Run LLM pre-analysis to extract title, students, coordinators, components
+    llm_meta = {}
+    if project_text:
+        timeout_disp = getattr(llm, "timeout", 300) if llm else 300
+        logger.info(f"Running document text through LLM pre-analysis (timeout: {timeout_disp}s)...")
+        llm_meta = llm_extract_project_metadata(project_text, llm=llm)
+        if llm_meta:
+            logger.info(f"LLM extracted title='{llm_meta.get('title')}', domain='{llm_meta.get('domain')}', students={len(llm_meta.get('students', []))}")
 
     # 3. Locate source code file in Content/
     code_file = None
     for f in c_dir.iterdir():
-        if f.suffix.lower() in (".ino", ".c", ".cpp", ".h", ".asm", ".s"):
+        if f.suffix.lower() in (".ino", ".c", ".cpp", ".h", ".asm", ".s", ".java", ".py", ".cs", ".js", ".ts", ".rs", ".go"):
             code_file = f
             break
+
     if not code_file:
-        for cand in [
-            Path("Content/Water_Level_Overflow_Indicator.ino"),
-            Path("Content/water_level_overflow_indicator.ino"),
-            Path("Content/water_level_indicator.ino"),
-            Path("Content/plant_watering_reminder.ino"),
-            Path("examples/plant_monitor.ino"),
+        for cand_name in [
+            "Water_Level_Overflow_Indicator.ino",
+            "water_level_overflow_indicator.ino",
+            "water_level_indicator.ino",
+            "plant_watering_reminder.ino",
         ]:
+            cand = c_dir / cand_name
             if cand.is_file():
                 code_file = cand
                 break
-    if not code_file:
-        code_file = Path("examples/plant_monitor.ino")
 
-    logger.info(f"Using source code file: {code_file}")
-    code_info = analyze_code_content(code_file)
+    if code_file and code_file.suffix.lower() in (".ino", ".c", ".cpp", ".h"):
+        logger.info(f"Using source code file: {code_file}")
+        code_info = analyze_code_content(code_file)
+    else:
+        code_info = {
+            "title": doc_meta.get("title") or "Technical Project Report",
+            "pins": [],
+            "components": [],
+            "constants": {},
+            "tests": [
+                TestCase(
+                    id="TC_01",
+                    name="Core Functional Verification Test",
+                    condition="Standard system input parameters and valid authentication credentials",
+                    expected="System processes input, updates state accurately, and displays confirmed status output",
+                    observed=None,
+                ),
+                TestCase(
+                    id="TC_02",
+                    name="Boundary Condition and Input Validation Test",
+                    condition="Input parameters at boundary thresholds or invalid formatting",
+                    expected="System rejects invalid stimuli gracefully with appropriate error notifications",
+                    observed=None,
+                ),
+                TestCase(
+                    id="TC_03",
+                    name="System Recovery and State Consistency Test",
+                    condition="Simulated interruption or sudden operational boundary change",
+                    expected="System maintains data integrity without corruption or unhandled exception",
+                    observed=None,
+                ),
+            ],
+        }
 
-    # 4. Extract template styling & metadata from required.docx / COA_report.docx
+    # Determine Title
+    final_title = None
+    if llm_meta.get("title") and len(llm_meta["title"].strip()) > 5:
+        cand = llm_meta["title"].strip()
+        if not cand.lower().startswith("exact title"):
+            final_title = cand
+    if not final_title:
+        final_title = doc_meta.get("title") or code_info["title"] or "Technical Project Report"
+
+    final_abstract = doc_meta.get("abstract") or project_text or ""
+
+    # Classify domain
+    from reportsmith.trainer import (
+        classify_text_domain,
+        DOMAIN_ML,
+        DOMAIN_COA,
+        DOMAIN_WEB,
+        DOMAIN_DATA,
+        DOMAIN_SOFTWARE,
+        DOMAIN_EMBEDDED,
+    )
+    combined_corpus = final_title + " " + final_abstract
+    if code_file and code_file.is_file():
+        try:
+            combined_corpus += " " + code_file.read_text(encoding="utf-8", errors="replace")[:2000]
+        except Exception:
+            pass
+
+    domain = None
+    kw_domain = classify_text_domain(combined_corpus)
+    if kw_domain != "GENERAL_ACADEMIC":
+        domain = kw_domain
+    elif llm_meta.get("domain") in (DOMAIN_ML, DOMAIN_COA, DOMAIN_WEB, DOMAIN_DATA, DOMAIN_SOFTWARE, DOMAIN_EMBEDDED):
+        domain = llm_meta["domain"]
+    else:
+        domain = kw_domain
+
+    # 4. Synthesize or parse outline
+    raw_modules = llm_meta.get("modules") or []
+    modules = [
+        m for m in raw_modules
+        if len(m.strip()) > 3 and not re.match(r"^module\s*\d+$", m.strip(), re.IGNORECASE) and m.strip() not in ("1", "2", "3")
+    ]
+    if not modules:
+        modules = extract_abstract_modules(final_abstract)
+    if not modules and domain == DOMAIN_ML:
+        is_vision = any(k in combined_corpus.lower() for k in ("image", "vision", "produce", "fruit", "vegetable", "glcm", "opencv", "freshness")) and not any(k in combined_corpus.lower() for k in ("student", "academic", "attendance", "random forest", "tabular", "credit", "churn"))
+        if is_vision:
+            modules = [
+                "Image Preprocessing Pipeline",
+                "Handcrafted Feature Extraction Engine",
+                "KNN Classification and Voting",
+                "Performance Evaluation and Verification",
+            ]
+        else:
+            modules = [
+                "Dataset Ingestion and Imputation Pipeline",
+                "Feature Engineering and SMOTE Balancing Subsystem",
+                "Random Forest Ensemble Classification Engine",
+                "Performance Evaluation and Feature Importance Module",
+            ]
+
+    if rules_file:
+        logger.info(f"Using rules/format file found in Content: {rules_file}")
+        outline = parse_format_file(rules_file)
+    else:
+        logger.info(
+            f"No rules file found in Content folder. Synthesizing universal outline for domain '{domain}'..."
+        )
+        outline = synthesize_universal_outline(
+            domain=domain,
+            title=final_title,
+            abstract_text=final_abstract,
+            modules=modules,
+            has_code=bool(code_file),
+        )
+
+    # 5. Extract template styling & metadata from sample docx
     sample_p = Path(sample_docx_path) if sample_docx_path else (
         Path("required.docx") if Path("required.docx").is_file() else Path("COA_report.docx")
     )
     template_meta = extract_template_metadata(sample_p)
 
-    final_title = doc_meta.get("title") or code_info["title"]
-    final_abstract = doc_meta.get("abstract")
-
-    is_water = "water" in final_title.lower() or "overflow" in final_title.lower() or "ultrasonic" in final_title.lower() or (final_abstract and "water" in final_abstract.lower())
-    is_plant = ("plant" in final_title.lower() or "moisture" in final_title.lower()) and not is_water
+    is_water = domain in (DOMAIN_EMBEDDED, "EMBEDDED_IOT") and ("water" in final_title.lower() or "overflow" in final_title.lower() or "ultrasonic" in final_title.lower() or (final_abstract and "water" in final_abstract.lower()))
+    is_plant = domain in (DOMAIN_EMBEDDED, "EMBEDDED_IOT") and ("plant" in final_title.lower() or "moisture" in final_title.lower()) and not is_water
 
     if is_water and not ("water" in code_info["title"].lower() or "overflow" in code_info["title"].lower()):
-        water_ino = Path("Content/Water_Level_Overflow_Indicator.ino")
+        water_ino = c_dir / "Water_Level_Overflow_Indicator.ino"
         if water_ino.is_file():
             code_file = water_ino
             code_info = analyze_code_content(code_file)
 
-    # Names must come strictly from content in Content folder, never from COA_report
-    final_team = doc_meta.get("team") or []
+    # Team Members
+    final_team: List[TeamMember] = []
+    if llm_meta.get("students"):
+        for s in llm_meta["students"]:
+            if isinstance(s, dict) and s.get("name"):
+                s_name = s["name"].strip()
+                if _is_valid_student_name(s_name) and not s_name.lower().startswith("full student"):
+                    r_no = s.get("roll_no") or "N/A"
+                    if "roll number" in r_no.lower():
+                        r_no = "N/A"
+                    final_team.append(TeamMember(name=s_name.title(), roll_no=r_no))
+
+    if not final_team:
+        final_team = doc_meta.get("team") or []
+
     if not final_team:
         for f in c_dir.iterdir():
             if f == project_doc or f == rules_file:
@@ -807,7 +1170,14 @@ def analyze_content_folder(
         logger.warning("No team members found in Content folder. Using placeholder.")
         final_team = [TeamMember(name="Student Name", roll_no="Roll Number")]
 
-    final_guide = doc_meta.get("guide")
+    # Faculty Guide
+    final_guide = None
+    if isinstance(llm_meta.get("guide"), dict) and llm_meta["guide"].get("name"):
+        g_name = llm_meta["guide"]["name"].strip()
+        if not g_name.lower().startswith("faculty guide"):
+            final_guide = g_name
+    if not final_guide:
+        final_guide = doc_meta.get("guide")
     if not final_guide:
         for f in c_dir.iterdir():
             if f == project_doc or f == rules_file:
@@ -820,122 +1190,546 @@ def analyze_content_folder(
     if not final_guide:
         final_guide = "Ms. Aryalekshmi A"
 
-    final_course_code = doc_meta.get("course_code") or "PBCST504"
+    final_course_code = "PBCST504"
+    raw_code = llm_meta.get("course_code") or doc_meta.get("course_code")
+    if raw_code and isinstance(raw_code, str):
+        c_str = raw_code.strip()
+        if "if found" not in c_str.lower() and "placeholder" not in c_str.lower() and len(c_str.split()) <= 2:
+            final_course_code = c_str
 
-    # 5. Synthesize ProjectBrief
+    # Department
+    detected_dept = doc_meta.get("department")
+    if not detected_dept:
+        if "computer science" in combined_corpus.lower():
+            detected_dept = "Department of Computer Science & Engineering"
+        else:
+            detected_dept = template_meta["department"]
+
+    # Course name based on domain
+    domain_course_map = {
+        DOMAIN_SOFTWARE: "Software Engineering & Application Development",
+        DOMAIN_ML: "Machine Learning & Artificial Intelligence",
+        DOMAIN_WEB: "Cloud Computing & Web Services",
+        DOMAIN_DATA: "Big Data Analytics & Business Intelligence",
+        DOMAIN_EMBEDDED: "Microcontrollers",
+        "EMBEDDED_IOT": "Microcontrollers",
+        DOMAIN_COA: "Computer Organization & Architecture",
+    }
+    course_name = domain_course_map.get(domain, "Software Engineering & Application Development")
+
     project_info = ProjectInfo(
         title=final_title,
         course_code=final_course_code,
-        course_name="Microcontrollers",
+        course_name=course_name,
         semester="V Semester B.Tech",
         month_year=template_meta["month_year"],
         academic_year=template_meta["academic_year"],
         college=template_meta["college"],
-        department=template_meta["department"],
+        department=detected_dept,
         university_or_autonomy_line=template_meta["university_line"],
         address=template_meta["address"],
     )
 
+    # HOD is Dr. S Suresh Babu, coordinator is None (Prof S Mukherjee removed as per user instruction)
     people_info = PeopleInfo(
         team=final_team,
-        guide=StaffMember(name=final_guide, designation="Assistant Professor", department=template_meta["department"]),
-        hod=StaffMember(name="Dr. R. Ramanathan", designation="Professor and Head", department=template_meta["department"]),
-        coordinator=StaffMember(name="Prof. S. Mukherjee", designation="Assistant Professor (Senior Scale)", department=template_meta["department"]),
+        guide=StaffMember(name=final_guide, designation="Assistant Professor", department=detected_dept),
+        hod=StaffMember(name="Dr. S Suresh Babu", designation="Professor and Head", department=detected_dept),
+        coordinator=None,
     )
 
-    board_info = BoardInfo(
-        name="STM32 Blue Pill",
-        mcu_part_number="STM32F103C8T6",
-        core="ARM Cortex-M3",
-        clock="72 MHz",
-        flash="64 KB",
-        sram="20 KB",
-        voltage="3.3V",
+    # Synthesize implementation, behaviour, and references
+    impl_info, behaviour_info, project_refs = _synthesize_implementation_from_abstract(
+        domain=domain,
+        title=final_title,
+        abstract_text=final_abstract,
+        code_file=code_file,
+        code_info=code_info,
+        combined_corpus=combined_corpus,
+        llm_meta=llm_meta,
     )
-
-    impl_info = ImplementationInfo(
-        mode="hardware",
-        board=board_info,
-        framework="arduino_stm32core",
-        components=code_info["components"],
-        pins=code_info["pins"],
-        peripherals=["GPIO", "ADC", "Timers", "UART", "I2C"],
-        libraries=["Arduino.h", "Arduino_Core_STM32", "Wire.h", "LiquidCrystal_I2C.h"],
-        programmer="ST-Link V2",
-        serial_baud=115200,
-    )
-
-    if is_water:
-        calib = {
-            "TANK_HEIGHT_CM": code_info["constants"].get("TANK_HEIGHT_CM", 100),
-            "OVERFLOW_THRESHOLD_CM": code_info["constants"].get("OVERFLOW_THRESHOLD_CM", 15),
-        }
-        thresh = {
-            "WARNING_THRESHOLD_CM": code_info["constants"].get("WARNING_THRESHOLD_CM", 30),
-            "OVERFLOW_THRESHOLD_CM": code_info["constants"].get("OVERFLOW_THRESHOLD_CM", 15),
-        }
-        state_names = ["CRITICAL OVERFLOW ALERT", "APPROACHING HIGH LEVEL", "NORMAL / SAFE WATER LEVEL"]
-    elif is_plant:
-        calib = {
-            "AIR_VALUE": code_info["constants"].get("AIR_VALUE", 3700),
-            "WATER_VALUE": code_info["constants"].get("WATER_VALUE", 1300),
-        }
-        thresh = {
-            "DRY_THRESHOLD_PERCENT": code_info["constants"].get("DRY_THRESHOLD_PERCENT", 30),
-            "WET_THRESHOLD_PERCENT": code_info["constants"].get("WET_THRESHOLD_PERCENT", 80),
-        }
-        state_names = ["NEEDS WATER (DRY)", "OPTIMAL", "TOO WET"]
-    else:
-        calib = {
-            "FULL_DARK_ADC": code_info["constants"].get("FULL_DARK_ADC", 300),
-            "FULL_LIGHT_ADC": code_info["constants"].get("FULL_LIGHT_ADC", 3500),
-        }
-        thresh = {
-            "THRESHOLD_DARK_ON": code_info["constants"].get("THRESHOLD_DARK_ON", 1400),
-            "THRESHOLD_LIGHT_OFF": code_info["constants"].get("THRESHOLD_LIGHT_OFF", 1800),
-        }
-        state_names = ["DARK (LAMP ACTIVE)", "HYSTERESIS (STABILIZED)", "DAYLIGHT (LAMP OFF)"]
-
-    behaviour_info = BehaviourInfo(
-        calibration_constants=calib,
-        thresholds=thresh,
-        timing_values={
-            "SAMPLE_INTERVAL_MS": code_info["constants"].get("SAMPLE_INTERVAL_MS", 500 if is_water else 250),
-            "SAMPLES": code_info["constants"].get("SAMPLES", 5 if is_water else 8),
-        },
-        state_names=state_names,
-        led_active_low=True,
-    )
-
-    if is_water:
-        project_refs = [
-            "STMicroelectronics, 'STM32F103x8 STM32F103xB Medium-density performance line ARM-based 32-bit MCU Datasheet', DocID 13587 Rev 17, 2020.",
-            "STMicroelectronics, 'RM0008 Reference Manual: STM32F101xx, STM32F102xx, STM32F103xx advanced ARM-based 32-bit MCUs', Rev 21, 2021.",
-            "ElecFreaks, 'HC-SR04 Ultrasonic Ranging Module User Guide', 2019.",
-            "STM32duino, 'Arduino Core for STM32 based boards', Official STMicroelectronics GitHub Repository, 2024.",
-            "Texas Instruments, 'LM2596 SIMPLE SWITCHER Power Converter 150-kHz 3-A Step-Down Voltage Regulator', SNVS124D, 2021.",
-            "Paul Horowitz and Winfield Hill, 'The Art of Electronics', Cambridge University Press, 3rd Edition, 2015.",
-        ]
-    else:
-        project_refs = [
-            "STMicroelectronics, 'STM32F103x8 STM32F103xB Medium-density performance line ARM-based 32-bit MCU Datasheet', DocID 13587 Rev 17, 2020.",
-            "STMicroelectronics, 'RM0008 Reference Manual: STM32F101xx, STM32F102xx, STM32F103xx advanced ARM-based 32-bit MCUs', Rev 21, 2021.",
-            "STM32duino, 'Arduino Core for STM32 based boards', Official STMicroelectronics GitHub Repository, 2024.",
-            "Paul Horowitz and Winfield Hill, 'The Art of Electronics', Cambridge University Press, 3rd Edition, 2015.",
-        ]
 
     brief = ProjectBrief(
         project=project_info,
         people=people_info,
         implementation=impl_info,
         behaviour=behaviour_info,
-        code_file=str(code_file),
+        code_file=str(code_file) if code_file else None,
         abstract=final_abstract,
-        tests=code_info["tests"],
+        tests=code_info["tests"] if (code_file and code_info.get("pins")) else impl_info_tests(domain, llm_meta, combined_corpus),
         references=project_refs,
-        extra_notes=f"{final_title} using STM32F103C8T6 with hardware sensors and actuators.",
+        domain=domain,
+        extra_notes=f"{final_title} project report.",
     )
 
     facts = derive_facts(brief, base_dir=Path("."))
 
     return brief, facts, outline
+
+
+def impl_info_tests(domain: str, llm_meta: Dict[str, Any], combined_corpus: str = "") -> List[TestCase]:
+    """Generate domain-relevant test cases."""
+    if domain == "MACHINE_LEARNING":
+        c_lower = combined_corpus.lower()
+        is_vision = any(k in c_lower for k in ("image", "vision", "produce", "fruit", "vegetable", "glcm", "opencv", "freshness")) and not any(k in c_lower for k in ("student", "academic", "attendance", "random forest", "tabular", "credit", "churn"))
+        if is_vision:
+            return [
+                TestCase(
+                    id="TC_01",
+                    name="Fresh Quality Verification Test",
+                    condition="Input photograph of fresh produce sample with natural coloration",
+                    expected="Classification model identifies sample as 'Fresh' with confidence score >= 85%",
+                    observed=None,
+                ),
+                TestCase(
+                    id="TC_02",
+                    name="Intermediate / Moderately Fresh Degradation Test",
+                    condition="Input image displaying moderate surface discoloration or initial softening",
+                    expected="Classifier assigns 'Moderately Fresh' based on KNN neighbor vote distribution",
+                    observed=None,
+                ),
+                TestCase(
+                    id="TC_03",
+                    name="Spoiled / Rotten Produce Rejection Test",
+                    condition="Input image exhibiting significant browning, fungal decay, or surface shriveling",
+                    expected="System outputs 'Spoiled / Rotten' alert with high feature distance from fresh clusters",
+                    observed=None,
+                ),
+            ]
+        else:
+            return [
+                TestCase(
+                    id="TC_01",
+                    name="High Academic Performance Verification Test",
+                    condition="Input student feature vector with attendance >= 85% and high internal assessment marks",
+                    expected="Random Forest ensemble classifies student into 'High' performance category with majority tree consensus",
+                    observed=None,
+                ),
+                TestCase(
+                    id="TC_02",
+                    name="Average Performance Decision Boundary Test",
+                    condition="Input student feature vector with moderate attendance and mid-range test scores",
+                    expected="Model consistently categorizes student into 'Average' tier without boundary misclassification",
+                    observed=None,
+                ),
+                TestCase(
+                    id="TC_03",
+                    name="At-Risk Academic Early Warning Test",
+                    condition="Input student feature vector showing low attendance (< 65%) and lagging internal marks",
+                    expected="Classifier promptly triggers 'At-Risk' prediction enabling timely faculty intervention",
+                    observed=None,
+                ),
+            ]
+    return [
+        TestCase(
+            id="TC_01",
+            name="Core Functional Verification Test",
+            condition="Standard system input parameters and valid authentication credentials",
+            expected="System processes input, updates state accurately, and displays confirmed status output",
+            observed=None,
+        ),
+        TestCase(
+            id="TC_02",
+            name="Boundary Condition and Input Validation Test",
+            condition="Input parameters at boundary thresholds or invalid formatting",
+            expected="System rejects invalid stimuli gracefully with appropriate error notifications",
+            observed=None,
+        ),
+        TestCase(
+            id="TC_03",
+            name="System Recovery and State Consistency Test",
+            condition="Simulated interruption or sudden operational boundary change",
+            expected="System maintains data integrity without corruption or unhandled exception",
+            observed=None,
+        ),
+    ]
+
+
+def _synthesize_implementation_from_abstract(
+    domain: str,
+    title: str,
+    abstract_text: str,
+    code_file: Optional[Path],
+    code_info: Dict[str, Any],
+    combined_corpus: str,
+    llm_meta: Dict[str, Any],
+) -> tuple:
+    """Dynamically derive implementation details, behaviour, and references from abstract and domain."""
+    abs_lower = (abstract_text or "").lower()
+    title_lower = title.lower()
+
+    if domain == "MACHINE_LEARNING":
+        is_vision = any(
+            k in abs_lower or k in title_lower
+            for k in ("image", "vision", "produce", "fruit", "vegetable", "glcm", "opencv", "rgb", "pixel", "camera", "freshness", "knn")
+        ) and not any(
+            k in abs_lower or k in title_lower
+            for k in ("student", "academic", "attendance", "random forest", "tabular", "credit", "churn")
+        )
+        is_rf = any(k in abs_lower or k in title_lower for k in ("random forest", "forest", "decision tree", "trees", "ensemble"))
+
+        detected_cats = []
+        cat_match = re.search(
+            r"(?:such as|category|categories|classes|tiers|predict(?:ing)?\s+the)[:\s]+([^.]+?)(?:\s+(?:is|are|decided|using|with|to|\.))",
+            abstract_text or "",
+            re.IGNORECASE,
+        )
+        if cat_match:
+            parts = re.split(r",\s*(?:or\s+)?|\s+or\s+", cat_match.group(1).strip())
+            for p in parts:
+                p_clean = p.strip().strip("'\"").upper()
+                if 2 <= len(p_clean) <= 30 and not any(w in p_clean.lower() for w in ("algorithm", "model", "tree", "forest", "system", "project")):
+                    detected_cats.append(p_clean)
+
+        raw_cats = llm_meta.get("categories") or detected_cats
+        cleaned_cats = [
+            c for c in raw_cats
+            if len(c.strip()) > 2 and not re.match(r"^category\s*\d+$", c.strip(), re.IGNORECASE)
+        ]
+
+        if is_vision:
+            board_info = BoardInfo(
+                name="Python Machine Learning Workstation",
+                mcu_part_number="Python 3.10+ / CUDA Toolkit",
+                core="x86_64 / NVIDIA CUDA Tensor Cores",
+                clock="Host CPU / GPU Acceleration",
+                flash="Storage (NVMe SSD / Local Disk)",
+                sram="16 GB Host RAM / 4 GB GDDR6 VRAM",
+                voltage="N/A (Host Software / CUDA)",
+            )
+            components = [
+                ComponentItem(
+                    name="Image Preprocessing Pipeline",
+                    role="Image normalization, resizing, and illumination correction",
+                    interface="OpenCV / PIL",
+                    notes="Standardizes input produce images to uniform resolution and color balance",
+                ),
+                ComponentItem(
+                    name="Feature Extraction Engine",
+                    role="Handcrafted visual descriptor computation (Color Histograms & GLCM)",
+                    interface="scikit-image / NumPy",
+                    notes="Extracts color distributions (RGB/HSV) and texture irregularity measures",
+                ),
+                ComponentItem(
+                    name="KNN Classification Engine",
+                    role="Instance-based distance calculation and majority-vote prediction",
+                    interface="scikit-learn",
+                    notes="Computes Euclidean distances to training vectors and assigns freshness category",
+                ),
+                ComponentItem(
+                    name="Dataset Management Subsystem",
+                    role="Dataset ingestion, label encoding, and train/test partition",
+                    interface="pandas / File System",
+                    notes="Maintains annotated produce image corpus across freshness stages",
+                ),
+                ComponentItem(
+                    name="Performance Evaluation Module",
+                    role="Model metrics and validation matrix calculation",
+                    interface="scikit-learn.metrics",
+                    notes="Evaluates accuracy, precision, recall, F1-score, and confusion matrix",
+                ),
+            ]
+            impl_info = ImplementationInfo(
+                mode="simulation",
+                board=board_info,
+                framework="Python / scikit-learn / OpenCV",
+                components=components,
+                pins=[],
+                peripherals=["Image Acquisition", "CPU / CUDA GPU", "File System", "Visualization Engine"],
+                libraries=["scikit-learn", "opencv-python", "numpy", "matplotlib", "scikit-image"],
+                programmer="pip / conda",
+                serial_baud=115200,
+            )
+            if not cleaned_cats:
+                cleaned_cats = ["FRESH", "MODERATELY FRESH", "SPOILED / ROTTEN"]
+
+            behaviour_info = BehaviourInfo(
+                calibration_constants={},
+                thresholds={},
+                timing_values={},
+                state_names=cleaned_cats,
+                led_active_low=False,
+            )
+            project_refs = [
+                "T. Cover, P. Hart, 'Nearest Neighbor Pattern Classification', IEEE Transactions on Information Theory, Vol. 13, No. 1, pp. 21-27, 1967.",
+                "Robert M. Haralick, K. Shanmugam, Its'hak Dinstein, 'Textural Features for Image Classification', IEEE Transactions on Systems, Man, and Cybernetics, Vol. SMC-3, No. 6, pp. 610-621, 1973.",
+                "Fabian Pedregosa et al., 'Scikit-learn: Machine Learning in Python', Journal of Machine Learning Research, Vol. 12, pp. 2825-2830, 2011.",
+                "Gary Bradski, Adrian Kaehler, 'Learning OpenCV: Computer Vision with the OpenCV Library', O'Reilly Media, 2008.",
+                "Christopher M. Bishop, 'Pattern Recognition and Machine Learning', Springer, 2006.",
+                "Tom M. Mitchell, 'Machine Learning', McGraw-Hill, 1997.",
+            ]
+            return impl_info, behaviour_info, project_refs
+
+        else:
+            # Tabular / Structured / Random Forest / Student Prediction
+            board_info = BoardInfo(
+                name="Python Machine Learning Workstation",
+                mcu_part_number="Python 3.10+ / scikit-learn",
+                core="x86_64 Multi-Core CPU / NumPy Vectorized Runtime",
+                clock="Host CPU Architecture",
+                flash="Local Storage (SSD / Project Data Repository)",
+                sram="16 GB Host RAM",
+                voltage="N/A (Host Software Environment)",
+            )
+            components = [
+                ComponentItem(
+                    name="Dataset Ingestion and Imputation Pipeline",
+                    role="Ingestion of student demographic, attendance, and assessment records with missing-value imputation",
+                    interface="pandas / NumPy",
+                    notes="Loads structured tabular dataset, resolves missing values, and validates schema",
+                ),
+                ComponentItem(
+                    name="Feature Engineering and Balancing Subsystem",
+                    role="Categorical encoding, standard feature scaling, and class balancing via SMOTE",
+                    interface="scikit-learn / imbalanced-learn",
+                    notes="Encodes discrete factors, scales continuous variables, and balances underrepresented classes",
+                ),
+                ComponentItem(
+                    name="Random Forest Ensemble Classification Engine" if is_rf else "Machine Learning Classification Engine",
+                    role="Multi-tree decision forest construction with randomized feature subsampling and majority voting" if is_rf else "Supervised predictive learning and decision boundary optimization",
+                    interface="scikit-learn.ensemble" if is_rf else "scikit-learn",
+                    notes="Trains an ensemble of decorrelated decision trees to predict performance categories" if is_rf else "Classifies instances across defined operational categories",
+                ),
+                ComponentItem(
+                    name="Hyperparameter Tuning and Cross-Validation Module",
+                    role="K-fold cross-validation, tree depth optimization, and estimator calibration",
+                    interface="scikit-learn.model_selection",
+                    notes="Performs grid and randomized search to maximize validation F1-score and prevent overfitting",
+                ),
+                ComponentItem(
+                    name="Performance Evaluation and Feature Importance Module",
+                    role="Metric computation (Accuracy, Precision, Recall, F1) and Gini impurity feature ranking",
+                    interface="scikit-learn.metrics / matplotlib",
+                    notes="Generates confusion matrix, multi-class classification report, and attribute importance ranking",
+                ),
+            ]
+            impl_info = ImplementationInfo(
+                mode="simulation",
+                board=board_info,
+                framework="Python / scikit-learn / pandas",
+                components=components,
+                pins=[],
+                peripherals=["Tabular Dataset Storage", "Host CPU Multi-Threading", "Visualization Engine", "Model Persistence (Joblib)"],
+                libraries=["scikit-learn", "pandas", "numpy", "matplotlib", "seaborn", "imbalanced-learn"],
+                programmer="pip / conda",
+                serial_baud=115200,
+            )
+            if not cleaned_cats:
+                if any(k in abs_lower for k in ("student", "academic", "performance")):
+                    cleaned_cats = ["HIGH PERFORMANCE", "AVERAGE PERFORMANCE", "AT-RISK / LOW PERFORMANCE"]
+                else:
+                    cleaned_cats = ["POSITIVE / TARGET CLASS", "NEGATIVE / BASELINE CLASS", "INTERMEDIATE BOUNDARY"]
+
+            behaviour_info = BehaviourInfo(
+                calibration_constants={},
+                thresholds={},
+                timing_values={},
+                state_names=cleaned_cats,
+                led_active_low=False,
+            )
+            project_refs = [
+                "Leo Breiman, 'Random Forests', Machine Learning, Vol. 45, No. 1, pp. 5-32, 2001." if is_rf else "Christopher M. Bishop, 'Pattern Recognition and Machine Learning', Springer, 2006.",
+                "Fabian Pedregosa et al., 'Scikit-learn: Machine Learning in Python', Journal of Machine Learning Research, Vol. 12, pp. 2825-2830, 2011.",
+                "Nitesh V. Chawla, Kevin W. Bowyer, Lawrence O. Hall, W. Philip Kegelmeyer, 'SMOTE: Synthetic Minority Over-sampling Technique', Journal of Artificial Intelligence Research, Vol. 16, pp. 321-357, 2002.",
+                "Trevor Hastie, Robert Tibshirani, Jerome Friedman, 'The Elements of Statistical Learning: Data Mining, Inference, and Prediction', Springer, 2nd Edition, 2009.",
+                "Tom M. Mitchell, 'Machine Learning', McGraw-Hill, 1997.",
+                "Ian H. Witten, Eibe Frank, Mark A. Hall, 'Data Mining: Practical Machine Learning Tools and Techniques', Morgan Kaufmann, 4th Edition, 2016.",
+            ]
+            return impl_info, behaviour_info, project_refs
+
+    elif domain in ("EMBEDDED_HARDWARE", "EMBEDDED_IOT"):
+        is_water = "water" in title_lower or "overflow" in title_lower or "ultrasonic" in title_lower
+        is_plant = ("plant" in title_lower or "moisture" in title_lower) and not is_water
+
+        board_info = BoardInfo(
+            name="STM32 Blue Pill",
+            mcu_part_number="STM32F103C8T6",
+            core="ARM Cortex-M3",
+            clock="72 MHz",
+            flash="64 KB",
+            sram="20 KB",
+            voltage="3.3V",
+        )
+        impl_info = ImplementationInfo(
+            mode="hardware",
+            board=board_info,
+            framework="arduino_stm32core",
+            components=code_info.get("components", []),
+            pins=code_info.get("pins", []),
+            peripherals=["GPIO", "ADC", "Timers", "UART", "I2C"],
+            libraries=["Arduino.h", "Arduino_Core_STM32", "Wire.h", "LiquidCrystal_I2C.h"],
+            programmer="ST-Link V2",
+            serial_baud=115200,
+        )
+        if is_water:
+            calib = {
+                "TANK_HEIGHT_CM": code_info["constants"].get("TANK_HEIGHT_CM", 100),
+                "OVERFLOW_THRESHOLD_CM": code_info["constants"].get("OVERFLOW_THRESHOLD_CM", 15),
+            }
+            thresh = {
+                "WARNING_THRESHOLD_CM": code_info["constants"].get("WARNING_THRESHOLD_CM", 30),
+                "OVERFLOW_THRESHOLD_CM": code_info["constants"].get("OVERFLOW_THRESHOLD_CM", 15),
+            }
+            state_names = ["CRITICAL OVERFLOW ALERT", "APPROACHING HIGH LEVEL", "NORMAL / SAFE WATER LEVEL"]
+        elif is_plant:
+            calib = {
+                "AIR_VALUE": code_info["constants"].get("AIR_VALUE", 3700),
+                "WATER_VALUE": code_info["constants"].get("WATER_VALUE", 1300),
+            }
+            thresh = {
+                "DRY_THRESHOLD_PERCENT": code_info["constants"].get("DRY_THRESHOLD_PERCENT", 30),
+                "WET_THRESHOLD_PERCENT": code_info["constants"].get("WET_THRESHOLD_PERCENT", 80),
+            }
+            state_names = ["NEEDS WATER (DRY)", "OPTIMAL", "TOO WET"]
+        else:
+            calib = {
+                "FULL_DARK_ADC": code_info["constants"].get("FULL_DARK_ADC", 300),
+                "FULL_LIGHT_ADC": code_info["constants"].get("FULL_LIGHT_ADC", 3500),
+            }
+            thresh = {
+                "THRESHOLD_DARK_ON": code_info["constants"].get("THRESHOLD_DARK_ON", 1400),
+                "THRESHOLD_LIGHT_OFF": code_info["constants"].get("THRESHOLD_LIGHT_OFF", 1800),
+            }
+            state_names = ["DARK (LAMP ACTIVE)", "HYSTERESIS (STABILIZED)", "DAYLIGHT (LAMP OFF)"]
+
+        behaviour_info = BehaviourInfo(
+            calibration_constants=calib,
+            thresholds=thresh,
+            timing_values={
+                "SAMPLE_INTERVAL_MS": code_info["constants"].get("SAMPLE_INTERVAL_MS", 500 if is_water else 250),
+                "SAMPLES": code_info["constants"].get("SAMPLES", 5 if is_water else 8),
+            },
+            state_names=state_names,
+            led_active_low=True,
+        )
+        project_refs = [
+            "STMicroelectronics, 'STM32F103x8 STM32F103xB Medium-density performance line ARM-based 32-bit MCU Datasheet', DocID 13587 Rev 17, 2020.",
+            "STMicroelectronics, 'RM0008 Reference Manual: STM32F101xx, STM32F102xx, STM32F103xx advanced ARM-based 32-bit MCUs', Rev 21, 2021.",
+            "STM32duino, 'Arduino Core for STM32 based boards', Official STMicroelectronics GitHub Repository, 2024.",
+            "Paul Horowitz and Winfield Hill, 'The Art of Electronics', Cambridge University Press, 3rd Edition, 2015.",
+        ]
+        return impl_info, behaviour_info, project_refs
+
+    elif domain == "COA_SYSTEMS":
+        board_info = BoardInfo(
+            name="RISC-V Ripes Architectural Simulator",
+            mcu_part_number="RV32I / RV32IM",
+            core="5-Stage Pipelined Datapath",
+            clock="Variable Clock Simulation",
+            flash="Instruction Memory",
+            sram="Data Memory",
+            voltage="N/A (Simulated Hardware)",
+        )
+        components = [
+            ComponentItem(name="RISC-V RV32I Processor Core", role="Instruction Execution & Pipelining", interface="Internal Datapath", notes="5-stage pipeline with hazard forwarding unit"),
+            ComponentItem(name="MMIO Traffic LED Matrix", role="Visual State Actuation", interface="Memory Mapped I/O at 0xF0000000", notes="Direct memory mapped peripheral for signal display"),
+            ComponentItem(name="Hazard & Forwarding Unit", role="Pipeline Conflict Resolution", interface="Hardware Interlocks", notes="Resolves data and control hazards"),
+        ]
+        impl_info = ImplementationInfo(
+            mode="simulation",
+            board=board_info,
+            framework="RISC-V Assembly / Ripes Simulator",
+            components=components,
+            pins=[],
+            peripherals=["MMIO Display", "Instruction Memory", "Data Memory"],
+            libraries=["RV32I Instruction Set"],
+            programmer="Ripes Assembler",
+            serial_baud=115200,
+        )
+        behaviour_info = BehaviourInfo(
+            calibration_constants={},
+            thresholds={},
+            timing_values={},
+            state_names=["NORTH-SOUTH GREEN", "ALL RED CLEARANCE", "EAST-WEST GREEN"],
+            led_active_low=False,
+        )
+        project_refs = [
+            "David A. Patterson, John L. Hennessy, 'Computer Organization and Design: The Hardware/Software Interface', Morgan Kaufmann, 6th Edition, 2020.",
+            "Andrew S. Tanenbaum, Todd Austin, 'Structured Computer Organization', Pearson, 6th Edition, 2012.",
+        ]
+        return impl_info, behaviour_info, project_refs
+
+    else:
+        # SOFTWARE_APP / GENERAL_ACADEMIC
+        is_moneygo = "moneygo" in combined_corpus.lower() or "banking" in combined_corpus.lower()
+        if is_moneygo:
+            board_info = BoardInfo(
+                name="Java Virtual Machine (JVM)",
+                mcu_part_number="OpenJDK 21 / JVM",
+                core="x86_64 / ARM64 Runtime",
+                clock="2.4 GHz Host CPU",
+                flash="Storage (SSD / Disk I/O)",
+                sram="8 GB Host RAM",
+                voltage="N/A (Host Software)",
+            )
+            components = [
+                ComponentItem(name="Customer Terminal", role="Interactive Console Interface", interface="Standard I/O (System.in / System.out)", notes="Handles customer interaction and account balance inquiries"),
+                ComponentItem(name="Banking Interface", role="Fund Transfer Engine", interface="File I/O / Transaction Manager", notes="Coordinates account debit/credit execution and consistency checks"),
+                ComponentItem(name="File Data Store", role="Persistence Layer", interface="Local Disk (.txt)", notes="Maintains account balances and transaction ledger"),
+                ComponentItem(name="SHA-256 Hasher", role="Security Subsystem", interface="java.security.MessageDigest", notes="Performs irreversible hashing of sensitive credentials"),
+            ]
+            impl_info = ImplementationInfo(
+                mode="simulation",
+                board=board_info,
+                framework="Java SE / OOP",
+                components=components,
+                pins=[],
+                peripherals=["File I/O", "Console UI", "Hashing Engine", "Exception Handling"],
+                libraries=["java.io.*", "java.util.*", "java.security.MessageDigest"],
+                programmer="Javac / Maven / Gradle",
+                serial_baud=115200,
+            )
+            behaviour_info = BehaviourInfo(
+                calibration_constants={},
+                thresholds={},
+                timing_values={},
+                state_names=["AUTHENTICATION", "TRANSACTION PROCESSING", "ACCOUNT LEDGER PERSISTENCE"],
+                led_active_low=False,
+            )
+            project_refs = [
+                "James Gosling, Bill Joy, Guy Steele, Gilad Bracha, Alex Buckley, 'The Java Language Specification, Java SE Edition', Oracle Press, 2023.",
+                "Joshua Bloch, 'Effective Java', Addison-Wesley Professional, 3rd Edition, 2018.",
+                "Robert C. Martin, 'Clean Code: A Handbook of Agile Software Craftsmanship', Prentice Hall, 2008.",
+                "Erich Gamma, Richard Helm, Ralph Johnson, John Vlissides, 'Design Patterns: Elements of Reusable Object-Oriented Software', Addison-Wesley, 1994.",
+                "National Institute of Standards and Technology (NIST), 'Secure Hash Standard (SHS)', FIPS PUB 180-4, 2015.",
+            ]
+            return impl_info, behaviour_info, project_refs
+        else:
+            board_info = BoardInfo(
+                name="Software Application Workstation",
+                mcu_part_number="Host Execution Environment",
+                core="x86_64 Multi-Core CPU",
+                clock="Host CPU",
+                flash="Storage (SSD / Disk)",
+                sram="8 GB+ Host RAM",
+                voltage="N/A (Software Application)",
+            )
+            components = [
+                ComponentItem(name="Core Processing Module", role="Central Business Logic", interface="Software Runtime", notes="Manages primary execution flow"),
+                ComponentItem(name="User Interface Subsystem", role="Interactive Client Interface", interface="GUI / Console", notes="Handles user requests and display"),
+                ComponentItem(name="Data Persistence Layer", role="Storage & Record Management", interface="File System / Database", notes="Stores operational data securely"),
+            ]
+            impl_info = ImplementationInfo(
+                mode="simulation",
+                board=board_info,
+                framework="Application Framework",
+                components=components,
+                pins=[],
+                peripherals=["File I/O", "User Interface", "Execution Engine"],
+                libraries=[],
+                programmer="Package Manager",
+                serial_baud=115200,
+            )
+            behaviour_info = BehaviourInfo(
+                calibration_constants={},
+                thresholds={},
+                timing_values={},
+                state_names=["INITIALIZATION", "OPERATION", "DATA PERSISTENCE"],
+                led_active_low=False,
+            )
+            project_refs = [
+                "Robert C. Martin, 'Clean Code: A Handbook of Agile Software Craftsmanship', Prentice Hall, 2008.",
+                "Ian Sommerville, 'Software Engineering', Pearson, 10th Edition, 2015.",
+                "Andrew Hunt, David Thomas, 'The Pragmatic Programmer', Addison-Wesley, 2019.",
+            ]
+            return impl_info, behaviour_info, project_refs

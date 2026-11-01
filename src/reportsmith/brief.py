@@ -48,11 +48,13 @@ class PeopleInfo(BaseModel):
     team: List[TeamMember] = Field(..., description="List of team members")
     guide: StaffMember = Field(..., description="Project guide")
     hod: StaffMember = Field(..., description="Head of Department")
-    coordinator: StaffMember = Field(..., description="Course / Project Coordinator")
+    coordinator: Optional[StaffMember] = Field(None, description="Course / Project Coordinator")
 
     @field_validator("guide", "hod", "coordinator", mode="before")
     @classmethod
-    def parse_staff(cls, v: Any) -> StaffMember:
+    def parse_staff(cls, v: Any) -> Optional[StaffMember]:
+        if v is None:
+            return None
         return StaffMember.from_any(v)
 
 
@@ -118,7 +120,7 @@ class BehaviourInfo(BaseModel):
         description="Timing values like READ_INTERVAL_MS, SAMPLE_COUNT",
     )
     state_names: List[str] = Field(
-        default_factory=lambda: ["NEEDS WATER", "OPTIMAL", "TOO WET"],
+        default_factory=list,
         description="Names of system operational states",
     )
     led_active_low: bool = Field(
@@ -150,8 +152,8 @@ class ProjectBrief(BaseModel):
     people: PeopleInfo
     implementation: ImplementationInfo
     behaviour: BehaviourInfo = Field(default_factory=BehaviourInfo)
-    code_file: Union[str, List[str]] = Field(
-        ..., description="Path(s) to embedded source code"
+    code_file: Optional[Union[str, List[str]]] = Field(
+        None, description="Path(s) to embedded source code"
     )
     abstract: Optional[str] = Field(
         None, description="Optional student-provided abstract"
@@ -161,10 +163,15 @@ class ProjectBrief(BaseModel):
     references: List[str] = Field(
         default_factory=list, description="Curated reference list"
     )
+    domain: Optional[str] = Field(
+        "GENERAL_ACADEMIC", description="Project subject domain"
+    )
     extra_notes: Optional[str] = Field("", description="Additional notes")
 
     @property
     def code_files_list(self) -> List[str]:
+        if not self.code_file:
+            return []
         if isinstance(self.code_file, str):
             return [self.code_file]
         return list(self.code_file)

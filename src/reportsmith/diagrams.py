@@ -254,7 +254,7 @@ def extract_project_hardware_profile(brief: ProjectBrief) -> HardwareProfile:
 
 def render_block_diagram_mpl(brief: ProjectBrief, facts: ProjectFacts, out_file: Path) -> Path:
     """Render Block Diagram using Matplotlib at 200 DPI adapting dynamically to project topic."""
-    fig, ax = plt.subplots(figsize=(10, 6.2), dpi=200)
+    fig, ax = plt.subplots(figsize=(11.5, 7.2), dpi=200)
     fig.patch.set_facecolor("white")
     ax.set_facecolor("white")
     ax.set_xlim(0, 100)
@@ -499,7 +499,7 @@ def render_block_diagram_mpl(brief: ProjectBrief, facts: ProjectFacts, out_file:
 
 def render_connection_diagram_mpl(brief: ProjectBrief, facts: ProjectFacts, out_file: Path) -> Path:
     """Render Connection/Wiring Diagram showing colour-coded dynamic interconnections."""
-    fig, ax = plt.subplots(figsize=(10, 6.5), dpi=200)
+    fig, ax = plt.subplots(figsize=(11.5, 7.5), dpi=200)
     fig.patch.set_facecolor("white")
     ax.set_facecolor("white")
     ax.set_xlim(0, 100)
@@ -520,88 +520,92 @@ def render_connection_diagram_mpl(brief: ProjectBrief, facts: ProjectFacts, out_
         color="#1E293B",
     )
 
-    # MCU Central Pin Header
-    mcu_bg = patches.Rectangle((34, 15), 32, 72, edgecolor="#0F172A", facecolor="#E2E8F0", lw=2)
+    # MCU Central Pin Header (Wide 44-unit frame with vertically staggered pins prevents pin label interpolation)
+    mcu_bg = patches.Rectangle((28, 15), 44, 72, edgecolor="#0F172A", facecolor="#E2E8F0", lw=2)
     ax.add_patch(mcu_bg)
+    mcu_txt = profile.mcu if len(profile.mcu) <= 22 else profile.mcu[:20] + ".."
+    board_txt = profile.board_name if len(profile.board_name) <= 24 else profile.board_name[:22] + ".."
     ax.text(
         50,
         83,
-        f"{profile.mcu}\n({profile.board_name})",
-        fontsize=10.5,
+        f"{mcu_txt}\n({board_txt})",
+        fontsize=9.0,
         fontweight="bold",
         ha="center",
         va="center",
     )
 
-    # Dynamic MCU Pins Left
+    # Dynamic MCU Pins Left (Vertically staggered from Right pins so labels never collide)
     pins_left = [
         ("3.3V (Power)", 72, "#DC2626"),
-        ("GND (Ground)", 64, "#000000"),
-        (f"{profile.sensor_pin} ({profile.sensor_peripheral})", 54, "#16A34A"),
+        ("GND (Ground)", 62, "#000000"),
+        (f"{profile.sensor_pin} ({profile.sensor_peripheral})", 52, "#16A34A"),
         ("PA9 (USART1_TX)", 42, "#9333EA"),
-        ("PA10 (USART1_RX)", 34, "#7C3AED"),
+        ("PA10 (USART1_RX)", 32, "#7C3AED"),
     ]
 
-    # Dynamic MCU Pins Right
+    # Dynamic MCU Pins Right (Staggered y-coords prevent overlapping with left labels)
     pins_right = [
-        ("5V / 3.3V (Power)", 72, "#DC2626"),
-        ("GND (Ground)", 64, "#000000"),
-        (f"{profile.actuator_pin} ({profile.actuator_peripheral})", 54, "#D97706"),
-        (f"{profile.led_pin} (Onboard LED)", 34, "#E11D48"),
+        ("5V / 3.3V (Power)", 67, "#DC2626"),
+        ("GND (Ground)", 57, "#000000"),
+        (f"{profile.actuator_pin} ({profile.actuator_peripheral})", 47, "#D97706"),
+        (f"{profile.led_pin} (Onboard LED)", 37, "#E11D48"),
     ]
 
     for label, y, col in pins_left:
-        ax.plot([34, 38], [y, y], color=col, lw=2.5)
-        ax.text(39, y, label, fontsize=7.5, va="center", ha="left")
+        ax.plot([28, 31], [y, y], color=col, lw=2.5)
+        ax.text(32, y, label, fontsize=6.5, va="center", ha="left")
 
     for label, y, col in pins_right:
-        ax.plot([62, 66], [y, y], color=col, lw=2.5)
-        ax.text(61, y, label, fontsize=7.5, va="center", ha="right")
+        ax.plot([69, 72], [y, y], color=col, lw=2.5)
+        ax.text(68, y, label, fontsize=6.5, va="center", ha="right")
 
     # Sensor Module on Left
-    sensor_box = patches.Rectangle((4, 46), 18, 32, edgecolor="#15803D", facecolor="#F0FDF4", lw=1.5)
+    sensor_box = patches.Rectangle((3, 46), 19, 32, edgecolor="#15803D", facecolor="#F0FDF4", lw=1.5)
     ax.add_patch(sensor_box)
     s_label = profile.sensor_name
-    if len(s_label) > 18:
-        s_label = s_label[:16] + ".."
-    ax.text(13, 73, f"{s_label}\nSensor Module", fontsize=8, fontweight="bold", ha="center")
-    ax.text(13, 64, "VCC  [3.3V]", fontsize=7.5, ha="center")
-    ax.text(13, 56, "GND  [0V]", fontsize=7.5, ha="center")
-    ax.text(13, 49, f"SIG  [{profile.sensor_pin}]", fontsize=7.5, ha="center")
+    if len(s_label) > 16:
+        s_label = s_label[:14] + ".."
+    ax.text(12.5, 74, s_label, fontsize=7.5, fontweight="bold", ha="center")
+    ax.text(12.5, 69, "Sensor Module", fontsize=6.8, fontstyle="italic", ha="center", color="#475569")
+    ax.text(12.5, 61, "VCC  [3.3V]", fontsize=7.2, ha="center")
+    ax.text(12.5, 54, "GND  [0V]", fontsize=7.2, ha="center")
+    ax.text(12.5, 47, f"SIG  [{profile.sensor_pin}]", fontsize=7.2, ha="center")
 
-    ax.plot([22, 34], [64, 72], color="#DC2626", lw=1.8, label="3.3V VCC (Red)")
-    ax.plot([22, 34], [56, 64], color="#000000", lw=1.8, label="GND (Black)")
-    ax.plot([22, 34], [49, 54], color="#16A34A", lw=1.8, label=f"{profile.sensor_pin} Sensor (Green)")
+    ax.plot([22, 28], [61, 72], color="#DC2626", lw=1.8, label="3.3V VCC (Red)")
+    ax.plot([22, 28], [54, 62], color="#000000", lw=1.8, label="GND (Black)")
+    ax.plot([22, 28], [47, 52], color="#16A34A", lw=1.8, label=f"{profile.sensor_pin} Sensor (Green)")
 
     # Serial Adapter on Left Bottom
-    uart_box = patches.Rectangle((4, 18), 18, 22, edgecolor="#6D28D9", facecolor="#FAF5FF", lw=1.5)
+    uart_box = patches.Rectangle((3, 18), 19, 22, edgecolor="#6D28D9", facecolor="#FAF5FF", lw=1.5)
     ax.add_patch(uart_box)
-    ax.text(13, 34, "USB-to-UART\nAdapter (CP2102)", fontsize=8, fontweight="bold", ha="center")
-    ax.text(13, 26, "RXD ← PA9", fontsize=7.5, ha="center")
-    ax.text(13, 21, "TXD → PA10", fontsize=7.5, ha="center")
-    ax.plot([22, 34], [26, 42], color="#9333EA", lw=1.5, label="UART TX (Purple)")
-    ax.plot([22, 34], [21, 34], color="#7C3AED", lw=1.5, label="UART RX (Violet)")
+    ax.text(12.5, 34, "USB-to-UART\nAdapter (CP2102)", fontsize=7.5, fontweight="bold", ha="center")
+    ax.text(12.5, 26, "RXD ← PA9", fontsize=7.0, ha="center")
+    ax.text(12.5, 21, "TXD → PA10", fontsize=7.0, ha="center")
+    ax.plot([22, 28], [26, 42], color="#9333EA", lw=1.5, label="UART TX (Purple)")
+    ax.plot([22, 28], [21, 32], color="#7C3AED", lw=1.5, label="UART RX (Violet)")
 
     # Output Device on Right
-    out_box = patches.Rectangle((78, 44), 18, 34, edgecolor="#0369A1", facecolor="#F0F9FF", lw=1.5)
+    out_box = patches.Rectangle((78, 44), 19, 34, edgecolor="#0369A1", facecolor="#F0F9FF", lw=1.5)
     ax.add_patch(out_box)
     a_label = profile.actuator_name
-    if len(a_label) > 18:
-        a_label = a_label[:16] + ".."
-    ax.text(87, 72, f"{a_label}\nActuator Unit", fontsize=8, fontweight="bold", ha="center")
-    ax.text(87, 64, "VCC  [5V/3.3V]", fontsize=7.5, ha="center")
-    ax.text(87, 57, "GND  [0V]", fontsize=7.5, ha="center")
-    ax.text(87, 51, f"IN   [{profile.actuator_pin}]", fontsize=7.5, ha="center")
-    ax.plot([66, 78], [72, 64], color="#DC2626", lw=1.8)
-    ax.plot([66, 78], [64, 57], color="#000000", lw=1.8)
-    ax.plot([66, 78], [54, 51], color="#D97706", lw=1.8, label=f"{profile.actuator_pin} Drive (Amber)")
+    if len(a_label) > 16:
+        a_label = a_label[:14] + ".."
+    ax.text(87.5, 74, a_label, fontsize=7.5, fontweight="bold", ha="center")
+    ax.text(87.5, 69, "Actuator Unit", fontsize=6.8, fontstyle="italic", ha="center", color="#475569")
+    ax.text(87.5, 61, "VCC  [5V/3.3V]", fontsize=7.2, ha="center")
+    ax.text(87.5, 54, "GND  [0V]", fontsize=7.2, ha="center")
+    ax.text(87.5, 47, f"IN   [{profile.actuator_pin}]", fontsize=7.2, ha="center")
+    ax.plot([72, 78], [67, 61], color="#DC2626", lw=1.8)
+    ax.plot([72, 78], [57, 54], color="#000000", lw=1.8)
+    ax.plot([72, 78], [47, 47], color="#D97706", lw=1.8, label=f"{profile.actuator_pin} Drive (Amber)")
 
     # Onboard LED box on Right Bottom
-    led_patch = patches.Rectangle((78, 22), 18, 16, edgecolor="#BE123C", facecolor="#FFF1F2", lw=1.5)
+    led_patch = patches.Rectangle((78, 22), 19, 16, edgecolor="#BE123C", facecolor="#FFF1F2", lw=1.5)
     ax.add_patch(led_patch)
-    ax.text(87, 32, f"User LED ({profile.led_pin})\nOnboard Alert", fontsize=8, fontweight="bold", ha="center")
-    ax.text(87, 25, "Active-Low Sink", fontsize=7.5, ha="center", color="#9F1239")
-    ax.plot([66, 78], [34, 28], color="#E11D48", lw=1.8, label=f"{profile.led_pin} LED Drive (Rose)")
+    ax.text(87.5, 32, f"User LED ({profile.led_pin})\nOnboard Alert", fontsize=7.5, fontweight="bold", ha="center")
+    ax.text(87.5, 25, "Active-Low Sink", fontsize=7.0, ha="center", color="#9F1239")
+    ax.plot([72, 78], [37, 28], color="#E11D48", lw=1.8, label=f"{profile.led_pin} LED Drive (Rose)")
 
     # Color Key / Legend
     ax.legend(loc="lower center", ncol=4, fontsize=7.5, frameon=True, facecolor="#F8FAFC", edgecolor="#CBD5E1")
@@ -615,7 +619,7 @@ def render_connection_diagram_mpl(brief: ProjectBrief, facts: ProjectFacts, out_
 
 def render_flowchart_mpl(brief: ProjectBrief, facts: ProjectFacts, out_file: Path) -> Path:
     """Render Algorithm Flowchart at 200 DPI dynamically reflecting project parameters."""
-    fig, ax = plt.subplots(figsize=(8.2, 10), dpi=200)
+    fig, ax = plt.subplots(figsize=(9.2, 11.8), dpi=200)
     fig.patch.set_facecolor("white")
     ax.set_facecolor("white")
     ax.set_xlim(0, 100)
@@ -775,6 +779,893 @@ def render_flowchart_mpl(brief: ProjectBrief, facts: ProjectFacts, out_file: Pat
 
 
 # ==============================================================================
+# MACHINE LEARNING & SOFTWARE PIPELINE DIAGRAM RENDERERS
+# ==============================================================================
+
+
+def render_ml_block_diagram_mpl(brief: ProjectBrief, facts: ProjectFacts, out_file: Path) -> Path:
+    """Render authentic Machine Learning Pipeline Architecture Block Diagram."""
+    fig, ax = plt.subplots(figsize=(11.8, 7.5), dpi=200)
+    fig.patch.set_facecolor("white")
+    ax.set_facecolor("white")
+    ax.set_xlim(0, 100)
+    ax.set_ylim(0, 100)
+    ax.axis("off")
+
+    title = brief.project.title
+    ax.text(
+        50,
+        96,
+        f"{title.upper()} - MACHINE LEARNING PIPELINE ARCHITECTURE",
+        fontsize=11.5,
+        fontweight="bold",
+        ha="center",
+        va="top",
+        color="#1A202C",
+    )
+
+    def draw_card(x, y, w, h, header, subheader, bullets, border_col, bg_col, title_col):
+        box = patches.FancyBboxPatch(
+            (x, y),
+            w,
+            h,
+            boxstyle="round,pad=0.6,rounding_size=1.5",
+            edgecolor=border_col,
+            facecolor=bg_col,
+            linewidth=1.8,
+        )
+        ax.add_patch(box)
+        ax.text(x + w / 2, y + h - 4, header, fontsize=8.5, fontweight="bold", ha="center", va="top", color=title_col)
+        if subheader:
+            ax.text(x + w / 2, y + h - 8.5, subheader, fontsize=7.5, fontstyle="italic", ha="center", va="top", color="#475569")
+        by = y + h - 13
+        for b in bullets:
+            ax.text(x + 2, by, f"• {b}", fontsize=7.2, ha="left", va="top", color="#1E293B")
+            by -= 4.2
+
+    def draw_arrow(x1, y1, x2, y2, label=""):
+        ax.annotate(
+            label,
+            xy=(x2, y2),
+            xytext=(x1, y1),
+            arrowprops=dict(facecolor="#334155", edgecolor="#334155", arrowstyle="->", lw=1.5),
+            fontsize=7,
+            ha="center",
+            va="bottom",
+            color="#0F172A",
+        )
+
+    is_vision = any(
+        k in title.lower() or k in (brief.abstract or "").lower()
+        for k in ("image", "vision", "produce", "fruit", "vegetable", "glcm", "opencv", "freshness", "camera", "pixel")
+    ) and not any(
+        k in title.lower() or k in (brief.abstract or "").lower()
+        for k in ("student", "academic", "attendance", "random forest", "tabular", "credit", "churn")
+    )
+
+    if is_vision:
+        # 1. Input Dataset Stage (Left Top)
+        draw_card(
+            4,
+            52,
+            26,
+            38,
+            "IMAGE ACQUISITION & DATASET",
+            "Produce Corpus Ingestion",
+            ["Raw RGB Produce Photos", "Quality Annotations", "Fresh / Medium / Spoiled", "Train / Test Data Partition"],
+            "#0D9488",
+            "#F0FDFA",
+            "#0F766E",
+        )
+
+        # 2. Image Preprocessing Pipeline (Middle-Left Top)
+        draw_card(
+            36,
+            52,
+            28,
+            38,
+            "PREPROCESSING PIPELINE",
+            "Spatial & Color Normalization",
+            ["Resolution Standardize (128x128)", "Bilateral & Gaussian Filtering", "Illumination Normalization", "Color Space Conversion (HSV)"],
+            "#2563EB",
+            "#EFF6FF",
+            "#1D4ED8",
+        )
+
+        # 3. Feature Extraction Engine (Right-Top)
+        draw_card(
+            70,
+            52,
+            26,
+            38,
+            "FEATURE EXTRACTION ENGINE",
+            "Dual-Domain Descriptors",
+            ["HSV Color Histograms", "GLCM Contrast & Homogeneity", "GLCM Energy & Correlation", "Normalized Vector (1 x D)"],
+            "#D97706",
+            "#FFFBEB",
+            "#B45309",
+        )
+
+        # Arrows row 1
+        draw_arrow(30, 71, 36, 71)
+        draw_arrow(64, 71, 70, 71)
+
+        # Arrow from row 1 down to row 2
+        ax.annotate(
+            "Concatenated Descriptors",
+            xy=(83, 44),
+            xytext=(83, 52),
+            arrowprops=dict(facecolor="#334155", edgecolor="#334155", arrowstyle="->", lw=1.5),
+            fontsize=7,
+            ha="center",
+            va="center",
+            color="#0F172A",
+        )
+
+        # 4. KNN Classification Engine (Right Bottom)
+        draw_card(
+            70,
+            6,
+            26,
+            38,
+            "KNN CLASSIFIER MODULE",
+            "Distance Metric Space",
+            ["Indexed Training Vectors", "Euclidean Distance Calculation", "KD-Tree Search / Ball-Tree", "K-Nearest Neighbors (K=5)"],
+            "#7C3AED",
+            "#FAF5FF",
+            "#6D28D9",
+        )
+
+        # 5. Majority Voting & Prediction (Middle Bottom)
+        draw_card(
+            36,
+            6,
+            28,
+            38,
+            "DECISION & VOTING LOGIC",
+            "Confidence & Class Scoring",
+            ["Distance-Weighted Voting", "Class Confidence Score %", "Boundary Margin Analysis", "Classification Verification"],
+            "#DC2626",
+            "#FEF2F2",
+            "#B91C1C",
+        )
+
+        # 6. Evaluation & Telemetry Subsystem (Left Bottom)
+        draw_card(
+            4,
+            6,
+            26,
+            38,
+            "OUTPUT & EVALUATION",
+            "Quality Grading & Telemetry",
+            ["Freshness Status Decision", "Confusion Matrix Telemetry", "Accuracy & F1 Verification", "Result Persistence / Display"],
+            "#059669",
+            "#ECFDF5",
+            "#047857",
+        )
+    else:
+        # Tabular / Structured / Random Forest Machine Learning (e.g. ScholarPredict)
+        draw_card(
+            4,
+            52,
+            26,
+            38,
+            "DATASET INGESTION & SCHEMA",
+            "Student Academic Records",
+            ["Demographics & Attendance %", "Internal Marks & Assignment Scores", "Previous GPA & Study Hours", "Stratified Train/Test Split (80/20)"],
+            "#0D9488",
+            "#F0FDFA",
+            "#0F766E",
+        )
+
+        draw_card(
+            36,
+            52,
+            28,
+            38,
+            "PREPROCESSING & BALANCING",
+            "Imputation & Normalization",
+            ["Missing-Value Median Imputation", "Categorical One-Hot Encoding", "StandardScaler Normalization", "SMOTE Synthetic Oversampling"],
+            "#2563EB",
+            "#EFF6FF",
+            "#1D4ED8",
+        )
+
+        draw_card(
+            70,
+            52,
+            26,
+            38,
+            "FEATURE IMPORTANCE ENGINE",
+            "Correlation & Selection",
+            ["Pearson Correlation Analysis", "Gini Impurity Metric Ranking", "Multicollinearity Screening", "Normalized Feature Matrix (X, y)"],
+            "#D97706",
+            "#FFFBEB",
+            "#B45309",
+        )
+
+        # Arrows row 1
+        draw_arrow(30, 71, 36, 71)
+        draw_arrow(64, 71, 70, 71)
+
+        ax.annotate(
+            "Balanced Feature Vectors",
+            xy=(83, 44),
+            xytext=(83, 52),
+            arrowprops=dict(facecolor="#334155", edgecolor="#334155", arrowstyle="->", lw=1.5),
+            fontsize=7,
+            ha="center",
+            va="center",
+            color="#0F172A",
+        )
+
+        draw_card(
+            70,
+            6,
+            26,
+            38,
+            "RANDOM FOREST ENSEMBLE",
+            "Multi-Tree Classifier",
+            ["Ensemble of Decorrelated Trees", "Bootstrap Aggregation (Bagging)", "Random Subspace Feature Splits", "Hyperparameter Cross-Validation"],
+            "#7C3AED",
+            "#FAF5FF",
+            "#6D28D9",
+        )
+
+        draw_card(
+            36,
+            6,
+            28,
+            38,
+            "DECISION & VOTING LOGIC",
+            "Ensemble Majority Consensus",
+            ["Unweighted Tree Majority Voting", "Posterior Class Probabilities", "High / Average / At-Risk Tier", "Confidence Margin Thresholds"],
+            "#DC2626",
+            "#FEF2F2",
+            "#B91C1C",
+        )
+
+        draw_card(
+            4,
+            6,
+            26,
+            38,
+            "INTERVENTION & TELEMETRY",
+            "Early Warning & Mentoring",
+            ["At-Risk Student Early Alerts", "Faculty Advisory Dashboard", "Accuracy / Recall / F1 Metrics", "Confusion Matrix Verification"],
+            "#059669",
+            "#ECFDF5",
+            "#047857",
+        )
+
+    # Arrows row 2
+    draw_arrow(70, 25, 64, 25)
+    draw_arrow(36, 25, 30, 25)
+
+    out_file.parent.mkdir(parents=True, exist_ok=True)
+    plt.tight_layout()
+    plt.savefig(str(out_file), dpi=200, facecolor="white", edgecolor="none")
+    plt.close(fig)
+    return out_file
+
+
+def render_ml_data_flow_diagram_mpl(brief: ProjectBrief, facts: ProjectFacts, out_file: Path) -> Path:
+    """Render Data Flow and Feature Pipeline Interaction Diagram for ML projects (replaces wiring diagram)."""
+    fig, ax = plt.subplots(figsize=(10, 6.5), dpi=200)
+    fig.patch.set_facecolor("white")
+    ax.set_facecolor("white")
+    ax.set_xlim(0, 100)
+    ax.set_ylim(0, 100)
+    ax.axis("off")
+
+    title = brief.project.title
+    ax.text(
+        50,
+        96,
+        f"{title.upper()} - DATA FLOW & FEATURE INTERACTION DIAGRAM",
+        fontsize=11.5,
+        fontweight="bold",
+        ha="center",
+        va="top",
+        color="#1E293B",
+    )
+
+    def draw_node(x, y, w, h, title, subtitle, col_border, col_bg, col_title):
+        box = patches.FancyBboxPatch(
+            (x, y),
+            w,
+            h,
+            boxstyle="round,pad=0.5,rounding_size=1.5",
+            edgecolor=col_border,
+            facecolor=col_bg,
+            lw=1.6,
+        )
+        ax.add_patch(box)
+        ax.text(x + w / 2, y + h / 2 + 2, title, fontsize=8, fontweight="bold", ha="center", va="center", color=col_title)
+        if subtitle:
+            ax.text(x + w / 2, y + h / 2 - 3.5, subtitle, fontsize=7, ha="center", va="center", color="#475569")
+
+    def draw_stream(x1, y1, x2, y2, label=""):
+        ax.annotate(
+            label,
+            xy=(x2, y2),
+            xytext=(x1, y1),
+            arrowprops=dict(facecolor="#475569", edgecolor="#475569", arrowstyle="->", lw=1.4),
+            fontsize=7,
+            fontweight="bold",
+            ha="center",
+            va="center",
+            color="#1E293B",
+        )
+
+    is_vision = any(
+        k in title.lower() or k in (brief.abstract or "").lower()
+        for k in ("image", "vision", "produce", "fruit", "vegetable", "glcm", "opencv", "freshness", "camera", "pixel")
+    ) and not any(
+        k in title.lower() or k in (brief.abstract or "").lower()
+        for k in ("student", "academic", "attendance", "random forest", "tabular", "credit", "churn")
+    )
+
+    if is_vision:
+        # 1. Image Input
+        draw_node(4, 46, 18, 18, "IMAGE INPUT", "Produce Photo Stream", "#0F766E", "#F0FDFA", "#115E59")
+
+        # 2. Preprocessing
+        draw_node(27, 46, 20, 18, "PREPROCESSING", "Resize & Denoise", "#2563EB", "#EFF6FF", "#1D4ED8")
+        draw_stream(22, 55, 27, 55, "Raw Image")
+
+        # 3. Dual feature extractors
+        draw_node(53, 66, 22, 18, "COLOR DESCRIPTOR", "HSV / RGB Histogram", "#D97706", "#FFFBEB", "#B45309")
+        draw_node(53, 26, 22, 18, "TEXTURE DESCRIPTOR", "GLCM Matrix Analysis", "#7C3AED", "#FAF5FF", "#6D28D9")
+
+        ax.plot([47, 50, 50, 53], [55, 55, 75, 75], color="#475569", lw=1.4)
+        ax.annotate("", xy=(53, 75), xytext=(50, 75), arrowprops=dict(facecolor="#475569", edgecolor="#475569", arrowstyle="->", lw=1.4))
+        ax.text(49, 78, "Color Stream", fontsize=6.8, color="#B45309", ha="center", fontweight="bold")
+
+        ax.plot([47, 50, 50, 53], [55, 55, 35, 35], color="#475569", lw=1.4)
+        ax.annotate("", xy=(53, 35), xytext=(50, 35), arrowprops=dict(facecolor="#475569", edgecolor="#475569", arrowstyle="->", lw=1.4))
+        ax.text(49, 31, "Spatial Stream", fontsize=6.8, color="#6D28D9", ha="center", fontweight="bold")
+
+        # 4. Feature Vector Concatenation
+        draw_node(80, 46, 17, 18, "FEATURE VECTOR", "Fused Normalization", "#DC2626", "#FEF2F2", "#B91C1C")
+
+        ax.plot([75, 78, 78, 80], [75, 75, 55, 55], color="#475569", lw=1.4)
+        ax.annotate("", xy=(80, 55), xytext=(78, 55), arrowprops=dict(facecolor="#475569", edgecolor="#475569", arrowstyle="->", lw=1.4))
+
+        ax.plot([75, 78, 78, 80], [35, 35, 55, 55], color="#475569", lw=1.4)
+        ax.annotate("", xy=(80, 55), xytext=(78, 55), arrowprops=dict(facecolor="#475569", edgecolor="#475569", arrowstyle="->", lw=1.4))
+
+        # 5. Lower pipeline: KNN inference & Corpus
+        draw_node(53, 4, 22, 14, "KNN INFERENCE", "Euclidean Metric (K=5)", "#0284C7", "#F0F9FF", "#0369A1")
+        draw_node(80, 4, 17, 14, "TRAINING CORPUS", "Indexed Vectors", "#475569", "#F8FAFC", "#334155")
+        draw_stream(80, 11, 75, 11, "Reference Set")
+
+        ax.plot([88, 88, 64], [46, 23, 23], color="#475569", lw=1.4)
+        ax.annotate("", xy=(64, 18), xytext=(64, 23), arrowprops=dict(facecolor="#475569", edgecolor="#475569", arrowstyle="->", lw=1.4))
+        ax.text(82, 25, "1 x D Vector", fontsize=6.8, color="#DC2626", fontweight="bold")
+
+        # 6. Output Decision Box
+        draw_node(12, 4, 26, 14, "PREDICTION OUTPUT", "Freshness Quality Grade", "#15803D", "#F0FDF4", "#166534")
+        draw_stream(53, 11, 38, 11, "Class Probability")
+    else:
+        # Tabular / Random Forest ML (e.g. ScholarPredict)
+        draw_node(4, 46, 18, 18, "DATA INPUT", "Student Records Stream", "#0F766E", "#F0FDFA", "#115E59")
+
+        draw_node(27, 46, 20, 18, "PREPROCESSING", "Clean & SMOTE Balance", "#2563EB", "#EFF6FF", "#1D4ED8")
+        draw_stream(22, 55, 27, 55, "Raw Records")
+
+        draw_node(53, 66, 22, 18, "ACADEMIC METRICS", "Marks & Prior GPA", "#D97706", "#FFFBEB", "#B45309")
+        draw_node(53, 26, 22, 18, "ENGAGEMENT METRICS", "Attendance & Study Hours", "#7C3AED", "#FAF5FF", "#6D28D9")
+
+        ax.plot([47, 50, 50, 53], [55, 55, 75, 75], color="#475569", lw=1.4)
+        ax.annotate("", xy=(53, 75), xytext=(50, 75), arrowprops=dict(facecolor="#475569", edgecolor="#475569", arrowstyle="->", lw=1.4))
+        ax.text(49, 78, "Marks Stream", fontsize=6.8, color="#B45309", ha="center", fontweight="bold")
+
+        ax.plot([47, 50, 50, 53], [55, 55, 35, 35], color="#475569", lw=1.4)
+        ax.annotate("", xy=(53, 35), xytext=(50, 35), arrowprops=dict(facecolor="#475569", edgecolor="#475569", arrowstyle="->", lw=1.4))
+        ax.text(49, 31, "Behavioral", fontsize=6.8, color="#6D28D9", ha="center", fontweight="bold")
+
+        draw_node(80, 46, 17, 18, "FEATURE MATRIX", "Standardized X_input", "#DC2626", "#FEF2F2", "#B91C1C")
+
+        ax.plot([75, 78, 78, 80], [75, 75, 55, 55], color="#475569", lw=1.4)
+        ax.annotate("", xy=(80, 55), xytext=(78, 55), arrowprops=dict(facecolor="#475569", edgecolor="#475569", arrowstyle="->", lw=1.4))
+
+        ax.plot([75, 78, 78, 80], [35, 35, 55, 55], color="#475569", lw=1.4)
+        ax.annotate("", xy=(80, 55), xytext=(78, 55), arrowprops=dict(facecolor="#475569", edgecolor="#475569", arrowstyle="->", lw=1.4))
+
+        draw_node(53, 4, 22, 14, "RANDOM FOREST", "Multi-Tree Ensemble", "#0284C7", "#F0F9FF", "#0369A1")
+        draw_node(80, 4, 17, 14, "TRAINING SPLIT", "Stratified Corpus (80%)", "#475569", "#F8FAFC", "#334155")
+        draw_stream(80, 11, 75, 11, "Training Fit")
+
+        ax.plot([88, 88, 64], [46, 23, 23], color="#475569", lw=1.4)
+        ax.annotate("", xy=(64, 18), xytext=(64, 23), arrowprops=dict(facecolor="#475569", edgecolor="#475569", arrowstyle="->", lw=1.4))
+        ax.text(82, 25, "Feature Array", fontsize=6.8, color="#DC2626", fontweight="bold")
+
+        draw_node(12, 4, 26, 14, "PREDICTION OUTPUT", "High / Average / At-Risk", "#15803D", "#F0FDF4", "#166534")
+        draw_stream(53, 11, 38, 11, "Majority Vote")
+
+    out_file.parent.mkdir(parents=True, exist_ok=True)
+    plt.tight_layout()
+    plt.savefig(str(out_file), dpi=200, facecolor="white", edgecolor="none")
+    plt.close(fig)
+    return out_file
+
+
+def render_ml_flowchart_mpl(brief: ProjectBrief, facts: ProjectFacts, out_file: Path) -> Path:
+    """Render Machine Learning Classification and Inference Flowchart."""
+    fig, ax = plt.subplots(figsize=(9, 11), dpi=200)
+    fig.patch.set_facecolor("white")
+    ax.set_facecolor("white")
+    ax.set_xlim(0, 100)
+    ax.set_ylim(0, 100)
+    ax.axis("off")
+
+    is_vision = any(
+        k in title.lower() or k in (brief.abstract or "").lower()
+        for k in ("image", "vision", "produce", "fruit", "vegetable", "glcm", "opencv", "freshness", "camera", "pixel")
+    ) and not any(
+        k in title.lower() or k in (brief.abstract or "").lower()
+        for k in ("student", "academic", "attendance", "random forest", "tabular", "credit", "churn")
+    )
+    chart_title = f"{title.upper()} - KNN CLASSIFICATION FLOWCHART" if is_vision else f"{title.upper()} - RANDOM FOREST INFERENCE FLOWCHART"
+
+    title = brief.project.title
+    ax.text(
+        50,
+        98,
+        chart_title,
+        fontsize=10.5,
+        fontweight="bold",
+        ha="center",
+        va="top",
+        color="#1E293B",
+    )
+
+    def draw_oval(x, y, text, color="#0D9488", bg="#F0FDFA"):
+        box = patches.FancyBboxPatch(
+            (x - 22, y - 2.5),
+            44,
+            5,
+            boxstyle="round,pad=0.4,rounding_size=2.5",
+            edgecolor=color,
+            facecolor=bg,
+            lw=1.5,
+        )
+        ax.add_patch(box)
+        ax.text(x, y, text, fontsize=7.5, fontweight="bold", ha="center", va="center", color=color)
+
+    def draw_rect(x, y, w, h, text, color="#2563EB", bg="#EFF6FF"):
+        box = patches.FancyBboxPatch(
+            (x - w / 2, y - h / 2),
+            w,
+            h,
+            boxstyle="round,pad=0.3,rounding_size=0.8",
+            edgecolor=color,
+            facecolor=bg,
+            lw=1.4,
+        )
+        ax.add_patch(box)
+        ax.text(x, y, text, fontsize=7.2, ha="center", va="center", color="#1E293B")
+
+    def draw_diamond(x, y, w, h, text, color="#D97706", bg="#FFFBEB"):
+        diamond = patches.Polygon(
+            [[x, y + h / 2], [x + w / 2, y], [x, y - h / 2], [x - w / 2, y]],
+            edgecolor=color,
+            facecolor=bg,
+            lw=1.4,
+        )
+        ax.add_patch(diamond)
+        ax.text(x, y, text, fontsize=6.8, fontweight="bold", ha="center", va="center", color="#92400E")
+
+    def draw_arrow(x1, y1, x2, y2, label=""):
+        ax.annotate(
+            label,
+            xy=(x2, y2),
+            xytext=(x1, y1),
+            arrowprops=dict(facecolor="#475569", edgecolor="#475569", arrowstyle="->", lw=1.3),
+            fontsize=7,
+            ha="center",
+            va="center",
+            color="#0F172A",
+        )
+
+    if is_vision:
+        # 1. Start
+        draw_oval(50, 93, "START / INGEST PRODUCE IMAGE")
+        draw_arrow(50, 90.5, 50, 86.5)
+
+        # 2. Load & Validate
+        draw_rect(50, 84, 52, 5, "Load Input Produce Image & Validate Dimensions\n(RGB Channels, Resolution Verification)")
+        draw_arrow(50, 81.5, 50, 77.5)
+
+        # 3. Preprocess
+        draw_rect(50, 75, 52, 5, "Image Preprocessing Pipeline\n(Bilateral Denoising & Resize to 128x128 Grid)")
+        draw_arrow(50, 72.5, 50, 68.5)
+
+        # 4. Color Extraction
+        draw_rect(50, 66, 52, 5, "Color Feature Extraction\n(Convert RGB to HSV, Compute Hue/Saturation Histograms)")
+        draw_arrow(50, 63.5, 50, 59.5)
+
+        # 5. Texture Extraction
+        draw_rect(50, 57, 52, 5, "Texture Feature Extraction (GLCM)\n(Compute Matrix, Extract Contrast, Homogeneity, Energy)")
+        draw_arrow(50, 54.5, 50, 50.5)
+
+        # 6. Feature Synthesis & Normalization
+        draw_rect(50, 48, 52, 5, "Vector Synthesis & MinMax / Standard Scaling\n(Generate Unified Normalized 1xD Feature Array X_input)")
+        draw_arrow(50, 45.5, 50, 41.5)
+
+        # 7. KNN Search
+        draw_rect(50, 39, 52, 5, "KNN Metric Query against Reference Corpus\n(Compute Euclidean Distances D_i to Training Exemplars)")
+        draw_arrow(50, 36.5, 50, 32.5)
+
+        # 8. Select Neighbors
+        draw_rect(50, 30, 52, 5, "Sort Distances & Identify K Nearest Neighbors\n(Select K=5 Closest Reference Vectors)")
+        draw_arrow(50, 27.5, 50, 23.5)
+
+        # 9. Decision: Majority Voting
+        draw_diamond(50, 19, 32, 7.5, "Is Class Vote\nUnanimous?")
+
+        # Branches
+        draw_arrow(66, 19, 80, 19, "YES")
+        draw_rect(80, 12, 26, 5, "Assign Majority Class\n(Confidence >= 90%)", color="#059669", bg="#ECFDF5")
+
+        draw_arrow(34, 19, 20, 19, "NO")
+        draw_rect(20, 12, 26, 5, "Distance-Weighted Vote\n(Relative Class Probabilities)", color="#D97706", bg="#FFFBEB")
+
+        # Converge to final output
+        draw_arrow(80, 9.5, 60, 4)
+        draw_arrow(20, 9.5, 40, 4)
+
+        draw_oval(50, 3.5, "OUTPUT PREDICTED GRADE & TELEMETRY", color="#15803D", bg="#F0FDF4")
+    else:
+        # Tabular / Random Forest ML (e.g. ScholarPredict)
+        draw_oval(50, 93, "START / INGEST STUDENT RECORD")
+        draw_arrow(50, 90.5, 50, 86.5)
+
+        draw_rect(50, 84, 54, 5, "Load Student Demographic & Academic Dataset\n(Attendance %, Internal Marks, Study Hours, Activities)")
+        draw_arrow(50, 81.5, 50, 77.5)
+
+        draw_rect(50, 75, 54, 5, "Data Cleaning & Missing-Value Imputation\n(Median Imputation for Continuous, Mode for Categorical)")
+        draw_arrow(50, 72.5, 50, 68.5)
+
+        draw_rect(50, 66, 54, 5, "Feature Engineering & Categorical Encoding\n(One-Hot Encoding, Label Encoding, Attribute Extraction)")
+        draw_arrow(50, 63.5, 50, 59.5)
+
+        draw_rect(50, 57, 54, 5, "SMOTE Synthetic Minority Oversampling\n(Balance At-Risk / Minority Classes to Mitigate Bias)")
+        draw_arrow(50, 54.5, 50, 50.5)
+
+        draw_rect(50, 48, 54, 5, "Standard Scaling & Stratified Partition\n(StandardScaler Normalization, 80/20 Train/Test Split)")
+        draw_arrow(50, 45.5, 50, 41.5)
+
+        draw_rect(50, 39, 54, 5, "Random Forest Multi-Tree Ensemble Evaluation\n(Propagate Input Vector across B Decorrelated Decision Trees)")
+        draw_arrow(50, 36.5, 50, 32.5)
+
+        draw_rect(50, 30, 54, 5, "Ensemble Aggregation & Majority Voting\n(Aggregate Tree Traversal Paths & Class Probability P(c|x))")
+        draw_arrow(50, 27.5, 50, 23.5)
+
+        draw_diamond(50, 19, 32, 7.5, "Is Predicted Class\n'At-Risk'?")
+
+        draw_arrow(66, 19, 80, 19, "YES")
+        draw_rect(80, 12, 28, 5, "Trigger Early Warning Alert\n(Faculty Mentoring Plan)", color="#DC2626", bg="#FEF2F2")
+
+        draw_arrow(34, 19, 20, 19, "NO")
+        draw_rect(20, 12, 28, 5, "Assign Standard Category\n(High / Average Tier)", color="#059669", bg="#ECFDF5")
+
+        draw_arrow(80, 9.5, 60, 4)
+        draw_arrow(20, 9.5, 40, 4)
+
+        draw_oval(50, 3.5, "OUTPUT PREDICTION, EXPLANATION & MENTOR TELEMETRY", color="#15803D", bg="#F0FDF4")
+
+    out_file.parent.mkdir(parents=True, exist_ok=True)
+    plt.tight_layout()
+    plt.savefig(str(out_file), dpi=200, facecolor="white", edgecolor="none")
+    plt.close(fig)
+    return out_file
+
+
+def render_software_block_diagram_mpl(brief: ProjectBrief, facts: ProjectFacts, out_file: Path) -> Path:
+    """Render 4-tier / Layered Software Architecture Block Diagram with generous spacing and crisp typography."""
+    fig, ax = plt.subplots(figsize=(12, 7.5), dpi=200)
+    fig.patch.set_facecolor("white")
+    ax.set_facecolor("white")
+    ax.set_xlim(0, 100)
+    ax.set_ylim(100)
+    ax.set_ylim(0, 100)
+    ax.axis("off")
+
+    title = brief.project.title
+    domain = (brief.domain or "SOFTWARE_APP").upper()
+    ax.text(
+        50,
+        96.5,
+        f"{title.upper()} - LAYERED SYSTEM ARCHITECTURE",
+        fontsize=12,
+        fontweight="bold",
+        ha="center",
+        va="top",
+        color="#1E293B",
+    )
+
+    def draw_layer(y, h, title, subtitle, details, border_col, bg_col, text_col):
+        box = patches.FancyBboxPatch(
+            (7, y),
+            86,
+            h,
+            boxstyle="round,pad=0.6,rounding_size=1.5",
+            edgecolor=border_col,
+            facecolor=bg_col,
+            lw=1.8,
+        )
+        ax.add_patch(box)
+        ax.text(11, y + h - 3.8, title, fontsize=9.5, fontweight="bold", ha="left", va="top", color=text_col)
+        ax.text(11, y + h - 7.6, subtitle, fontsize=8.0, fontstyle="italic", ha="left", va="top", color="#475569")
+        ax.text(11, y + 3.2, details, fontsize=7.8, ha="left", va="bottom", color="#1E293B")
+
+    if domain in ("WEB_CLOUD", "SOFTWARE_APP") and any(k in title.lower() for k in ("flutter", "app", "parking", "finder", "web", "cloud")):
+        l1_title, l1_sub, l1_det = (
+            "PRESENTATION & CLIENT APPLICATION TIER",
+            "Cross-Platform Client Interface & User Experience",
+            "• Flutter Cross-Platform Client (Android & iOS)   • Interactive Google Maps & Slot View   • Responsive UI State Management",
+        )
+        l2_title, l2_sub, l2_det = (
+            "APPLICATION CONTROLLER & ROUTING TIER",
+            "State Management, API Endpoints & Request Dispatcher",
+            "• Provider / BLoC State Management   • Dynamic Route Navigation   • Session Management & Authentication Interceptors",
+        )
+        l3_title, l3_sub, l3_det = (
+            "DOMAIN SERVICE & BUSINESS LOGIC TIER",
+            "Core Algorithmic Workflows & Cloud Transactions",
+            "• Real-Time Slot Reservation Logic   • Dynamic Fee Calculation Engine   • QR Code Access Token Verification Subsystem",
+        )
+        l4_title, l4_sub, l4_det = (
+            "DATA PERSISTENCE & CLOUD SERVICES TIER",
+            "Cloud Firestore Database & Backend Services Integration",
+            "• Cloud Firestore Real-Time NoSQL Database   • Firebase Authentication Services   • Firebase Cloud Messaging (FCM) Push Telemetry",
+        )
+    else:
+        l1_title, l1_sub, l1_det = (
+            "PRESENTATION LAYER (UI / CLIENT INTERFACE)",
+            "User Interaction, Form Layouts & Display Output",
+            "• Graphical User Interface / Web Views   • Input Validation & Data Sanitization   • Formatted Status & Results Presentation",
+        )
+        l2_title, l2_sub, l2_det = (
+            "APPLICATION CONTROLLER LAYER",
+            "Business Workflow Orchestration & Request Routing",
+            "• Request Routing & Dispatch Handlers   • Session State Management   • Exception & Error Recovery Logging",
+        )
+        l3_title, l3_sub, l3_det = (
+            "DOMAIN SERVICE & COMPUTATION LAYER",
+            "Core Algorithmic Processing & Calculation Services",
+            "• Business Transaction Processing Engine   • Data Validation & Integrity Checks   • Algorithmic Calculations & Transformations",
+        )
+        l4_title, l4_sub, l4_det = (
+            "DATA PERSISTENCE & STORAGE LAYER",
+            "Data Access Object (DAO) & Persistent Record Stores",
+            "• Structured Database Storage / JSON Records   • ACID Transaction Integrity   • Schema Serialization & Cache Access",
+        )
+
+    draw_layer(73, 16, l1_title, l1_sub, l1_det, "#0D9488", "#F0FDFA", "#0F766E")
+    draw_layer(50, 16, l2_title, l2_sub, l2_det, "#2563EB", "#EFF6FF", "#1D4ED8")
+    draw_layer(27, 16, l3_title, l3_sub, l3_det, "#D97706", "#FFFBEB", "#B45309")
+    draw_layer(4, 16, l4_title, l4_sub, l4_det, "#7C3AED", "#FAF5FF", "#6D28D9")
+
+    # Inter-layer connecting arrows in the clear 7-unit gaps
+    for y_gap in [66, 43, 20]:
+        ax.annotate(
+            "",
+            xy=(50, y_gap + 0.8),
+            xytext=(50, y_gap + 6.2),
+            arrowprops=dict(facecolor="#475569", edgecolor="#475569", arrowstyle="<->", lw=1.8),
+        )
+
+    out_file.parent.mkdir(parents=True, exist_ok=True)
+    plt.tight_layout()
+    plt.savefig(str(out_file), dpi=200, facecolor="white", edgecolor="none")
+    plt.close(fig)
+    return out_file
+
+
+def render_software_data_flow_diagram_mpl(brief: ProjectBrief, facts: ProjectFacts, out_file: Path) -> Path:
+    """Render Component Data Flow and Interaction Diagram with spacious layout and clear arrow channels."""
+    fig, ax = plt.subplots(figsize=(12, 7.5), dpi=200)
+    fig.patch.set_facecolor("white")
+    ax.set_facecolor("white")
+    ax.set_xlim(0, 100)
+    ax.set_ylim(0, 100)
+    ax.axis("off")
+
+    title = brief.project.title
+    domain = (brief.domain or "SOFTWARE_APP").upper()
+    ax.text(
+        50,
+        96.5,
+        f"{title.upper()} - COMPONENT DATA FLOW & INTERACTION DIAGRAM",
+        fontsize=12,
+        fontweight="bold",
+        ha="center",
+        va="top",
+        color="#1E293B",
+    )
+
+    def draw_box(x, y, w, h, t, sub, bcol, bgcol, tcol):
+        box = patches.FancyBboxPatch(
+            (x, y),
+            w,
+            h,
+            boxstyle="round,pad=0.6,rounding_size=1.5",
+            edgecolor=bcol,
+            facecolor=bgcol,
+            lw=1.6,
+        )
+        ax.add_patch(box)
+        ax.text(x + w / 2, y + h / 2 + 3, t, fontsize=8.5, fontweight="bold", ha="center", va="center", color=tcol)
+        ax.text(x + w / 2, y + h / 2 - 4, sub, fontsize=7.2, ha="center", va="center", color="#475569")
+
+    # Distinct boxes with generous dimensions
+    if domain in ("WEB_CLOUD", "SOFTWARE_APP") and any(k in title.lower() for k in ("flutter", "app", "parking", "finder", "web", "cloud")):
+        draw_box(4, 34, 18, 30, "MOBILE CLIENT\n(Flutter App)", "User Maps & UI Form", "#0F766E", "#F0FDFA", "#115E59")
+        draw_box(29, 34, 18, 30, "API ROUTER &\nCONTROLLER", "State & Dispatcher", "#2563EB", "#EFF6FF", "#1D4ED8")
+        draw_box(55, 55, 20, 26, "CORE LOGIC\nSERVICES", "Slot Reservation Engine", "#D97706", "#FFFBEB", "#B45309")
+        draw_box(55, 15, 20, 26, "AUTH & TOKEN\nSECURITY", "Firebase Auth / Claims", "#7C3AED", "#FAF5FF", "#6D28D9")
+        draw_box(82, 34, 15, 30, "CLOUD\nFIRESTORE", "NoSQL Data Store", "#DC2626", "#FEF2F2", "#B91C1C")
+    else:
+        draw_box(4, 34, 18, 30, "CLIENT / UI\nINTERFACE", "Form & Command Input", "#0F766E", "#F0FDFA", "#115E59")
+        draw_box(29, 34, 18, 30, "REQUEST ROUTER\n& DISPATCHER", "Validation & Dispatch", "#2563EB", "#EFF6FF", "#1D4ED8")
+        draw_box(55, 55, 20, 26, "DOMAIN SERVICE\nENGINE", "Core Business Rules", "#D97706", "#FFFBEB", "#B45309")
+        draw_box(55, 15, 20, 26, "SECURITY & HASH\nCONTROLLER", "Integrity & Permissions", "#7C3AED", "#FAF5FF", "#6D28D9")
+        draw_box(82, 34, 15, 30, "PERSISTENCE\nSTORE", "Database / Storage", "#DC2626", "#FEF2F2", "#B91C1C")
+
+    # Spacious Arrow Connections with separate labels above/below paths
+    # 1. Client -> Router (forward request)
+    ax.annotate("", xy=(29, 52), xytext=(22, 52), arrowprops=dict(facecolor="#334155", edgecolor="#334155", arrowstyle="->", lw=1.6))
+    ax.text(25.5, 55.5, "User Action", fontsize=7.2, fontweight="bold", ha="center", color="#0F172A")
+
+    # 2. Router -> Client (response state)
+    ax.annotate("", xy=(22, 44), xytext=(29, 44), arrowprops=dict(facecolor="#334155", edgecolor="#334155", arrowstyle="->", lw=1.6))
+    ax.text(25.5, 40.5, "UI Update", fontsize=7.2, fontweight="bold", ha="center", color="#0F172A")
+
+    # 3. Router -> Domain Logic
+    ax.annotate("", xy=(55, 66), xytext=(47, 54), arrowprops=dict(facecolor="#334155", edgecolor="#334155", arrowstyle="->", lw=1.6))
+    ax.text(49.5, 63.5, "Execute", fontsize=7.2, fontweight="bold", ha="center", color="#0F172A")
+
+    # 4. Router -> Auth Security
+    ax.annotate("", xy=(55, 28), xytext=(47, 42), arrowprops=dict(facecolor="#334155", edgecolor="#334155", arrowstyle="->", lw=1.6))
+    ax.text(49.5, 32.5, "Verify", fontsize=7.2, fontweight="bold", ha="center", color="#0F172A")
+
+    # 5. Domain Logic -> Data Store (Commit)
+    ax.annotate("", xy=(82, 54), xytext=(75, 66), arrowprops=dict(facecolor="#334155", edgecolor="#334155", arrowstyle="->", lw=1.6))
+    ax.text(80.5, 63.5, "Write", fontsize=7.2, fontweight="bold", ha="center", color="#0F172A")
+
+    # 6. Data Store -> Auth/Logic (Query / Fetch)
+    ax.annotate("", xy=(75, 28), xytext=(82, 42), arrowprops=dict(facecolor="#334155", edgecolor="#334155", arrowstyle="->", lw=1.6))
+    ax.text(80.5, 32.5, "Read", fontsize=7.2, fontweight="bold", ha="center", color="#0F172A")
+
+    out_file.parent.mkdir(parents=True, exist_ok=True)
+    plt.tight_layout()
+    plt.savefig(str(out_file), dpi=200, facecolor="white", edgecolor="none")
+    plt.close(fig)
+    return out_file
+
+
+def render_software_flowchart_mpl(brief: ProjectBrief, facts: ProjectFacts, out_file: Path) -> Path:
+    """Render Software Application Request-Execution Flowchart with generous vertical breathing room."""
+    fig, ax = plt.subplots(figsize=(9.6, 12.0), dpi=200)
+    fig.patch.set_facecolor("white")
+    ax.set_facecolor("white")
+    ax.set_xlim(0, 100)
+    ax.set_ylim(0, 100)
+    ax.axis("off")
+
+    title = brief.project.title
+    ax.text(
+        50,
+        98,
+        f"{title.upper()} - APPLICATION EXECUTION FLOWCHART",
+        fontsize=10.5,
+        fontweight="bold",
+        ha="center",
+        va="top",
+        color="#1E293B",
+    )
+
+    def draw_oval(x, y, text, color="#0D9488", bg="#F0FDFA"):
+        box = patches.FancyBboxPatch(
+            (x - 22, y - 2.5),
+            44,
+            5,
+            boxstyle="round,pad=0.4,rounding_size=2.5",
+            edgecolor=color,
+            facecolor=bg,
+            lw=1.5,
+        )
+        ax.add_patch(box)
+        ax.text(x, y, text, fontsize=7.5, fontweight="bold", ha="center", va="center", color=color)
+
+    def draw_rect(x, y, w, h, text, color="#2563EB", bg="#EFF6FF"):
+        box = patches.FancyBboxPatch(
+            (x - w / 2, y - h / 2),
+            w,
+            h,
+            boxstyle="round,pad=0.3,rounding_size=0.8",
+            edgecolor=color,
+            facecolor=bg,
+            lw=1.4,
+        )
+        ax.add_patch(box)
+        ax.text(x, y, text, fontsize=7.2, ha="center", va="center", color="#1E293B")
+
+    def draw_diamond(x, y, w, h, text, color="#D97706", bg="#FFFBEB"):
+        diamond = patches.Polygon(
+            [[x, y + h / 2], [x + w / 2, y], [x, y - h / 2], [x - w / 2, y]],
+            edgecolor=color,
+            facecolor=bg,
+            lw=1.4,
+        )
+        ax.add_patch(diamond)
+        ax.text(x, y, text, fontsize=6.8, fontweight="bold", ha="center", va="center", color="#92400E")
+
+    def draw_arrow(x1, y1, x2, y2, label=""):
+        ax.annotate(
+            label,
+            xy=(x2, y2),
+            xytext=(x1, y1),
+            arrowprops=dict(facecolor="#475569", edgecolor="#475569", arrowstyle="->", lw=1.3),
+            fontsize=7,
+            ha="center",
+            va="center",
+            color="#0F172A",
+        )
+
+    # 1. Start
+    draw_oval(50, 93, "START / SYSTEM INIT")
+    draw_arrow(50, 90.5, 50, 86.5)
+
+    # 2. Ingest Request
+    draw_rect(50, 84, 52, 5, "Receive User Request & Ingest Parameters\n(CLI Command / Interface Input Form)")
+    draw_arrow(50, 81.5, 50, 77.5)
+
+    # 3. Validate
+    draw_diamond(50, 72, 32, 7.5, "Input Valid & Authorized?")
+
+    # Failure Branch
+    draw_arrow(34, 72, 18, 72, "NO")
+    draw_rect(18, 64, 22, 5, "Log Error & Reject\nOutput Warning Notice", color="#DC2626", bg="#FEF2F2")
+    draw_arrow(18, 61.5, 18, 12)
+    draw_arrow(18, 12, 34, 4)
+
+    # Success Branch
+    draw_arrow(50, 68, 50, 63, "YES")
+
+    # 4. Business Transaction
+    draw_rect(50, 59, 52, 6, "Execute Application Service Logic\n(Process Account Operation / Model Calculation)")
+    draw_arrow(50, 56, 50, 51)
+
+    # 5. Security & Verification
+    draw_rect(50, 48, 52, 5, "Apply Integrity Checks & Hash Verification\n(SHA-256 Checksum / State Validation)")
+    draw_arrow(50, 45.5, 50, 40.5)
+
+    # 6. Data Store Persistence
+    draw_rect(50, 37, 52, 6, "Commit Transaction to Persistence Store\n(Atomic Write to Data Repository / File System)")
+    draw_arrow(50, 34, 50, 29)
+
+    # 7. Response Format
+    draw_rect(50, 25, 52, 6, "Serialize Response Payload & Status Telemetry\n(Format Human-Readable Output / JSON Data)")
+    draw_arrow(50, 22, 50, 16)
+
+    # 8. Output Display
+    draw_rect(50, 13, 52, 5, "Deliver Response to Client Interface & Log Event")
+    draw_arrow(50, 10.5, 50, 6.5)
+
+    draw_oval(50, 4, "END / AWAIT NEXT INVOCATION", color="#15803D", bg="#F0FDF4")
+
+    out_file.parent.mkdir(parents=True, exist_ok=True)
+    plt.tight_layout()
+    plt.savefig(str(out_file), dpi=200, facecolor="white", edgecolor="none")
+    plt.close(fig)
+    return out_file
+
+
+# ==============================================================================
 # MAIN DIAGRAM GENERATION ENTRYPOINT
 # ==============================================================================
 
@@ -794,20 +1685,20 @@ def generate_all_diagrams(
     conn_file = out_dir_path / "connection_diagram.png"
     flow_file = out_dir_path / "flowchart.png"
 
-    has_gv = is_graphviz_available()
-    if has_gv:
-        logger.info("Graphviz detected. Attempting diagram generation...")
-        try:
-            render_block_diagram_mpl(brief, facts, block_file)
-            render_connection_diagram_mpl(brief, facts, conn_file)
-            render_flowchart_mpl(brief, facts, flow_file)
-        except Exception as e:
-            logger.warning(f"Diagram rendering encountered issue ({e}). Re-rendering with Matplotlib.")
-            render_block_diagram_mpl(brief, facts, block_file)
-            render_connection_diagram_mpl(brief, facts, conn_file)
-            render_flowchart_mpl(brief, facts, flow_file)
+    domain = (brief.domain or "EMBEDDED_HARDWARE").upper()
+
+    if domain in ("MACHINE_LEARNING", "DATA_ANALYTICS"):
+        logger.info(f"Rendering Machine Learning pipeline diagrams at 200 DPI (domain: {domain})...")
+        render_ml_block_diagram_mpl(brief, facts, block_file)
+        render_ml_data_flow_diagram_mpl(brief, facts, conn_file)
+        render_ml_flowchart_mpl(brief, facts, flow_file)
+    elif domain in ("SOFTWARE_APP", "WEB_CLOUD"):
+        logger.info(f"Rendering Software layered architecture diagrams at 200 DPI (domain: {domain})...")
+        render_software_block_diagram_mpl(brief, facts, block_file)
+        render_software_data_flow_diagram_mpl(brief, facts, conn_file)
+        render_software_flowchart_mpl(brief, facts, flow_file)
     else:
-        logger.info("Using Matplotlib diagram generator at 200 DPI...")
+        logger.info("Using Hardware diagram generator at 200 DPI...")
         render_block_diagram_mpl(brief, facts, block_file)
         render_connection_diagram_mpl(brief, facts, conn_file)
         render_flowchart_mpl(brief, facts, flow_file)

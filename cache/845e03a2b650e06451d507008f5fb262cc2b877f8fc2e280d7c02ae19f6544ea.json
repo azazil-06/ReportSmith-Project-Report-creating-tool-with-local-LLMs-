@@ -1,0 +1,12 @@
+{
+  "section_id": "6.3",
+  "title": "Limitations",
+  "data": {
+    "paragraphs": [
+      "- The proposed ScholarPredict system provides a practical and interpretable approach to early academic intervention, with potential extensions to applications such as mentor dashboards, personalized study recommendations, dropout risk detection, and institutional performance analysis. It also offers practical exposure to the complete machine learning workflow, including data collection, preprocessing, feature analysis, ensemble model training, hyperparameter tuning, and performance evaluation, demonstrating how an ensemble learning algorithm like Random Forest can be applied to solve a real-world educational problem in an effective and accessible manner."
+    ],
+    "bullets": []
+  },
+  "timestamp": 1793514118.818169,
+  "elapsed": 9.166970014572144
+}

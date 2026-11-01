@@ -3,6 +3,19 @@
 TASK: Write Section {{ section_id }}: {{ section_title }} for Chapter 2 (Hardware and Software Requirements).
 Target Length: {{ target_words }} words
 
+{% if brief.domain in ['MACHINE_LEARNING', 'SOFTWARE_APP', 'DATA_ANALYTICS', 'WEB_CLOUD'] %}
+COMPUTING ENVIRONMENT & PLATFORM SPECIFICATIONS:
+- Environment / Platform: {{ brief.implementation.board.name }}
+- Processing Architecture / Runtime: {{ brief.implementation.board.mcu_part_number }}
+- Compute Cores: {{ brief.implementation.board.core }}
+- Acceleration / Clock: {{ brief.implementation.board.clock }}
+- Memory Hierarchy: {{ brief.implementation.board.flash }} Storage, {{ brief.implementation.board.sram }}
+- Primary Framework: {{ brief.implementation.framework }}
+- Subsystems & Modules:
+{% for c in brief.implementation.components %}
+  - {{ c.name }}: {{ c.role }} ({{ c.interface }}) - {{ c.notes }}
+{% endfor %}
+{% else %}
 HARDWARE SPECIFICATIONS:
 - Board: {{ brief.implementation.board.name }}
 - Microcontroller Part Number: {{ brief.implementation.board.mcu_part_number }}
@@ -14,6 +27,7 @@ HARDWARE SPECIFICATIONS:
 {% for c in brief.implementation.components %}
   - {{ c.name }}: {{ c.role }} ({{ c.interface }}) - {{ c.notes }}
 {% endfor %}
+{% endif %}
 
-Write detailed, academically sound technical prose describing {{ section_title }}. Explain the architecture, memory, peripheral capabilities, and operational parameters.
+Write detailed, academically sound technical prose describing {{ section_title }}. Explain the architecture, memory, capabilities, and operational parameters.
 Output strictly JSON: {"paragraphs": ["..."], "bullets": []}

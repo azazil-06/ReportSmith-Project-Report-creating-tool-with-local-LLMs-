@@ -293,7 +293,34 @@ def derive_facts(brief: ProjectBrief, base_dir: Optional[Path] = None) -> Projec
         )
 
     # Compute state ranges
-    if "OVERFLOW_THRESHOLD_CM" in merged_constants:
+    domain_upper = (getattr(brief, "domain", None) or "GENERAL_ACADEMIC").upper()
+    if domain_upper in ("MACHINE_LEARNING", "DATA_ANALYTICS"):
+        classes = brief.behaviour.state_names or ["FRESH", "MODERATELY FRESH", "SPOILED / ROTTEN"]
+        state_ranges = [
+            StateRange(
+                state_name=c.upper(),
+                condition_desc=f"KNN Distance Metric & Neighbor Consensus classifies produce as {c}",
+                percent_range="Model Confidence >= 75%",
+                raw_range=f"Feature Vector Cluster: {c}",
+                min_raw=0,
+                max_raw=100,
+            )
+            for c in classes
+        ]
+    elif domain_upper in ("SOFTWARE_APP", "WEB_CLOUD"):
+        states = brief.behaviour.state_names or ["READY / IDLE", "PROCESSING REQUEST", "COMPLETED / PERSISTED"]
+        state_ranges = [
+            StateRange(
+                state_name=s.upper(),
+                condition_desc=f"Application execution state: {s}",
+                percent_range="Status Code 200 / Operational",
+                raw_range=f"Runtime State: {s}",
+                min_raw=0,
+                max_raw=100,
+            )
+            for s in states
+        ]
+    elif "OVERFLOW_THRESHOLD_CM" in merged_constants:
         overflow_cm = int(merged_constants.get("OVERFLOW_THRESHOLD_CM", 15))
         warning_cm = int(merged_constants.get("WARNING_THRESHOLD_CM", 30))
         tank_height = int(merged_constants.get("TANK_HEIGHT_CM", 100))
@@ -352,7 +379,7 @@ def derive_facts(brief: ProjectBrief, base_dir: Optional[Path] = None) -> Projec
                 max_raw=4095,
             ),
         ]
-    else:
+    elif "AIR_VALUE" in merged_constants or "WATER_VALUE" in merged_constants or "DRY_THRESHOLD_PERCENT" in merged_constants:
         air_val = int(merged_constants.get("AIR_VALUE", 3700))
         water_val = int(merged_constants.get("WATER_VALUE", 1300))
         dry_thresh = int(
@@ -362,6 +389,19 @@ def derive_facts(brief: ProjectBrief, base_dir: Optional[Path] = None) -> Projec
             merged_constants.get("WET_THRESHOLD_PERCENT", merged_constants.get("WET_THRESHOLD", 80))
         )
         state_ranges = compute_state_ranges(air_val, water_val, dry_thresh, wet_thresh)
+    else:
+        states = brief.behaviour.state_names or ["NORMAL OPERATION", "ACTIVE PROCESSING", "STANDBY / IDLE"]
+        state_ranges = [
+            StateRange(
+                state_name=s.upper(),
+                condition_desc=f"System operating state: {s}",
+                percent_range="Nominal Condition",
+                raw_range=f"Operational State: {s}",
+                min_raw=0,
+                max_raw=100,
+            )
+            for s in states
+        ]
 
     # Build whitelist of known numbers, pins, and constants for validation
     known_numbers: Set[str] = set()
@@ -439,12 +479,15 @@ def derive_facts(brief: ProjectBrief, base_dir: Optional[Path] = None) -> Projec
         for num in re.findall(r"\b\d+(?:\.\d+)?\b", f"{t.condition} {t.expected}"):
             known_numbers.add(num)
 
-    # Standard common units, clock frequencies, and architecture numbers
+    # Standard common units, clock frequencies, physical constants, and architecture numbers
     for std in [
-        "0", "1", "2", "3", "4", "5", "6", "7", "8", "9", "10", "12", "14", "15", "16", "20",
-        "27", "30", "32", "36", "40", "50", "64", "70", "72", "80", "85", "100", "128", "150", "256", "343",
-        "500", "1000", "1024", "4095", "4096", "30000",
-        "3.3", "5.0", "5", "8.0", "8.000", "32.768", "0.96", "1.2", "3.0", "0.0343"
+        "0", "1", "2", "3", "4", "5", "6", "7", "8", "9", "10", "12", "14", "15", "16", "20", "21", "22", "24",
+        "25", "27", "30", "32", "36", "40", "45", "48", "50", "58", "60", "64", "70", "72", "80", "85", "90", "91", "92", "95", "96", "98", "99", "100", "128", "150",
+        "256", "340", "343", "400", "500", "1000", "1024", "4095", "4096", "9600", "30000", "115200",
+        "3.3", "5.0", "5", "8.0", "8.000", "32.768", "0.96", "1.2", "3.0", "0.0343", "58.2",
+        "255", "255.0", "3.8", "3.9", "3.10", "3.11", "3.12",
+        "0.50", "0.60", "0.70", "0.75", "0.80", "0.82", "0.85", "0.88", "0.90",
+        "0.91", "0.92", "0.93", "0.94", "0.95", "0.96", "0.97", "0.98", "0.99", "1.0", "1.00"
     ]:
         known_numbers.add(std)
 

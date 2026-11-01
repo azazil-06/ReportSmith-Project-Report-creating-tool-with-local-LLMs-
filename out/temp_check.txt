@@ -1,0 +1,14 @@
+============================================================
+REPORTSMITH VERIFICATION REPORT
+============================================================
+Target Document: out\temp_valid_test.docx
+Project: Plant Watering Reminder using STM32 and Soil Moisture Sensor
+Status: FAILED
+
+Total Errors: 3
+Total Warnings: 0
+
+ERRORS:
+  [X] Ungrounded number '9600' detected in prose: "Serial Communication Protocol: To transmit encoded phase data ('1', '2', '3', or..."
+  [X] Ungrounded number '9600' detected in prose: "Serial Communication Module: To handle the data transfer between the master logi..."
+  [X] Ungrounded number '22' detected in prose: "References                                                                      ..."

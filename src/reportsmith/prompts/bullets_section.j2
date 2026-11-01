@@ -5,13 +5,22 @@ Target Length: {{ target_words }} words
 
 SECTION DETAILS:
 - Topic: {{ section_title }}
-- Microcontroller: {{ brief.implementation.board.mcu_part_number }} ({{ brief.implementation.board.name }})
-- Peripherals: {{ brief.implementation.peripherals | join(', ') }}
+- {% if brief.domain in ['MACHINE_LEARNING', 'SOFTWARE_APP', 'DATA_ANALYTICS', 'WEB_CLOUD'] %}Platform / Environment: {{ brief.implementation.board.name }} ({{ brief.implementation.board.mcu_part_number }}){% else %}Microcontroller: {{ brief.implementation.board.mcu_part_number }} ({{ brief.implementation.board.name }}){% endif %}
+- Framework & Tools: {{ brief.implementation.framework }}{% if brief.implementation.libraries %}, {{ brief.implementation.libraries | join(', ') }}{% endif %}
+{% if brief.implementation.components %}
+- System Subsystems:
+{% for c in brief.implementation.components %}
+  - {{ c.name }}: {{ c.role }}
+{% endfor %}
+{% endif %}
+{% if brief.implementation.pins %}
 - Pins:
 {% for p in brief.implementation.pins %}
   - {{ p.pin }}: {{ p.peripheral }} connected to {{ p.connected_to }} ({{ p.function }})
 {% endfor %}
-- Libraries: {{ brief.implementation.libraries | join(', ') }}
+{% endif %}
 
-Provide a short introductory paragraph followed by a clear, formal list of bullet points detailing {{ section_title }}.
-Output strictly JSON: {"paragraphs": ["Introductory statement..."], "bullets": ["Point 1...", "Point 2..."]}
+TASK INSTRUCTIONS:
+- Write ONE concise introductory paragraph specifically introducing the scope and technical purpose of {{ section_title }}. DO NOT repeat or echo the abstract.
+- Then provide 4 to 6 comprehensive, formal bullet points detailing specific aspects of {{ section_title }}.
+Output strictly JSON: {"paragraphs": ["Concise introductory statement specific to {{ section_title }}..."], "bullets": ["Technical point 1...", "Technical point 2...", "Technical point 3...", "Technical point 4..."]}

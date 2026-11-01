@@ -24,9 +24,16 @@ class PathsConfig:
 
 
 @dataclass
+class ComputeConfig:
+    use_cuda: bool = True
+    concurrency: Optional[int] = None
+
+
+@dataclass
 class ReportSmithConfig:
     llm: LLMConfig = field(default_factory=LLMConfig)
     paths: PathsConfig = field(default_factory=PathsConfig)
+    compute: ComputeConfig = field(default_factory=ComputeConfig)
     word_targets: Dict[str, int] = field(
         default_factory=lambda: {
             "abstract": 250,
@@ -95,6 +102,12 @@ def load_config(config_path: Optional[str] = None) -> ReportSmithConfig:
     cfg.paths = PathsConfig(
         cache_dir=paths_data.get("cache_dir", cfg.paths.cache_dir),
         out_dir=paths_data.get("out_dir", cfg.paths.out_dir),
+    )
+
+    compute_data = data.get("compute", {})
+    cfg.compute = ComputeConfig(
+        use_cuda=bool(compute_data.get("use_cuda", cfg.compute.use_cuda)),
+        concurrency=int(compute_data["concurrency"]) if "concurrency" in compute_data and compute_data["concurrency"] is not None else cfg.compute.concurrency,
     )
 
     if "word_targets" in data and isinstance(data["word_targets"], dict):

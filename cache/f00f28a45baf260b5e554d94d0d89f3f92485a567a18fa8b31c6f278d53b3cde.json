@@ -1,0 +1,13 @@
+{
+  "section_id": "4.8",
+  "title": "Implementation Challenges and Solutions",
+  "data": {
+    "paragraphs": [
+      "Implementation challenges faced during the development of ScholarPredict include managing large datasets efficiently, handling class imbalance in training data, selecting appropriate hyperparameters for Random Forest classifier, and ensuring model interpretability. To address these challenges, we implemented a modular code structure with exception handling to ensure robustness. We used scikit-learn's GridSearchCV for hyperparameter tuning and SMOTE oversampling technique to balance the dataset. Additionally, we utilized feature importance analysis from Random Forests to understand which attributes contribute most to each prediction.",
+      "Another challenge was ensuring model interpretability. To address this, we incorporated a confusion matrix in our evaluation metrics to provide insights into false positives and negatives. We also used SHAP (SHapley Additive exPlanations) for feature importance analysis, which helps us identify the most influential features contributing to each prediction."
+    ],
+    "bullets": []
+  },
+  "timestamp": 1793513793.3689003,
+  "elapsed": 11.890331029891968
+}

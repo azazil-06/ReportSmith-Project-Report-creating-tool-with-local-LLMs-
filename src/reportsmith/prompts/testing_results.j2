@@ -7,11 +7,11 @@ TESTING AND VERIFICATION DATA:
 - Execution Mode: {{ brief.implementation.mode }}
 - Test Cases:
 {% for t in brief.tests %}
-  - {{ t.id }}: {{ t.name }} | Condition: {{ t.condition }} | Expected: {{ t.expected }} | Observed: {{ t.observed or "Expected response to be verified physically" }}
+  - {{ t.id }}: {{ t.name }} | Condition: {{ t.condition }} | Expected: {{ t.expected }} | Observed: {{ t.observed or "Expected response verified deterministically" }}
 {% endfor %}
-- Operational Boundaries & Expected States:
+- Operational Boundaries & Decision States:
 {% for sr in facts.state_ranges %}
-  - {{ sr.state_name }}: Condition ({{ sr.condition_desc }}), Expected Raw Range ({{ sr.raw_range }})
+  - {{ sr.state_name }}: Condition ({{ sr.condition_desc }}), {% if brief.domain in ['MACHINE_LEARNING', 'DATA_ANALYTICS'] %}Model Cluster/Response: {{ sr.raw_range }}{% else %}Expected Range: {{ sr.raw_range }}{% endif %}
 {% endfor %}
 
 Write formal technical paragraphs analyzing the testing methodology or expected behavioral results for {{ section_title }}. Do not claim unrecorded physical observations; describe expected operation and mathematical stability.

@@ -5,8 +5,20 @@ Target Length: {{ target_words }} words
 
 PROJECT DATA:
 - Project: {{ brief.project.title }}
-- Microcontroller: {{ brief.implementation.board.name }} ({{ brief.implementation.board.mcu_part_number }})
+- {% if brief.domain in ['MACHINE_LEARNING', 'SOFTWARE_APP', 'DATA_ANALYTICS', 'WEB_CLOUD'] %}Platform / Environment: {{ brief.implementation.board.name }} ({{ brief.implementation.board.mcu_part_number }}){% else %}Microcontroller: {{ brief.implementation.board.name }} ({{ brief.implementation.board.mcu_part_number }}){% endif %}
 - Framework: {{ brief.implementation.framework }}
+{% if brief.implementation.components %}
+- Architecture Subsystems:
+{% for c in brief.implementation.components %}
+  - {{ c.name }}: {{ c.role }} ({{ c.interface }})
+{% endfor %}
+{% endif %}
+{% if brief.behaviour.state_names %}
+- Operational Categories / Target States: {{ brief.behaviour.state_names | join(', ') }}
+{% endif %}
 
-Write formal, third-person technical prose covering {{ section_title }} strictly using the provided context.
-Output strictly JSON: {"paragraphs": ["..."], "bullets": []}
+SPECIFIC TOPIC GUIDANCE FOR {{ section_title }}:
+- Write 2 to 3 structured, rigorous academic paragraphs directly addressing "{{ section_title }}".
+- Discuss technical rationale, architectural responsibilities, data transformations, and operational expectations.
+- ABSOLUTELY DO NOT repeat or echo the abstract text. Write original technical analysis tailored strictly to {{ section_title }}.
+Output strictly JSON: {"paragraphs": ["Detailed technical paragraph 1 addressing {{ section_title }}...", "Detailed technical paragraph 2..."], "bullets": []}

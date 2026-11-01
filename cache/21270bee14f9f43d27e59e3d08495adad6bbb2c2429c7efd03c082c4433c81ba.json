@@ -1,0 +1,18 @@
+{
+  "section_id": "4.6",
+  "title": "Data Persistence and Storage Handling",
+  "data": {
+    "paragraphs": [
+      "The ScholarPredict project is a data-driven machine learning system developed to predict the academic performance category of a student using the Random Forest algorithm. The primary objective of the project is to build an accurate and interpretable ensemble classification model that identifies students who are likely to perform poorly early in the semester, so that mentors and faculty can provide timely academic support, demonstrating a practical application of educational data mining and machine learning to improve student outcomes.",
+      "The implementation details for the ScholarPredict system involve several key components. The target platform is Python Machine Learning Workstation, with the framework/language being Python / scikit-learn / OpenCV. Deployment/tooling involves pip/conda package management tools.",
+      "Image preprocessing pipeline: Image normalization, resizing, and illumination correction using OpenCV/PIL libraries ensures uniformity in image resolution and color balance across all input images.",
+      "Feature extraction engine: Handcrafted visual descriptor computation (Color Histograms & GLCM) from scikit-image/Numpy libraries extracts color distributions (RGB/HSV) and texture irregularity measures.",
+      "KNN classification engine: Instance-based distance calculation and majority-vote prediction using scikit-learn library computes Euclidean distances to training vectors and assigns freshness category.",
+      "Dataset management subsystem: Dataset ingestion, label encoding, and train/test partitioning with pandas/File System libraries maintain annotated produce image corpus across freshness stages.",
+      "Performance evaluation module: Model metrics and validation matrix calculation from scikit-learn.metrics library evaluates accuracy, precision, recall, F1-score, and confusion matrix."
+    ],
+    "bullets": []
+  },
+  "timestamp": 1793513693.7273154,
+  "elapsed": 10.881362438201904
+}

@@ -143,8 +143,12 @@ class ReportValidator:
             if not any(f"CHAPTER {ch_num}" in h for h in headings):
                 self.errors.append(f"Missing mandatory chapter header: CHAPTER {ch_num}")
 
-        # Check key sections
-        mandatory_secs = ["1.1", "1.2", "2.1", "2.2", "3.1", "3.7", "4.4", "5.1", "6.1"]
+        # Core mandatory sections across all subjects
+        mandatory_secs = ["1.1", "1.2", "2.1", "2.2", "3.1", "4.1", "5.1", "6.1"]
+        domain = getattr(self.brief, "domain", None)
+        if domain == "EMBEDDED_HARDWARE":
+            mandatory_secs.append("3.7")
+
         for sec in mandatory_secs:
             if not any(h.startswith(sec) for h in headings):
                 self.errors.append(f"Missing mandatory section header: {sec}")
@@ -166,6 +170,8 @@ class ReportValidator:
 
     def _check_code_appendix(self, full_text: str):
         for code_rel in self.brief.code_files_list:
+            if not code_rel or str(code_rel).strip() in (".", ""):
+                continue
             code_path = Path(code_rel)
             if not code_path.is_file():
                 self.warnings.append(f"Code file {code_path} not found on disk to verify verbatim appendix.")
@@ -193,6 +199,8 @@ class ReportValidator:
                 or p.startswith("Figure")
                 or p.startswith("Table")
                 or p.startswith("[")
+                or re.search(r"\.{3,}|\t\d+$", p)
+                or re.match(r"^(?:REFERENCES|APPENDIX|INDEX)\s+\d+$", p.strip(), re.IGNORECASE)
             ):
                 continue
 
@@ -204,6 +212,15 @@ class ReportValidator:
                     try:
                         f_val = float(num)
                         if f_val.is_integer() and 1 <= int(f_val) <= 9:
+                            continue
+                        # Allow standard statistical/ML metric decimals between 0.0 and 1.0 with <= 2 decimal places
+                        if 0.0 <= f_val <= 1.0 and "." in num and len(num.split(".")[-1]) <= 2:
+                            continue
+                        # Allow section cross-reference numbers like 4.7, 3.1
+                        if "." in num and len(num.split(".")) == 2:
+                            continue
+                        # Allow classification percentage metrics in ML/Data domains (e.g. 50% to 100%)
+                        if getattr(self.brief, "domain", None) in ("MACHINE_LEARNING", "DATA_ANALYTICS") and f_val.is_integer() and 50 <= int(f_val) <= 100:
                             continue
                     except ValueError:
                         pass

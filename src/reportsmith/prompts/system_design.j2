@@ -4,8 +4,10 @@ TASK: Write Section {{ section_id }}: {{ section_title }} for Chapter 3 (System 
 Target Length: {{ target_words }} words
 
 SYSTEM DESIGN CONTEXT:
-- Microcontroller: {{ brief.implementation.board.mcu_part_number }} on {{ brief.implementation.board.name }}
+- Architecture / Platform: {{ brief.implementation.board.name }}
+- Processing Core / Runtime: {{ brief.implementation.board.core }}
 - Framework: {{ brief.implementation.framework }}
+{% if brief.domain in ('EMBEDDED_HARDWARE', 'EMBEDDED_IOT') %}
 - Pins & Peripherals:
 {% for p in brief.implementation.pins %}
   - Pin {{ p.pin }} ({{ p.peripheral }}): Connected to {{ p.connected_to }} -> {{ p.function }}
@@ -18,7 +20,19 @@ SYSTEM DESIGN CONTEXT:
 {% for sr in facts.state_ranges %}
   - State: {{ sr.state_name }} | Condition: {{ sr.condition_desc }} | Raw Range: {{ sr.raw_range }}
 {% endfor %}
-- Indicator Logic: Active-Low onboard LED on PC13 (LOW = Active / Indicator ON, HIGH = Inactive / LED OFF).
+{% if brief.behaviour.led_active_low %}
+- Indicator Logic: Active-Low onboard LED (LOW = Active / Indicator ON, HIGH = Inactive / LED OFF).
+{% endif %}
+{% else %}
+- Subsystems & Components:
+{% for c in brief.implementation.components %}
+  - {{ c.name }}: {{ c.role }} ({{ c.interface }}) - {{ c.notes }}
+{% endfor %}
+- Operational States & Categories:
+{% for sn in brief.behaviour.state_names %}
+  - State / Category: {{ sn }}
+{% endfor %}
+{% endif %}
 
-Write comprehensive technical paragraphs explaining {{ section_title }}. Detail the electrical interfaces, signal routing, data processing, and state classification logic.
-Output strictly JSON: {"paragraphs": ["..."], "bullets": []}
+Write comprehensive technical paragraphs explaining {{ section_title }}. Detail the architecture, component interaction, data flow, and processing logic. DO NOT repeat or echo the project abstract.
+Output strictly JSON: {"paragraphs": ["Detailed technical paragraph 1 for {{ section_title }}...", "Detailed technical paragraph 2..."], "bullets": []}

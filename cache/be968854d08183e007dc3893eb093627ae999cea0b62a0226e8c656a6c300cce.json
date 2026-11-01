@@ -1,0 +1,29 @@
+{
+  "section_id": "6.2",
+  "title": "Learning Outcomes",
+  "data": {
+    "paragraphs": [
+      "The ScholarPredict project aims to develop a data-driven machine learning system for predicting academic performance categories of students using the Random Forest algorithm."
+    ],
+    "bullets": [
+      "Primary Objective: Build an accurate and interpretable ensemble classification model that identifies students at risk early in the semester.",
+      "Data Collection & Preprocessing:",
+      "- Cleaned student dataset with attributes like attendance, internal assessment marks, assignments, previous grades, study hours, extracurricular activities.",
+      "- Used preprocessing techniques including missing-value imputation, categorical encoding, feature scaling, and class balancing using SMOTE.",
+      "- Divided data into training and testing sets for model development.",
+      "Model Development:",
+      "- Built a large number of decision trees on random subsets of the data and features to make predictions.",
+      "- Final category determined by majority voting across all trees.",
+      "Performance Evaluation:",
+      "- Evaluated using accuracy, precision, recall, F1-score, and confusion matrix.",
+      "- Hyperparameter tuning with cross-validation improved results.",
+      "- Feature-importance analysis explained which attributes contributed most to each prediction.",
+      "Comparison:",
+      "- Compared against Decision Tree and Logistic Regression baselines for performance evaluation.",
+      "Extension Potential:",
+      "- Mentor dashboards, personalized study recommendations, dropout risk detection, institutional performance analysis."
+    ]
+  },
+  "timestamp": 1793514109.1965826,
+  "elapsed": 76.94219207763672
+}

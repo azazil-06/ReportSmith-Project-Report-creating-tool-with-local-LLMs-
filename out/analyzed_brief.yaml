@@ -1,7 +1,7 @@
 project:
-  title: Water Level Detection Using Stm32
-  course_code: PBCST504
-  course_name: Microcontrollers
+  title: 'Scholarpredict: Student Performance Prediction Using Random Forest Classification'
+  course_code: Course code if found or PBCST504
+  course_name: Machine Learning & Artificial Intelligence
   semester: V Semester B.Tech
   month_year: October 2026
   academic_year: 2026-2027
@@ -12,169 +12,132 @@ project:
   address: PATTOOR P. O., ALAPPUZHA
 people:
   team:
-  - name: Devananda.S
-    roll_no: SBC24CS097
-  - name: Neehara Anil K K
-    roll_no: SBC24CS154
-  - name: Sanu R Geevarghese
-    roll_no: SBC24CS180
-  - name: Madhav Padmakumar
-    roll_no: SBC24CS144
+  - name: Arjun Prasad
+    roll_no: N/A
+  - name: Kasinath R Krishna
+    roll_no: N/A
+  - name: Kannan Ramanan
+    roll_no: N/A
+  - name: Jeevan Krishnan
+    roll_no: N/A
+  - name: Devananda S
+    roll_no: N/A
+  - name: Neehara Anil Kk
+    roll_no: N/A
   guide:
     name: Ms. Aryalekshmi A
     designation: Assistant Professor
     department: Department Of Computer Science & Engineering
   hod:
-    name: Dr. R. Ramanathan
+    name: Dr. S Suresh Babu
     designation: Professor and Head
     department: Department Of Computer Science & Engineering
-  coordinator:
-    name: Prof. S. Mukherjee
-    designation: Assistant Professor (Senior Scale)
-    department: Department Of Computer Science & Engineering
+  coordinator: null
 implementation:
-  mode: hardware
+  mode: simulation
   board:
-    name: STM32 Blue Pill
-    mcu_part_number: STM32F103C8T6
-    core: ARM Cortex-M3
-    clock: 72 MHz
-    flash: 64 KB
-    sram: 20 KB
-    voltage: 3.3V
-  framework: arduino_stm32core
+    name: Python Machine Learning Workstation
+    mcu_part_number: Python 3.10+ / CUDA Toolkit
+    core: x86_64 / NVIDIA CUDA Tensor Cores
+    clock: Host CPU / GPU Acceleration
+    flash: Storage (NVMe SSD / Local Disk)
+    sram: 16 GB Host RAM / 4 GB GDDR6 VRAM
+    voltage: N/A (Host Software / CUDA)
+  framework: Python / scikit-learn / OpenCV
   components:
-  - name: STM32F103C8T6 Development Board (Blue Pill)
-    role: Central Processing Unit
-    interface: On-board / 72 MHz ARM Cortex-M3
-    notes: 64 KB Flash, 20 KB SRAM, 12-bit ADC, Timer PWM
-  - name: HC-SR04 Ultrasonic Distance Sensor Module
-    role: Non-Contact Water Level Measurement
-    interface: Digital Trigger (PB0) & Echo (PB1)
-    notes: Acoustic time-of-flight ranging from 2 cm to 400 cm with 3mm precision
-  - name: 16x2 Alphanumeric LCD Display (with I2C PCF8574)
-    role: Local Telemetry & Level Display
-    interface: I2C Bus (PB6 SCL, PB7 SDA at 0x27)
-    notes: Displays real-time distance in cm and system status warnings
-  - name: Active Buzzer Alert Module
-    role: Audible Overflow Warning
-    interface: Digital GPIO (PA1)
-    notes: Active high sounder activates when water level reaches overflow threshold
-  - name: Red & Green Status Indicator LEDs
-    role: Visual Level State Annunciation
-    interface: Digital GPIOs (PA2 Red, PA3 Green)
-    notes: Red indicates overflow alarm; Green indicates normal safe water level
-  - name: LM2596 DC-DC Buck Converter Step-Down Module
-    role: Regulated Power Supply
-    interface: Input 9V-12V Battery, Regulated 5V DC Output
-    notes: High-efficiency step-down switching regulator supplying stable 5V rail
-  - name: Onboard Indicator LED (PC13)
-    role: Visual Diagnostic Indicator
-    interface: GPIO (Active-Low)
-    notes: Illuminates automatically during overflow alert states
-  - name: ST-Link V2 In-Circuit Programmer
-    role: Firmware Flashing & Debugging
-    interface: SWD (SWDIO, SWCLK)
-    notes: Serial Wire Debug interface for STM32 programming
-  pins:
-  - pin: PB0
-    peripheral: GPIO
-    connected_to: HC-SR04 Ultrasonic Trigger Pin
-    function: 10us ultrasonic pulse generation trigger
-  - pin: PB1
-    peripheral: GPIO/Timer
-    connected_to: HC-SR04 Ultrasonic Echo Pin
-    function: High-speed ultrasonic pulse duration echo measurement
-  - pin: PA1
-    peripheral: GPIO
-    connected_to: Active Buzzer Alert Driver
-    function: Audible alarm trigger on critical alert condition
-  - pin: PA2
-    peripheral: GPIO
-    connected_to: Red Alert LED
-    function: Visual indicator for critical high water level and overflow
-  - pin: PA3
-    peripheral: GPIO
-    connected_to: Green Status LED
-    function: Visual indicator for safe and normal water level
-  - pin: PB6
-    peripheral: I2C1_SCL
-    connected_to: 16x2 LCD I2C SCL
-    function: I2C clock line for 16x2 alphanumeric LCD display
-  - pin: PB7
-    peripheral: I2C1_SDA
-    connected_to: 16x2 LCD I2C SDA
-    function: I2C data line for 16x2 alphanumeric LCD display
-  - pin: PC13
-    peripheral: GPIOC
-    connected_to: Onboard Status LED
-    function: Active-low status alert indicator (lights when action needed)
-  - pin: PA9
-    peripheral: USART1_TX
-    connected_to: USB-to-UART Adapter RX
-    function: Serial telemetry and debug monitoring at 115200 baud
-  - pin: PA10
-    peripheral: USART1_RX
-    connected_to: USB-to-UART Adapter TX
-    function: Serial receiver interface
+  - name: Image Preprocessing Pipeline
+    role: Image normalization, resizing, and illumination correction
+    interface: OpenCV / PIL
+    notes: Standardizes input produce images to uniform resolution and color balance
+  - name: Feature Extraction Engine
+    role: Handcrafted visual descriptor computation (Color Histograms & GLCM)
+    interface: scikit-image / NumPy
+    notes: Extracts color distributions (RGB/HSV) and texture irregularity measures
+  - name: KNN Classification Engine
+    role: Instance-based distance calculation and majority-vote prediction
+    interface: scikit-learn
+    notes: Computes Euclidean distances to training vectors and assigns freshness
+      category
+  - name: Dataset Management Subsystem
+    role: Dataset ingestion, label encoding, and train/test partition
+    interface: pandas / File System
+    notes: Maintains annotated produce image corpus across freshness stages
+  - name: Performance Evaluation Module
+    role: Model metrics and validation matrix calculation
+    interface: scikit-learn.metrics
+    notes: Evaluates accuracy, precision, recall, F1-score, and confusion matrix
+  pins: []
   peripherals:
-  - GPIO
-  - ADC
-  - Timers
-  - UART
-  - I2C
+  - Image Acquisition
+  - CPU / CUDA GPU
+  - File System
+  - Visualization Engine
   libraries:
-  - Arduino.h
-  - Arduino_Core_STM32
-  - Wire.h
-  - LiquidCrystal_I2C.h
-  programmer: ST-Link V2
+  - scikit-learn
+  - opencv-python
+  - numpy
+  - matplotlib
+  - scikit-image
+  programmer: pip / conda
   serial_baud: 115200
 behaviour:
-  calibration_constants:
-    TANK_HEIGHT_CM: 100
-    OVERFLOW_THRESHOLD_CM: 15
-  thresholds:
-    WARNING_THRESHOLD_CM: 30
-    OVERFLOW_THRESHOLD_CM: 15
-  timing_values:
-    SAMPLE_INTERVAL_MS: 500
-    SAMPLES: 5
+  calibration_constants: {}
+  thresholds: {}
+  timing_values: {}
   state_names:
-  - CRITICAL OVERFLOW ALERT
-  - APPROACHING HIGH LEVEL
-  - NORMAL / SAFE WATER LEVEL
-  led_active_low: true
-code_file: Content\Water_Level_Overflow_Indicator.ino
-abstract: The Water Level Overflow Indicator is designed to monitor the water level
-  in a tank and provide a warning when the water approaches a predefined high level.
-  The system uses an HC-SR04 ultrasonic sensor to measure the distance between the
-  sensor and the water surface. An STM32 Blue Pill microcontroller processes the sensor
-  readings and controls a 16x2 LCD, red and green LEDs, and a buzzer to indicate the
-  water-level status. The LCD displays the measured distance or water-level information,
-  while the LEDs provide visual indications and the buzzer generates an audible alert
-  when the water level reaches the configured threshold. A battery-powered supply
-  with an LM2596 buck converter provides regulated power to the circuit. The project
-  aims to reduce water wastage caused by tank overflow and demonstrate the application
-  of ultrasonic sensing and embedded control in a practical water-level monitoring
-  system. The system does not automatically stop the water flow; instead, it alerts
-  the user so that appropriate action can be taken
+  - FRESH
+  - MODERATELY FRESH
+  - SPOILED / ROTTEN
+  led_active_low: false
+code_file: null
+abstract: The ScholarPredict project is a data-driven machine learning system developed
+  to predict the academic performance category of a student using the Random Forest
+  algorithm. The primary objective of the project is to build an accurate and interpretable
+  ensemble classification model that identifies students who are likely to perform
+  poorly early in the semester, so that mentors and faculty can provide timely academic
+  support, demonstrating a practical application of educational data mining and machine
+  learning to improve student outcomes. A suitable student dataset containing attributes
+  such as attendance percentage, internal assessment marks, assignment scores, previous
+  semester grades, weekly study hours, and participation in extracurricular activities
+  is used for model development. The data is cleaned and prepared using preprocessing
+  techniques including missing-value imputation, categorical encoding, feature scaling,
+  and class balancing using SMOTE, and the records are divided into training and testing
+  sets, with correlation analysis used to understand which factors influence performance
+  the most. The Random Forest classifier builds a large number of decision trees on
+  random subsets of the data and features, and the final category, such as High, Average,
+  or At-Risk, is decided by majority voting across all trees. The performance of the
+  model is evaluated using accuracy, precision, recall, F1-score, and a confusion
+  matrix, while hyperparameter tuning with cross-validation and feature-importance
+  analysis are used to improve results and explain which attributes contribute most
+  to each prediction, and the model is compared against Decision Tree and Logistic
+  Regression baselines. The proposed ScholarPredict system provides a practical and
+  interpretable approach to early academic intervention, with potential extensions
+  to applications such as mentor dashboards, personalized study recommendations, dropout
+  risk detection, and institutional performance analysis. It also offers practical
+  exposure to the complete machine learning workflow, including data collection, preprocessing,
+  feature analysis, ensemble model training, hyperparameter tuning, and performance
+  evaluation, demonstrating how an ensemble learning algorithm like Random Forest
+  can be applied to solve a real-world educational problem in an effective and accessible
+  manner. Group Members Arjun Prasad Kasinath R Krishna Kannan Ramanan Jeevan Krishnan
+  Devananda S Neehara Anil KK
 tests:
 - id: TC_01
-  name: High Water Level / Critical Overflow Alert Test
-  condition: Measured Distance <= 15 cm (Tank > 85% full)
-  expected: Red LED ON, Active Buzzer sounding, Green LED OFF, LCD shows 'OVERFLOW
-    ALERT!'
+  name: Fresh Quality Verification Test
+  condition: Input photograph of fresh produce sample with natural coloration
+  expected: Classification model identifies sample as 'Fresh' with confidence score
+    >= 85%
   observed: null
 - id: TC_02
-  name: Approaching High Level Warning Test
-  condition: 16 cm <= Measured Distance <= 30 cm (70% to 85% full)
-  expected: Red LED ON, Green LED ON, Buzzer OFF, LCD shows 'LEVEL HIGH'
+  name: Intermediate / Moderately Fresh Degradation Test
+  condition: Input image displaying moderate surface discoloration or initial softening
+  expected: Classifier assigns 'Moderately Fresh' based on KNN neighbor vote distribution
   observed: null
 - id: TC_03
-  name: Normal / Safe Water Level Verification Test
-  condition: Measured Distance > 30 cm (Tank < 70% full)
-  expected: 'Green LED ON, Red LED OFF, Buzzer OFF, LCD shows ''STATUS: NORMAL'''
+  name: Spoiled / Rotten Produce Rejection Test
+  condition: Input image exhibiting significant browning, fungal decay, or surface
+    shriveling
+  expected: System outputs 'Spoiled / Rotten' alert with high feature distance from
+    fresh clusters
   observed: null
 assets:
   hardware_photos: []
@@ -183,16 +146,17 @@ assets:
   circuit_diagram: null
   block_diagram: null
 references:
-- STMicroelectronics, 'STM32F103x8 STM32F103xB Medium-density performance line ARM-based
-  32-bit MCU Datasheet', DocID 13587 Rev 17, 2020.
-- 'STMicroelectronics, ''RM0008 Reference Manual: STM32F101xx, STM32F102xx, STM32F103xx
-  advanced ARM-based 32-bit MCUs'', Rev 21, 2021.'
-- ElecFreaks, 'HC-SR04 Ultrasonic Ranging Module User Guide', 2019.
-- STM32duino, 'Arduino Core for STM32 based boards', Official STMicroelectronics GitHub
-  Repository, 2024.
-- Texas Instruments, 'LM2596 SIMPLE SWITCHER Power Converter 150-kHz 3-A Step-Down
-  Voltage Regulator', SNVS124D, 2021.
-- Paul Horowitz and Winfield Hill, 'The Art of Electronics', Cambridge University
-  Press, 3rd Edition, 2015.
-extra_notes: Water Level Detection Using Stm32 using STM32F103C8T6 with hardware sensors
-  and actuators.
+- T. Cover, P. Hart, 'Nearest Neighbor Pattern Classification', IEEE Transactions
+  on Information Theory, Vol. 13, No. 1, pp. 21-27, 1967.
+- Robert M. Haralick, K. Shanmugam, Its'hak Dinstein, 'Textural Features for Image
+  Classification', IEEE Transactions on Systems, Man, and Cybernetics, Vol. SMC-3,
+  No. 6, pp. 610-621, 1973.
+- 'Fabian Pedregosa et al., ''Scikit-learn: Machine Learning in Python'', Journal
+  of Machine Learning Research, Vol. 12, pp. 2825-2830, 2011.'
+- 'Gary Bradski, Adrian Kaehler, ''Learning OpenCV: Computer Vision with the OpenCV
+  Library'', O''Reilly Media, 2008.'
+- Christopher M. Bishop, 'Pattern Recognition and Machine Learning', Springer, 2006.
+- Tom M. Mitchell, 'Machine Learning', McGraw-Hill, 1997.
+domain: MACHINE_LEARNING
+extra_notes: 'Scholarpredict: Student Performance Prediction Using Random Forest Classification
+  project report.'

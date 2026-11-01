@@ -33,7 +33,6 @@ ReportSmith strictly bifurcates technical generation to eliminate hallucinations
 - **100% Offline & Private**: Operates entirely locally on consumer hardware without sending code, proprietary documents, or telemetry over the network.
 - **High-Speed Autonomous Execution**: Generates complete multi-chapter technical documents in minutes, streaming modular sections with real-time throughput metrics.
 - **Fault-Tolerant Resumption**: Employs SHA-256 disk caching (`cache/`) so interrupted runs instantly skip completed sections in milliseconds.
-- **Instant Stub Mode**: Includes an offline verification mode (`--stub-llm`) that compiles and validates complete document layouts in under 3 seconds without loading model weights.
 - **Automated Verification Engine**: Integrates a built-in compliance checker (`reportsmith check`) that validates fact adherence, structural integrity, and source fidelity.
 
 ---
@@ -47,7 +46,6 @@ ReportSmith strictly bifurcates technical generation to eliminate hallucinations
 - **Template-Driven Design**: Inherits styles, margins, typography, and headers from reference templates (`sample.docx`).
 - **Multi-Pass Page Numbering**: Headless LibreOffice integration to resolve exact page numbers in Table of Contents, List of Figures, and List of Tables.
 - **Fast Resumption & Caching**: Disk-cached generation (`cache/<sha256>.json`) ensures interrupted runs never re-generate completed sections.
-- **Stub Generation Mode**: Instant offline testing (`--stub-llm`) running full builds in seconds without a GPU.
 
 ---
 
@@ -108,15 +106,74 @@ pip install -e .
 > Simply place your project specifications, formatting guidelines (`rules.pdf`), and source files into the `Content/` folder, then run:
 >
 > ```bash
-> # Build complete Word report using local model
-> python -m reportsmith.cli build --content Content
+> # Check CUDA GPU acceleration status and hardware diagnostics
+> python -m reportsmith.cli --cuda
 >
-> # Fast build without model (Instant offline stub mode)
-> python -m reportsmith.cli build --content Content --stub-llm
+> # Retrain model knowledge base on training/ reference documents
+> python -m reportsmith.cli --train
+>
+> # Build complete Word report using local model (CUDA parallel accelerated)
+> python -m reportsmith.cli build --content Content
 >
 > # Validate generated report against facts and specifications
 > python -m reportsmith.cli check out/report.docx
 > ```
+
+### 0. CUDA Hardware Acceleration & Diagnostics
+ReportSmith includes native, zero-dependency CUDA hardware discovery and parallel section generation optimized for NVIDIA GPUs (e.g. GeForce RTX 2050 / 3060 / 4060 / 4090 / A100):
+```bash
+# Display detailed CUDA hardware report and worker recommendations
+python -m reportsmith.cli --cuda
+
+# Or via subcommand
+python -m reportsmith.cli cuda
+```
+Example Output:
+```text
+================================================================
+  REPORTSMITH CUDA HARDWARE ACCELERATION DIAGNOSTICS
+================================================================
+  * CUDA GPU Detected:        YES
+  * Device Name:              NVIDIA GeForce RTX 2050
+  * GPU Device Count:         1
+  * Total Dedicated VRAM:     4.00 GB (4096 MB)
+  * Available Free VRAM:      3.23 GB (3306 MB)
+  * Compute Capability:       8.6 (Ampere / Tensor Cores)
+  * Streaming Multiprocessors: 16 SMs (2048 CUDA Cores)
+  * Tensor Cores Supported:   YES (3rd Gen Ampere FP16/BF16/INT4)
+  * BF16 Hardware Acceleration:YES
+  * NVIDIA Driver Version:    13.5
+  * CUDA Toolkit (nvcc):      Cuda compilation tools, release 13.4, V13.4.92
+----------------------------------------------------------------
+  RECOMMENDED CONFIGURATION FOR YOUR HARDWARE:
+  * Parallel Concurrency:     4 concurrent workers
+  * Optimal Model Checkpoint: 1.5B - 3B (4-bit)
+  * GPU Offload (num_gpu):    99 (100% layers in VRAM)
+  * Context Window (num_ctx): 4096 - 8192 tokens
+================================================================
+```
+
+### 1. Parallel Generation & Concurrency Control
+ReportSmith batches and executes section inferences across CUDA streams and Tensor Cores concurrently:
+```bash
+# Run with custom parallel concurrency (e.g. 4 concurrent worker threads)
+python -m reportsmith.cli build --content Content --concurrency 4
+```
+
+### 2. Retrain Model & Knowledge Base on Training Folder
+Whenever you add new reference documents, sample reports, or abstracts (`.pdf` or `.docx`) into the `training/` folder, retrain the knowledge base:
+```bash
+# Retrain using the top-level flag
+python -m reportsmith.cli --train
+
+# Or using the train subcommand
+python -m reportsmith.cli train --dir training --out-dir out
+```
+This autonomously:
+- Ingests and parses all training files across all engineering domains (Software, Computer Organization & Architecture, Embedded Hardware, etc.).
+- Catalogs authentic academic prose paragraphs, outlines, tables, and references.
+- Upgrades `StubLLM` so offline test builds instantly synthesize multi-domain reports adhering to official college templates.
+- Generates `out/training_database.json`, `out/train_dataset.jsonl` (for local LLM fine-tuning), and `out/Modelfile` (for Ollama).
 
 ### 1. Initialize Project Brief
 Generate an editable `brief.yaml` template:
@@ -130,19 +187,8 @@ Convert an institutional format guide or PDF syllabus into a structured `outline
 reportsmith outline --format examples/format.txt --out out/outline.json
 ```
 
-### 3. Build Report with Stub Mode (Offline Verification)
-Build the entire Word document in seconds without needing a GPU or active model endpoint:
-```bash
-reportsmith build \
-  --format examples/format.txt \
-  --sample examples/sample.docx \
-  --brief examples/brief.yaml \
-  --out out/report.docx \
-  --stub-llm
-```
-
-### 4. Build Report with Local Model
-Generate the document using your local model endpoint:
+### 3. Build Report with Local Model
+Generate the document using your local model endpoint (accelerated by CUDA and multi-threading):
 ```bash
 reportsmith build \
   --format examples/format.txt \
@@ -165,7 +211,7 @@ reportsmith build \
   --sections 1.1,3.7,4.4
 ```
 
-### 5. Validate Report Grounding
+### 4. Validate Report Grounding
 Run the automated validator to verify fact integrity, check for ungrounded assertions, ensure source fidelity, and detect banned phrases:
 ```bash
 reportsmith check out/report.docx --brief examples/brief.yaml
@@ -188,6 +234,10 @@ seed = 42
 [paths]
 cache_dir = "cache"
 out_dir = "out"
+
+[compute]
+use_cuda = true
+concurrency = 4
 
 [word_targets]
 abstract = 250
@@ -267,12 +317,35 @@ All tests execute in under 8 seconds.
 > Run these commands from your repository root directory:
 >
 > ```bash
-> # 1. Generate full Word report using local model
+> # 1. Check CUDA GPU hardware diagnostics & parallel workers
+> python -m reportsmith.cli --cuda
+>
+> # 2. Retrain model database after adding new documents to training/
+> python -m reportsmith.cli --train
+>
+> # 3. Generate full Word report using local model (CUDA parallel accelerated)
 > python -m reportsmith.cli build --content Content
 >
-> # 2. Instant offline build without model (no GPU required)
-> python -m reportsmith.cli build --content Content --stub-llm
->
-> # 3. Validate generated report for accuracy and compliance
+> # 4. Validate generated report for accuracy and compliance
 > python -m reportsmith.cli check out/report.docx
 > ```
+Concurrent mode
+python -m reportsmith.cli build --concurrency 2 --content Content
+
+---
+
+## 🌐 Universal Subject & Multi-Domain Support
+
+ReportSmith is a universal report builder that operates across all academic disciplines, engineering branches, and software domains:
+- **Embedded & Microcontroller Hardware**: Pin allocations, register configurations, sensor telemetry, and hardware schematics.
+- **Software Applications & Full-Stack Systems**: Architecture layers, MVC/services, UI terminals, file/database persistence, and software test cases.
+- **Computer Organization & Architecture (COA)**: RISC-V pipelining, datapath schematics, MMIO interconnects, and assembly verification routines.
+- **General & Interdisciplinary Projects**: Autonomous requirement matrices, execution workflows, and scientific validation tables.
+
+### Autonomous Synthesis (When No Rules File is Present)
+If no syllabus or format rules file is present in `Content/`, ReportSmith automatically:
+1. Analyzes the project abstract (e.g., `Project.pdf`, `Project.docx`, or `abstract.pdf`).
+2. Detects the engineering discipline and domain.
+3. Dynamically invents necessary modules and subheadings (e.g. Chapter 4 modular subsystems).
+4. **Preserves the Strict Structural Invariant**: The institutional sequence is guaranteed across all subjects:
+   *Front page, Bonafide certificate, Declaration, Acknowledgement, Abstract, Content (TOC), List of figures, List of tables, List of abbreviations, Introduction, Requirements, System design, Implementation, Testing and results, Conclusion, References, and Source code (when code is present).*
