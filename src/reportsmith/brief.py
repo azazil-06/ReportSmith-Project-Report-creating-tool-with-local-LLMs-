@@ -1,9 +1,10 @@
 """Pydantic schema and loader for brief.yaml."""
 
+import hashlib
 from pathlib import Path
 from typing import Any, Dict, List, Literal, Optional, Union
 import yaml
-from pydantic import BaseModel, Field, ValidationError, field_validator, model_validator
+from pydantic import BaseModel, Field, ValidationError, computed_field, field_validator, model_validator
 
 
 class ProjectInfo(BaseModel):
@@ -58,14 +59,53 @@ class PeopleInfo(BaseModel):
         return StaffMember.from_any(v)
 
 
-class BoardInfo(BaseModel):
-    name: str = Field(..., description="Board name, e.g. STM32 Blue Pill")
-    mcu_part_number: str = Field(..., description="MCU part number, e.g. STM32F103C8T6")
-    core: str = Field(..., description="ARM Cortex core, e.g. ARM Cortex-M3")
-    clock: str = Field(..., description="Clock frequency, e.g. 72 MHz")
-    flash: str = Field(..., description="Flash memory size, e.g. 64 KB")
-    sram: str = Field(..., description="SRAM size, e.g. 20 KB")
-    voltage: str = Field(..., description="Operating voltage, e.g. 3.3V")
+class SystemPlatformInfo(BaseModel):
+    """Execution platform, compute environment, or microcontroller board details.
+
+    Universally represents both physical microcontroller boards (e.g. STM32 Blue Pill)
+    and software/runtime compute environments (e.g. Node.js/Express, Python ML Workstation).
+    All hardware-specific fields are optional with string defaults, preventing NoneType
+    errors in downstream formatting, templates, and tests.
+    """
+    name: str = Field(
+        default="General System Platform",
+        description="Platform or board name, e.g. STM32 Blue Pill, Node.js / Express, Python ML Workstation",
+    )
+    mcu_part_number: Optional[str] = Field(
+        default="",
+        description="MCU part number or runtime specification, e.g. STM32F103C8T6, Python 3.10+ / CUDA",
+    )
+    core: Optional[str] = Field(
+        default="",
+        description="Compute architecture or processor core, e.g. ARM Cortex-M3, x86_64 Multi-Core",
+    )
+    clock: Optional[str] = Field(
+        default="",
+        description="Operating clock frequency or runtime execution speed, e.g. 72 MHz, 3.5 GHz",
+    )
+    flash: Optional[str] = Field(
+        default="",
+        description="Flash memory or storage capacity, e.g. 64 KB, NVMe SSD / Cloud Storage",
+    )
+    sram: Optional[str] = Field(
+        default="",
+        description="SRAM or system RAM, e.g. 20 KB, 16 GB DDR4",
+    )
+    voltage: Optional[str] = Field(
+        default="",
+        description="Operating voltage or power spec, e.g. 3.3V, N/A (Cloud / Software)",
+    )
+
+    @field_validator("mcu_part_number", "core", "clock", "flash", "sram", "voltage", mode="before")
+    @classmethod
+    def _coerce_none_to_empty_str(cls, v: Any) -> str:
+        if v is None:
+            return ""
+        return str(v)
+
+
+# Backward compatibility alias - ensures 100% compatibility with existing imports and typehints
+BoardInfo = SystemPlatformInfo
 
 
 class ComponentItem(BaseModel):
@@ -84,26 +124,90 @@ class PinMapping(BaseModel):
 
 class ImplementationInfo(BaseModel):
     mode: Literal["hardware", "simulation"] = Field(
-        ..., description="Execution mode: hardware or simulation"
+        default="simulation",
+        description="Execution mode: hardware or simulation",
     )
-    board: BoardInfo = Field(..., description="Microcontroller board details")
+    board: SystemPlatformInfo = Field(
+        default_factory=SystemPlatformInfo,
+        description="Microcontroller board details or system platform",
+    )
     framework: str = Field(
-        ...,
-        description="Framework used, e.g. arduino_stm32core, stm32cubeide_hal",
+        default="Standard Framework",
+        description="Framework used, e.g. arduino_stm32core, stm32cubeide_hal, React / Express",
     )
     components: List[ComponentItem] = Field(
-        ..., description="List of hardware components/sensors"
+        default_factory=list,
+        description="List of components, sensors, or software subsystems",
     )
-    pins: List[PinMapping] = Field(..., description="Pin mapping table")
+    pins: List[PinMapping] = Field(
+        default_factory=list,
+        description="Pin mapping table (empty for non-hardware projects)",
+    )
     peripherals: List[str] = Field(
         default_factory=list,
-        description="List of peripherals used (GPIO, ADC, I2C, UART, etc.)",
+        description="List of peripherals used (GPIO, ADC, I2C, UART, or software services)",
     )
     libraries: List[str] = Field(
-        default_factory=list, description="Libraries used in source code"
+        default_factory=list,
+        description="Libraries used in source code",
     )
-    programmer: str = Field("ST-Link V2", description="Flashing tool / programmer")
-    serial_baud: int = Field(115200, description="UART Serial baud rate")
+    programmer: str = Field(
+        default="ST-Link V2",
+        description="Flashing tool / programmer / runtime package manager",
+    )
+    serial_baud: int = Field(
+        default=115200,
+        description="UART Serial baud rate",
+    )
+    is_hardware: Optional[bool] = Field(
+        default=None,
+        description="True if physical hardware/embedded platform; False for software/cloud/ML",
+    )
+    modules: List[str] = Field(
+        default_factory=list,
+        description="Dynamic list of 3-5 extracted functional subsystem/module names",
+    )
+
+    @field_validator("pins", mode="before")
+    @classmethod
+    def _ensure_pins_list(cls, v: Any) -> List[Any]:
+        if v is None:
+            return []
+        return v
+
+    @field_validator("components", mode="before")
+    @classmethod
+    def _ensure_components_list(cls, v: Any) -> List[Any]:
+        if v is None:
+            return []
+        return v
+
+    @model_validator(mode="before")
+    @classmethod
+    def _handle_platform_alias(cls, data: Any) -> Any:
+        if isinstance(data, dict):
+            if "platform" in data and "board" not in data:
+                data["board"] = data.pop("platform")
+        return data
+
+    @model_validator(mode="after")
+    def _resolve_is_hardware(self) -> "ImplementationInfo":
+        if self.is_hardware is None:
+            if self.mode == "hardware" and len(self.pins) > 0:
+                self.is_hardware = True
+            elif self.mode == "hardware":
+                self.is_hardware = True
+            else:
+                self.is_hardware = False
+        return self
+
+    @property
+    def platform(self) -> SystemPlatformInfo:
+        return self.board
+
+    @platform.setter
+    def platform(self, value: SystemPlatformInfo) -> None:
+        self.board = value
 
 
 class BehaviourInfo(BaseModel):
@@ -147,6 +251,17 @@ class AssetsInfo(BaseModel):
     block_diagram: Optional[str] = None
 
 
+def compute_project_signature(title: Optional[str], abstract: Optional[str] = None) -> str:
+    """Derive deterministic 12-character project signature fingerprint.
+
+    Formula: sha256(f"{clean_title}:{clean_abstract}".encode()).hexdigest()[:12]
+    """
+    clean_title = (title or "").strip()
+    clean_abstract = (abstract or "").strip().replace("\r\n", "\n")
+    raw = f"{clean_title}:{clean_abstract}".encode("utf-8")
+    return hashlib.sha256(raw).hexdigest()[:12]
+
+
 class ProjectBrief(BaseModel):
     project: ProjectInfo
     people: PeopleInfo
@@ -168,6 +283,14 @@ class ProjectBrief(BaseModel):
     )
     extra_notes: Optional[str] = Field("", description="Additional notes")
 
+    @computed_field
+    @property
+    def project_signature(self) -> str:
+        """Deterministic 12-char hex project signature fingerprint."""
+        title = self.project.title if self.project else ""
+        abstract = self.abstract or ""
+        return compute_project_signature(title, abstract)
+
     @property
     def code_files_list(self) -> List[str]:
         if not self.code_file:
@@ -175,6 +298,18 @@ class ProjectBrief(BaseModel):
         if isinstance(self.code_file, str):
             return [self.code_file]
         return list(self.code_file)
+
+    @property
+    def is_hardware(self) -> bool:
+        if self.implementation:
+            return bool(self.implementation.is_hardware)
+        return False
+
+    @property
+    def modules(self) -> List[str]:
+        if self.implementation and self.implementation.modules:
+            return self.implementation.modules
+        return []
 
 
 class BriefValidationError(Exception):

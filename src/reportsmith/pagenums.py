@@ -232,12 +232,22 @@ def run_pagenums_pass(docx_path: Union[str, Path], builder: Any = None, max_pass
                             row.cells[2].paragraphs[0].text = get_display_page(matched_page)
                             row.cells[2].paragraphs[0].alignment = WD_ALIGN_PARAGRAPH.RIGHT
 
-        doc.save(str(docx_file))
+        from reportsmith.docx_build import attempt_close_word_doc, get_safe_output_path
+        attempt_close_word_doc(docx_file)
+        saved_docx = docx_file
+        try:
+            doc.save(str(docx_file))
+        except PermissionError:
+            saved_docx = get_safe_output_path(docx_file)
+            doc.save(str(saved_docx))
+            if builder:
+                builder.saved_path = saved_docx
+            logger.warning(f"Target '{docx_file}' locked during page number pass. Saved to '{saved_docx}'.")
 
         # Re-convert final DOCX with populated page numbers to PDF
-        convert_docx_to_pdf(docx_file, pdf_file)
+        convert_docx_to_pdf(saved_docx, pdf_file)
         print(f"\n[PAGE NUMBERS] Successfully synchronized page numbers in Table of Contents, List of Figures, and List of Tables!")
-        print(f"               Updated Word report: {docx_file}")
+        print(f"               Updated Word report: {saved_docx}")
         print(f"               Exported PDF report: {pdf_file}")
         return True
 

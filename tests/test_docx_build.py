@@ -123,3 +123,114 @@ def test_tables_formatting_and_cant_split(tmp_path):
         if found_cant_split:
             break
     assert found_cant_split, "Table rows should have w:cantSplit to avoid page splits"
+
+
+def test_get_safe_output_path_unlocked(tmp_path):
+    """Verify that get_safe_output_path returns original target when target is writable."""
+    from reportsmith.docx_build import get_safe_output_path
+
+    target = tmp_path / "report.docx"
+    safe = get_safe_output_path(target)
+    assert safe == target
+
+    # Also when target already exists and is unlocked
+    target.write_text("existing content", encoding="utf-8")
+    safe_existing = get_safe_output_path(target)
+    assert safe_existing == target
+
+
+def test_get_safe_output_path_locked(tmp_path):
+    """Verify that get_safe_output_path resolves to report_updated.docx when target is locked."""
+    import sys
+    if sys.platform != "win32":
+        pytest.skip("Windows-specific file locking test")
+
+    try:
+        import win32con, win32file
+    except ImportError:
+        pytest.skip("pywin32 not available")
+
+    from reportsmith.docx_build import get_safe_output_path
+
+    target = tmp_path / "report.docx"
+    target.write_text("locked content", encoding="utf-8")
+
+    # Lock target exclusively against writes
+    handle = win32file.CreateFile(
+        str(target.resolve()),
+        win32con.GENERIC_READ | win32con.GENERIC_WRITE,
+        win32con.FILE_SHARE_READ,
+        None,
+        win32con.OPEN_EXISTING,
+        0,
+        None,
+    )
+    try:
+        safe = get_safe_output_path(target)
+        assert safe == tmp_path / "report_updated.docx"
+    finally:
+        win32file.CloseHandle(handle)
+
+
+def test_get_safe_output_path_multi_locked(tmp_path):
+    """Verify that get_safe_output_path skips report_updated.docx to report_1.docx if both are locked."""
+    import sys
+    if sys.platform != "win32":
+        pytest.skip("Windows-specific file locking test")
+
+    try:
+        import win32con, win32file
+    except ImportError:
+        pytest.skip("pywin32 not available")
+
+    from reportsmith.docx_build import get_safe_output_path
+
+    target = tmp_path / "report.docx"
+    target_up = tmp_path / "report_updated.docx"
+    target.write_text("locked 1", encoding="utf-8")
+    target_up.write_text("locked 2", encoding="utf-8")
+
+    h1 = win32file.CreateFile(
+        str(target.resolve()),
+        win32con.GENERIC_READ,
+        win32con.FILE_SHARE_READ,
+        None,
+        win32con.OPEN_EXISTING,
+        0,
+        None,
+    )
+    h2 = win32file.CreateFile(
+        str(target_up.resolve()),
+        win32con.GENERIC_READ,
+        win32con.FILE_SHARE_READ,
+        None,
+        win32con.OPEN_EXISTING,
+        0,
+        None,
+    )
+    try:
+        safe = get_safe_output_path(target)
+        assert safe == tmp_path / "report_1.docx"
+    finally:
+        win32file.CloseHandle(h2)
+        win32file.CloseHandle(h1)
+
+
+def test_docx_builder_saved_path_property(tmp_path):
+    """Verify that DocxReportBuilder sets saved_path attribute upon successful build."""
+    from reportsmith.docx_build import DocxReportBuilder
+    from reportsmith.facts import derive_facts
+    from reportsmith.outline import parse_format_file
+
+    brief = load_brief("examples/brief.yaml")
+    facts = derive_facts(brief, base_dir=Path("."))
+    outline = parse_format_file("examples/format.txt")
+
+    builder = DocxReportBuilder(brief=brief, facts=facts, outline=outline)
+    assert builder.saved_path is None
+
+    out_file = tmp_path / "saved_path_test.docx"
+    builder.build({}, out_path=out_file)
+    assert builder.saved_path == out_file
+    assert out_file.is_file()
+

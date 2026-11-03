@@ -1,6 +1,6 @@
 project:
-  title: 'Scholarpredict: Student Performance Prediction Using Random Forest Classification'
-  course_code: Course code if found or PBCST504
+  title: 'SentiScan: Sentiment Analysis of Product Reviews using Naive Bayes and Tf-Idf'
+  course_code: PBCST504
   course_name: Machine Learning & Artificial Intelligence
   semester: V Semester B.Tech
   month_year: October 2026
@@ -25,7 +25,7 @@ people:
   - name: Neehara Anil Kk
     roll_no: N/A
   guide:
-    name: Ms. Aryalekshmi A
+    name: Dr. S Suresh Babu
     designation: Assistant Professor
     department: Department Of Computer Science & Engineering
   hod:
@@ -43,101 +43,117 @@ implementation:
     flash: Storage (NVMe SSD / Local Disk)
     sram: 16 GB Host RAM / 4 GB GDDR6 VRAM
     voltage: N/A (Host Software / CUDA)
-  framework: Python / scikit-learn / OpenCV
+  framework: Python / scikit-learn / PyTorch
   components:
-  - name: Image Preprocessing Pipeline
-    role: Image normalization, resizing, and illumination correction
-    interface: OpenCV / PIL
-    notes: Standardizes input produce images to uniform resolution and color balance
-  - name: Feature Extraction Engine
-    role: Handcrafted visual descriptor computation (Color Histograms & GLCM)
-    interface: scikit-image / NumPy
-    notes: Extracts color distributions (RGB/HSV) and texture irregularity measures
-  - name: KNN Classification Engine
-    role: Instance-based distance calculation and majority-vote prediction
-    interface: scikit-learn
-    notes: Computes Euclidean distances to training vectors and assigns freshness
-      category
-  - name: Dataset Management Subsystem
-    role: Dataset ingestion, label encoding, and train/test partition
-    interface: pandas / File System
-    notes: Maintains annotated produce image corpus across freshness stages
-  - name: Performance Evaluation Module
-    role: Model metrics and validation matrix calculation
-    interface: scikit-learn.metrics
-    notes: Evaluates accuracy, precision, recall, F1-score, and confusion matrix
+  - name: Data Collection
+    role: Machine learning pipeline module for data collection
+    interface: Python API / scikit-learn / PyTorch
+    notes: Executes Data Collection within model pipeline
+  - name: Text Cleaning
+    role: Machine learning pipeline module for text cleaning
+    interface: Python API / scikit-learn / PyTorch
+    notes: Executes Text Cleaning within model pipeline
+  - name: Feature Extraction
+    role: Machine learning pipeline module for feature extraction
+    interface: Python API / scikit-learn / PyTorch
+    notes: Executes Feature Extraction within model pipeline
+  - name: Model Development
+    role: Machine learning pipeline module for model development
+    interface: Python API / scikit-learn / PyTorch
+    notes: Executes Model Development within model pipeline
+  - name: Performance Evaluation
+    role: Machine learning pipeline module for performance evaluation
+    interface: Python API / scikit-learn / PyTorch
+    notes: Executes Performance Evaluation within model pipeline
   pins: []
   peripherals:
-  - Image Acquisition
+  - Data Ingestion
   - CPU / CUDA GPU
   - File System
   - Visualization Engine
   libraries:
   - scikit-learn
-  - opencv-python
   - numpy
+  - pandas
   - matplotlib
   - scikit-image
   programmer: pip / conda
   serial_baud: 115200
+  is_hardware: false
+  modules:
+  - Data Collection
+  - Text Cleaning
+  - Feature Extraction
+  - Model Development
+  - Performance Evaluation
 behaviour:
   calibration_constants: {}
   thresholds: {}
   timing_values: {}
   state_names:
-  - FRESH
-  - MODERATELY FRESH
-  - SPOILED / ROTTEN
+  - Data Collection
+  - Text Cleaning
+  - Feature Extraction
+  - Model Development
+  - Performance Evaluation
   led_active_low: false
 code_file: null
-abstract: The ScholarPredict project is a data-driven machine learning system developed
-  to predict the academic performance category of a student using the Random Forest
-  algorithm. The primary objective of the project is to build an accurate and interpretable
-  ensemble classification model that identifies students who are likely to perform
-  poorly early in the semester, so that mentors and faculty can provide timely academic
-  support, demonstrating a practical application of educational data mining and machine
-  learning to improve student outcomes. A suitable student dataset containing attributes
-  such as attendance percentage, internal assessment marks, assignment scores, previous
-  semester grades, weekly study hours, and participation in extracurricular activities
-  is used for model development. The data is cleaned and prepared using preprocessing
-  techniques including missing-value imputation, categorical encoding, feature scaling,
-  and class balancing using SMOTE, and the records are divided into training and testing
-  sets, with correlation analysis used to understand which factors influence performance
-  the most. The Random Forest classifier builds a large number of decision trees on
-  random subsets of the data and features, and the final category, such as High, Average,
-  or At-Risk, is decided by majority voting across all trees. The performance of the
-  model is evaluated using accuracy, precision, recall, F1-score, and a confusion
-  matrix, while hyperparameter tuning with cross-validation and feature-importance
-  analysis are used to improve results and explain which attributes contribute most
-  to each prediction, and the model is compared against Decision Tree and Logistic
-  Regression baselines. The proposed ScholarPredict system provides a practical and
-  interpretable approach to early academic intervention, with potential extensions
-  to applications such as mentor dashboards, personalized study recommendations, dropout
-  risk detection, and institutional performance analysis. It also offers practical
-  exposure to the complete machine learning workflow, including data collection, preprocessing,
-  feature analysis, ensemble model training, hyperparameter tuning, and performance
-  evaluation, demonstrating how an ensemble learning algorithm like Random Forest
-  can be applied to solve a real-world educational problem in an effective and accessible
-  manner. Group Members Arjun Prasad Kasinath R Krishna Kannan Ramanan Jeevan Krishnan
-  Devananda S Neehara Anil KK
+abstract: "The SentiScan project is a text-based machine learning system developed\
+  \ to automatically determine the sentiment expressed in online product reviews using\
+  \ the Multinomial Naive Bayes algorithm. The primary objective of the project is\
+  \ to build a fast, lightweight, and reasonably accurate text classification model\
+  \ capable of labelling a review as Positive, Neutral, or Negative, helping sellers\
+  \ and buyers quickly understand customer opinion without reading hundreds of reviews\
+  \ manually, and demonstrating a practical application of natural language processing\
+  \ (NLP) to everyday e-commerce data. A suitable review dataset containing customer\
+  \ reviews with associated star ratings is used for model development, with the data\
+  \ divided into training and testing sets and cleaned using text preprocessing techniques\
+  \ including lowercasing, punctuation and stop-word removal, tokenization, and lemmatization.\
+  \ Since machine learning models cannot process raw text directly, each cleaned review\
+  \ is converted into a numerical representation using Term Frequency\u2013Inverse\
+  \ Document Frequency (TF-IDF) vectorization with unigram and bigram features, so\
+  \ that words carrying strong sentiment such as \"excellent\", \"broken\", or \"\
+  not worth\" receive higher weights than common filler words. After feature extraction,\
+  \ the Naive Bayes classifier estimates the probability of each sentiment class for\
+  \ an unseen review using the word likelihoods learned from the training data and\
+  \ predicts the class with the highest posterior probability, which is also reported\
+  \ as an indicative confidence score. The performance of the model is evaluated using\
+  \ accuracy, precision, recall, F1-score, and a confusion matrix, and the effect\
+  \ of the smoothing parameter and the n-gram range is studied to understand how negation\
+  \ (\"not good\") and mixed opinions affect classification effectiveness. The proposed\
+  \ SentiScan system provides a simple and practical approach to opinion mining, with\
+  \ potential extensions to applications such as product feedback dashboards, brand\
+  \ monitoring, customer-support ticket prioritization, and social media analysis.\
+  \ It also offers practical exposure to the complete NLP workflow, including data\
+  \ collection, text cleaning, feature extraction, probabilistic classification, and\
+  \ performance evaluation, demonstrating how a simple probabilistic learning algorithm\
+  \ like Naive Bayes can solve a real-world text-analysis problem in an effective\
+  \ and accessible manner. Group Members Arjun Prasad Kasinath R Krishna Kannan Ramanan\
+  \ Jeevan Krishnan Devananda S Neehara Anil KK"
 tests:
 - id: TC_01
-  name: Fresh Quality Verification Test
-  condition: Input photograph of fresh produce sample with natural coloration
-  expected: Classification model identifies sample as 'Fresh' with confidence score
-    >= 85%
+  name: Dataset Ingestion and Preprocessing Verification Test
+  condition: Input raw feature matrices or sample images with standard dimensions
+  expected: Pipeline applies normalization and feature extraction producing clean
+    tensor/vector representations
   observed: null
 - id: TC_02
-  name: Intermediate / Moderately Fresh Degradation Test
-  condition: Input image displaying moderate surface discoloration or initial softening
-  expected: Classifier assigns 'Moderately Fresh' based on KNN neighbor vote distribution
+  name: Inference and Decision Boundary Test
+  condition: Input validation vectors across distinct representative target categories
+  expected: Classification model assigns correct category labels with confidence score
+    >= 85%
   observed: null
 - id: TC_03
-  name: Spoiled / Rotten Produce Rejection Test
-  condition: Input image exhibiting significant browning, fungal decay, or surface
-    shriveling
-  expected: System outputs 'Spoiled / Rotten' alert with high feature distance from
-    fresh clusters
+  name: Outlier and Degraded Input Robustness Test
+  condition: Input samples with artificial noise, extreme values, or corrupted features
+  expected: System flags uncertain inputs or assigns reject status without pipeline
+    termination
+  observed: null
+- id: TC_04
+  name: Performance Metric and Generalization Evaluation Test
+  condition: Evaluation over held-out test partition
+  expected: Achieves targeted benchmark accuracy, precision, and recall metrics matching
+    specifications
   observed: null
 assets:
   hardware_photos: []
@@ -153,10 +169,9 @@ references:
   No. 6, pp. 610-621, 1973.
 - 'Fabian Pedregosa et al., ''Scikit-learn: Machine Learning in Python'', Journal
   of Machine Learning Research, Vol. 12, pp. 2825-2830, 2011.'
-- 'Gary Bradski, Adrian Kaehler, ''Learning OpenCV: Computer Vision with the OpenCV
-  Library'', O''Reilly Media, 2008.'
 - Christopher M. Bishop, 'Pattern Recognition and Machine Learning', Springer, 2006.
-- Tom M. Mitchell, 'Machine Learning', McGraw-Hill, 1997.
+- Leo Breiman, 'Random Forests', Machine Learning, Vol. 45, No. 1, pp. 5-32, 2001.
 domain: MACHINE_LEARNING
-extra_notes: 'Scholarpredict: Student Performance Prediction Using Random Forest Classification
-  project report.'
+extra_notes: 'SentiScan: Sentiment Analysis of Product Reviews using Naive Bayes and
+  Tf-Idf project report.'
+project_signature: fcf957b2b13d

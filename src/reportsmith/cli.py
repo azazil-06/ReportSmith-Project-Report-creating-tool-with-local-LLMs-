@@ -10,7 +10,7 @@ from typing import List, Optional
 from reportsmith import __version__
 from reportsmith.brief import load_brief
 from reportsmith.config import load_config
-from reportsmith.docx_build import DocxReportBuilder
+from reportsmith.docx_build import DocxReportBuilder, attempt_close_word_doc, get_safe_output_path
 from reportsmith.facts import derive_facts
 from reportsmith.generate import SectionGenerator
 from reportsmith.llm import OpenAILLMClient
@@ -74,16 +74,16 @@ def cmd_build(args):
     )
     out_path = Path(args.out)
 
-    # Check if target output file is locked by Word or another program
+    # Check if target output file is locked by Word or another program and attempt clean close
     if out_path.exists():
+        attempt_close_word_doc(out_path)
         try:
             with open(out_path, "a+"):
                 pass
         except PermissionError:
             print(
                 f"\n[WARNING] Output file '{out_path}' is currently OPEN in Microsoft Word!\n"
-                f"Please close Microsoft Word so the newly built report can overwrite it.\n"
-                f"(If left open, the build will be saved to '{out_path.stem}_updated.docx')\n"
+                f"Attempting to close it in Word automatically or saving to fallback candidate.\n"
             )
 
     # Instantiate LLM client (with offline fallback check)
@@ -97,6 +97,13 @@ def cmd_build(args):
                 return True
         except Exception:
             return False
+
+    if not _is_service_online(base_url):
+        # Auto-detect if LM Studio is online on port 1234
+        if not getattr(args, "base_url", None) and _is_service_online("http://localhost:1234/v1"):
+            base_url = "http://localhost:1234/v1"
+            if not getattr(args, "model", None):
+                model_name = "qwen2.5-coder-3b"
 
     if _is_service_online(base_url):
         print(f"Connecting to local LLM endpoint: {base_url} (model: {model_name})...")
@@ -171,20 +178,38 @@ def cmd_build(args):
     else:
         print(f"[COMPUTE] Launching {optimal_workers} concurrent generation workers")
 
-    # Clear cache folder before generation unless resuming
-    cache_dir = Path(cfg.paths.cache_dir)
-    clear_cache = getattr(args, "clear_cache", False) or not getattr(args, "resume", False)
-    if clear_cache and cache_dir.is_dir():
-        for f in list(cache_dir.glob("*.json")) + list(cache_dir.glob("*.tmp")):
-            try:
-                f.unlink()
-            except Exception:
-                pass
-        print(f"[CACHE] Cleared cache folder: '{cache_dir}'")
-    elif getattr(args, "resume", False):
-        print(f"[CACHE] Resuming from existing cache in '{cache_dir}'")
+    # Clear cache before generation unless resuming
+    base_cache_dir = Path(cfg.paths.cache_dir)
+    project_sig = brief.project_signature
+    target_cache_dir = base_cache_dir / project_sig
 
-    generator = SectionGenerator(llm, config=cfg, cache_dir=cfg.paths.cache_dir)
+    clear_cache = getattr(args, "clear_cache", False) or not getattr(args, "resume", False)
+    if clear_cache:
+        # Purge active project's cache folder
+        if target_cache_dir.is_dir():
+            for f in list(target_cache_dir.glob("*.json")) + list(target_cache_dir.glob("*.tmp")):
+                try:
+                    f.unlink()
+                except Exception:
+                    pass
+            print(f"[CACHE] Cleared project cache: '{target_cache_dir}'")
+        # Clean legacy unscoped files in base cache_dir
+        if base_cache_dir.is_dir():
+            for f in list(base_cache_dir.glob("*.json")) + list(base_cache_dir.glob("*.tmp")):
+                if f.name != "active_manifest.json":
+                    try:
+                        f.unlink()
+                    except Exception:
+                        pass
+    elif getattr(args, "resume", False):
+        print(f"[CACHE] Resuming from existing cache in '{target_cache_dir}'")
+
+    generator = SectionGenerator(
+        llm,
+        config=cfg,
+        cache_dir=base_cache_dir,
+        project_signature=project_sig,
+    )
     print("Generating report prose sections...")
     generated_sections = generator.generate_all(
         outline=outline,
@@ -214,12 +239,13 @@ def cmd_build(args):
         )
 
     # Check for diagrams generator
+    diagrams = {}
     try:
         from reportsmith.diagrams import generate_all_diagrams
         print("Rendering diagrams (block diagram, connection diagram, flowchart)...")
-        generate_all_diagrams(brief, facts, out_dir="out")
-    except ImportError:
-        pass
+        diagrams = generate_all_diagrams(brief, facts, out_dir="out")
+    except Exception as e:
+        logger.warning(f"Could not render diagrams: {e}")
 
     print(f"Building Word document using template {sample_path}...")
     builder = DocxReportBuilder(
@@ -227,10 +253,20 @@ def cmd_build(args):
         facts=facts,
         outline=outline,
         sample_path=sample_path if sample_path.is_file() else None,
+        diagrams=diagrams,
+        out_dir=out_path.parent,
     )
     builder.build(generated_sections, out_path=out_path)
     actual_path = getattr(builder, "saved_path", out_path)
     print(f"\nSUCCESS! Report generated at: {actual_path}")
+
+    # Persist latest generated report pointer for CLI subcommands
+    try:
+        latest_record = Path("out/latest_report.txt")
+        latest_record.parent.mkdir(parents=True, exist_ok=True)
+        latest_record.write_text(str(actual_path.resolve()), encoding="utf-8")
+    except Exception as e:
+        logger.debug(f"Could not write latest report record: {e}")
 
     # Page number pass if available
     try:
@@ -261,7 +297,17 @@ def cmd_check(args):
     )
     brief = load_brief(brief_p)
     facts = derive_facts(brief, base_dir=brief_p.parent)
-    report_file = Path(args.report)
+
+    # Smart report resolution
+    if getattr(args, "report", None):
+        report_file = Path(args.report)
+    else:
+        latest_record = Path("out/latest_report.txt")
+        if latest_record.is_file():
+            candidate = Path(latest_record.read_text(encoding="utf-8").strip())
+            report_file = candidate if candidate.is_file() else Path("out/report.docx")
+        else:
+            report_file = Path("out/report.docx")
 
     print(f"Validating {report_file} against facts and brief ({brief_p})...")
     report_txt = Path(args.out) if args.out else Path("check_report.txt")
@@ -325,6 +371,13 @@ def cmd_postprocess(args):
     )
 
     docx_path = Path(args.docx)
+    if not docx_path.is_file() and args.docx == "out/report.docx":
+        latest_record = Path("out/latest_report.txt")
+        if latest_record.is_file():
+            candidate = Path(latest_record.read_text(encoding="utf-8").strip())
+            if candidate.is_file():
+                docx_path = candidate
+
     out_path = Path(args.out) if getattr(args, "out", None) else docx_path
     run_docx_postprocessing(
         docx_path=docx_path,
@@ -381,7 +434,7 @@ def main():
     p_build.add_argument("--base-url", help="LLM base URL (overrides config)")
     p_build.add_argument("--sections", help="Comma-separated section IDs to generate (e.g. 1.1,3.7)")
     p_build.add_argument("--concurrency", type=int, default=None, help="Number of concurrent workers (default: auto-detected based on CUDA VRAM)")
-    p_build.add_argument("--clear-cache", action="store_true", default=True, help="Clear cache folder before generation (default: True)")
+    p_build.add_argument("--clear-cache", action="store_true", default=False, help="Clear cache folder before generation (default: False)")
     p_build.add_argument("--resume", action="store_true", default=False, help="Resume from cached sections without clearing")
     p_build.add_argument("--refine", action="store_true", default=False, help="Enable AI post-processing critic & refinement pass")
     p_build.add_argument("--postprocess", action="store_true", default=False, help="Backfeed generated Word document back to model, score confidence, and correct errors")
@@ -399,7 +452,7 @@ def main():
 
     # check
     p_check = subparsers.add_parser("check", help="Validate report against facts")
-    p_check.add_argument("report", help="Path to generated report.docx")
+    p_check.add_argument("report", nargs="?", default=None, help="Path to generated report.docx (default: latest generated build)")
     p_check.add_argument("--brief", default=None, help="Path to brief.yaml (defaults to out/analyzed_brief.yaml if present)")
     p_check.add_argument("--out", default="check_report.txt", help="Path for check report summary")
     p_check.set_defaults(func=cmd_check)

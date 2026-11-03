@@ -835,11 +835,13 @@ def render_ml_block_diagram_mpl(brief: ProjectBrief, facts: ProjectFacts, out_fi
             color="#0F172A",
         )
 
+    proj_title = (brief.project.title or "").lower()
+    abs_text = (brief.abstract or "").lower()
     is_vision = any(
-        k in title.lower() or k in (brief.abstract or "").lower()
+        k in proj_title or k in abs_text
         for k in ("image", "vision", "produce", "fruit", "vegetable", "glcm", "opencv", "freshness", "camera", "pixel")
     ) and not any(
-        k in title.lower() or k in (brief.abstract or "").lower()
+        k in proj_title or k in abs_text
         for k in ("student", "academic", "attendance", "random forest", "tabular", "credit", "churn")
     )
 
@@ -1098,11 +1100,13 @@ def render_ml_data_flow_diagram_mpl(brief: ProjectBrief, facts: ProjectFacts, ou
             color="#1E293B",
         )
 
+    proj_title = (brief.project.title or "").lower()
+    abs_text = (brief.abstract or "").lower()
     is_vision = any(
-        k in title.lower() or k in (brief.abstract or "").lower()
+        k in proj_title or k in abs_text
         for k in ("image", "vision", "produce", "fruit", "vegetable", "glcm", "opencv", "freshness", "camera", "pixel")
     ) and not any(
-        k in title.lower() or k in (brief.abstract or "").lower()
+        k in proj_title or k in abs_text
         for k in ("student", "academic", "attendance", "random forest", "tabular", "credit", "churn")
     )
 
@@ -1200,16 +1204,18 @@ def render_ml_flowchart_mpl(brief: ProjectBrief, facts: ProjectFacts, out_file: 
     ax.set_ylim(0, 100)
     ax.axis("off")
 
+    title = brief.project.title
+    proj_title = (brief.project.title or "").lower()
+    abs_text = (brief.abstract or "").lower()
     is_vision = any(
-        k in title.lower() or k in (brief.abstract or "").lower()
+        k in proj_title or k in abs_text
         for k in ("image", "vision", "produce", "fruit", "vegetable", "glcm", "opencv", "freshness", "camera", "pixel")
     ) and not any(
-        k in title.lower() or k in (brief.abstract or "").lower()
+        k in proj_title or k in abs_text
         for k in ("student", "academic", "attendance", "random forest", "tabular", "credit", "churn")
     )
     chart_title = f"{title.upper()} - KNN CLASSIFICATION FLOWCHART" if is_vision else f"{title.upper()} - RANDOM FOREST INFERENCE FLOWCHART"
 
-    title = brief.project.title
     ax.text(
         50,
         98,
@@ -1401,7 +1407,36 @@ def render_software_block_diagram_mpl(brief: ProjectBrief, facts: ProjectFacts, 
         ax.text(11, y + h - 7.6, subtitle, fontsize=8.0, fontstyle="italic", ha="left", va="top", color="#475569")
         ax.text(11, y + 3.2, details, fontsize=7.8, ha="left", va="bottom", color="#1E293B")
 
-    if domain in ("WEB_CLOUD", "SOFTWARE_APP") and any(k in title.lower() for k in ("flutter", "app", "parking", "finder", "web", "cloud")):
+    t_low = (title or "").lower()
+    abs_low = (getattr(brief, "abstract", "") or "").lower()
+    full_corpus = t_low + " " + abs_low
+    is_mern = any(k in full_corpus for k in ("mern", "mongodb", "express", "react", "node", "campusconnect", "campus event", "event management"))
+    is_parking = any(k in full_corpus for k in ("parking", "parkease", "slot", "spot", "vehicle", "flutter"))
+
+    modules = getattr(getattr(brief, "implementation", None), "modules", []) or getattr(brief, "modules", [])
+
+    if is_mern:
+        l1_title, l1_sub, l1_det = (
+            "PRESENTATION & CLIENT INTERFACE TIER",
+            "Responsive Single-Page Application (SPA) & User Experience",
+            "• React 18 & Tailwind CSS Client   • Responsive Event Catalogs & Search   • Student & Coordinator Dashboards   • QR Ticket Display",
+        )
+        l2_title, l2_sub, l2_det = (
+            "APPLICATION CONTROLLER & ROUTING TIER",
+            "Express.js RESTful API, Route Handlers & Security Middleware",
+            "• Express.js / Node.js HTTP Server   • Route Validation & Dispatchers   • JWT Authentication & Role-Based Access Control (RBAC)",
+        )
+        l3_title, l3_sub, l3_det = (
+            "DOMAIN SERVICE & BUSINESS LOGIC TIER",
+            "Core Algorithmic Workflows & Transaction Processing",
+            "• Event Publishing & Coordinator Approval Engine   • Atomic Seat Limit Registration   • QR Attendance Verification & Nodemailer Telemetry",
+        )
+        l4_title, l4_sub, l4_det = (
+            "DATA PERSISTENCE & DOCUMENT STORE TIER",
+            "MongoDB NoSQL Database & Mongoose ODM Models",
+            "• MongoDB Document Store   • Mongoose Schemas (Users, Events, Registrations, Attendance)   • Optimized Compound Indexing",
+        )
+    elif is_parking:
         l1_title, l1_sub, l1_det = (
             "PRESENTATION & CLIENT APPLICATION TIER",
             "Cross-Platform Client Interface & User Experience",
@@ -1421,6 +1456,31 @@ def render_software_block_diagram_mpl(brief: ProjectBrief, facts: ProjectFacts, 
             "DATA PERSISTENCE & CLOUD SERVICES TIER",
             "Cloud Firestore Database & Backend Services Integration",
             "• Cloud Firestore Real-Time NoSQL Database   • Firebase Authentication Services   • Firebase Cloud Messaging (FCM) Push Telemetry",
+        )
+    elif modules and len(modules) >= 3:
+        m0 = modules[0]
+        m1 = modules[1]
+        m2 = modules[2]
+        m3 = modules[3] if len(modules) >= 4 else "Data Persistence & Storage Subsystem"
+        l1_title, l1_sub, l1_det = (
+            f"{m0.upper()} (UI / PRESENTATION TIER)",
+            f"{m0} Subsystem Architecture and User Interface",
+            f"• {m0} Component   • User Input Handling & Validation   • Presentation Telemetry",
+        )
+        l2_title, l2_sub, l2_det = (
+            f"{m1.upper()} (CONTROLLER TIER)",
+            f"{m1} Workflow Orchestration and Request Dispatching",
+            f"• {m1} Component   • Service Dispatch & Verification   • State Coordination",
+        )
+        l3_title, l3_sub, l3_det = (
+            f"{m2.upper()} (DOMAIN SERVICE TIER)",
+            f"{m2} Core Business Logic and Algorithmic Execution",
+            f"• {m2} Processing Engine   • Transaction Execution   • Integrity Validation",
+        )
+        l4_title, l4_sub, l4_det = (
+            f"{m3.upper()} (DATA PERSISTENCE TIER)",
+            f"{m3} Storage, Document Persistence, and Output Serialization",
+            f"• {m3} Component   • Structured Record Storage   • Results Export Serialization",
         )
     else:
         l1_title, l1_sub, l1_det = (
@@ -1459,9 +1519,12 @@ def render_software_block_diagram_mpl(brief: ProjectBrief, facts: ProjectFacts, 
         )
 
     out_file.parent.mkdir(parents=True, exist_ok=True)
-    plt.tight_layout()
-    plt.savefig(str(out_file), dpi=200, facecolor="white", edgecolor="none")
-    plt.close(fig)
+    try:
+        plt.tight_layout()
+        plt.savefig(str(out_file), dpi=200, facecolor="white", edgecolor="none")
+    finally:
+        plt.close(fig)
+        plt.close("all")
     return out_file
 
 
@@ -1501,13 +1564,36 @@ def render_software_data_flow_diagram_mpl(brief: ProjectBrief, facts: ProjectFac
         ax.text(x + w / 2, y + h / 2 + 3, t, fontsize=8.5, fontweight="bold", ha="center", va="center", color=tcol)
         ax.text(x + w / 2, y + h / 2 - 4, sub, fontsize=7.2, ha="center", va="center", color="#475569")
 
+    t_low = (title or "").lower()
+    abs_low = (getattr(brief, "abstract", "") or "").lower()
+    full_corpus = t_low + " " + abs_low
+    is_mern = any(k in full_corpus for k in ("mern", "mongodb", "express", "react", "node", "campusconnect", "campus event", "event management"))
+    is_parking = any(k in full_corpus for k in ("parking", "parkease", "slot", "spot", "vehicle", "flutter"))
+    modules = getattr(getattr(brief, "implementation", None), "modules", []) or getattr(brief, "modules", [])
+
     # Distinct boxes with generous dimensions
-    if domain in ("WEB_CLOUD", "SOFTWARE_APP") and any(k in title.lower() for k in ("flutter", "app", "parking", "finder", "web", "cloud")):
+    if is_mern:
+        draw_box(4, 34, 18, 30, "REACT CLIENT\n(Web / SPA)", "Event UI & Forms", "#0F766E", "#F0FDFA", "#115E59")
+        draw_box(29, 34, 18, 30, "EXPRESS API\nROUTER", "REST Endpoints", "#2563EB", "#EFF6FF", "#1D4ED8")
+        draw_box(55, 55, 20, 26, "EVENT LOGIC\nSERVICES", "Registration & Seats", "#D97706", "#FFFBEB", "#B45309")
+        draw_box(55, 15, 20, 26, "JWT AUTH &\nRBAC SECURITY", "Token Verification", "#7C3AED", "#FAF5FF", "#6D28D9")
+        draw_box(82, 34, 15, 30, "MONGODB\nDATABASE", "Mongoose Collections", "#DC2626", "#FEF2F2", "#B91C1C")
+    elif is_parking:
         draw_box(4, 34, 18, 30, "MOBILE CLIENT\n(Flutter App)", "User Maps & UI Form", "#0F766E", "#F0FDFA", "#115E59")
         draw_box(29, 34, 18, 30, "API ROUTER &\nCONTROLLER", "State & Dispatcher", "#2563EB", "#EFF6FF", "#1D4ED8")
         draw_box(55, 55, 20, 26, "CORE LOGIC\nSERVICES", "Slot Reservation Engine", "#D97706", "#FFFBEB", "#B45309")
         draw_box(55, 15, 20, 26, "AUTH & TOKEN\nSECURITY", "Firebase Auth / Claims", "#7C3AED", "#FAF5FF", "#6D28D9")
         draw_box(82, 34, 15, 30, "CLOUD\nFIRESTORE", "NoSQL Data Store", "#DC2626", "#FEF2F2", "#B91C1C")
+    elif modules and len(modules) >= 3:
+        m0 = modules[0][:15]
+        m1 = modules[1][:15]
+        m2 = modules[2][:15]
+        m3 = modules[3][:14] if len(modules) >= 4 else "PERSISTENCE"
+        draw_box(4, 34, 18, 30, f"{m0.upper()}\nINTERFACE", "Client Input & UI", "#0F766E", "#F0FDFA", "#115E59")
+        draw_box(29, 34, 18, 30, f"{m1.upper()}\nCONTROLLER", "Validation & Router", "#2563EB", "#EFF6FF", "#1D4ED8")
+        draw_box(55, 55, 20, 26, f"{m2.upper()}\nENGINE", "Domain Processing", "#D97706", "#FFFBEB", "#B45309")
+        draw_box(55, 15, 20, 26, "SECURITY &\nAUTH CONTROL", "Access Verification", "#7C3AED", "#FAF5FF", "#6D28D9")
+        draw_box(82, 34, 15, 30, f"{m3.upper()}\nSTORE", "Record Storage", "#DC2626", "#FEF2F2", "#B91C1C")
     else:
         draw_box(4, 34, 18, 30, "CLIENT / UI\nINTERFACE", "Form & Command Input", "#0F766E", "#F0FDFA", "#115E59")
         draw_box(29, 34, 18, 30, "REQUEST ROUTER\n& DISPATCHER", "Validation & Dispatch", "#2563EB", "#EFF6FF", "#1D4ED8")
@@ -1541,9 +1627,12 @@ def render_software_data_flow_diagram_mpl(brief: ProjectBrief, facts: ProjectFac
     ax.text(80.5, 32.5, "Read", fontsize=7.2, fontweight="bold", ha="center", color="#0F172A")
 
     out_file.parent.mkdir(parents=True, exist_ok=True)
-    plt.tight_layout()
-    plt.savefig(str(out_file), dpi=200, facecolor="white", edgecolor="none")
-    plt.close(fig)
+    try:
+        plt.tight_layout()
+        plt.savefig(str(out_file), dpi=200, facecolor="white", edgecolor="none")
+    finally:
+        plt.close(fig)
+        plt.close("all")
     return out_file
 
 
@@ -1616,52 +1705,383 @@ def render_software_flowchart_mpl(brief: ProjectBrief, facts: ProjectFacts, out_
             color="#0F172A",
         )
 
+    t_low = (title or "").lower()
+    abs_low = (getattr(brief, "abstract", "") or "").lower()
+    full_corpus = t_low + " " + abs_low
+    is_mern = any(k in full_corpus for k in ("mern", "mongodb", "express", "react", "node", "campusconnect", "campus event", "event management"))
+
     # 1. Start
     draw_oval(50, 93, "START / SYSTEM INIT")
     draw_arrow(50, 90.5, 50, 86.5)
 
-    # 2. Ingest Request
-    draw_rect(50, 84, 52, 5, "Receive User Request & Ingest Parameters\n(CLI Command / Interface Input Form)")
-    draw_arrow(50, 81.5, 50, 77.5)
+    if is_mern:
+        # 2. Ingest Request
+        draw_rect(50, 84, 52, 5, "User Discovers Event & Submits Registration\n(React Client Transmits JWT Auth & Form Payload)")
+        draw_arrow(50, 81.5, 50, 77.5)
 
-    # 3. Validate
-    draw_diamond(50, 72, 32, 7.5, "Input Valid & Authorized?")
+        # 3. Validate
+        draw_diamond(50, 72, 32, 7.5, "JWT Valid & Seats Available?")
 
-    # Failure Branch
-    draw_arrow(34, 72, 18, 72, "NO")
-    draw_rect(18, 64, 22, 5, "Log Error & Reject\nOutput Warning Notice", color="#DC2626", bg="#FEF2F2")
-    draw_arrow(18, 61.5, 18, 12)
-    draw_arrow(18, 12, 34, 4)
+        # Failure Branch
+        draw_arrow(34, 72, 18, 72, "NO")
+        draw_rect(18, 64, 22, 5, "Reject (401/403/409)\nRegistration Error", color="#DC2626", bg="#FEF2F2")
+        draw_arrow(18, 61.5, 18, 12)
+        draw_arrow(18, 12, 34, 4)
 
-    # Success Branch
-    draw_arrow(50, 68, 50, 63, "YES")
+        # Success Branch
+        draw_arrow(50, 68, 50, 63, "YES")
 
-    # 4. Business Transaction
-    draw_rect(50, 59, 52, 6, "Execute Application Service Logic\n(Process Account Operation / Model Calculation)")
-    draw_arrow(50, 56, 50, 51)
+        # 4. Business Transaction
+        draw_rect(50, 59, 52, 6, "Execute Registration Service Logic\n(Decrement Seat Limit & Validate Category Rules)")
+        draw_arrow(50, 56, 50, 51)
 
-    # 5. Security & Verification
-    draw_rect(50, 48, 52, 5, "Apply Integrity Checks & Hash Verification\n(SHA-256 Checksum / State Validation)")
-    draw_arrow(50, 45.5, 50, 40.5)
+        # 5. Security & Verification
+        draw_rect(50, 48, 52, 5, "Generate Signed QR Code Digital Ticket\n(Encrypted Token via qrcode / Nodemailer Telemetry)")
+        draw_arrow(50, 45.5, 50, 40.5)
 
-    # 6. Data Store Persistence
-    draw_rect(50, 37, 52, 6, "Commit Transaction to Persistence Store\n(Atomic Write to Data Repository / File System)")
-    draw_arrow(50, 34, 50, 29)
+        # 6. Data Store Persistence
+        draw_rect(50, 37, 52, 6, "Commit Document to MongoDB Database\n(Atomic Write to Registrations & User Record)")
+        draw_arrow(50, 34, 50, 29)
 
-    # 7. Response Format
-    draw_rect(50, 25, 52, 6, "Serialize Response Payload & Status Telemetry\n(Format Human-Readable Output / JSON Data)")
-    draw_arrow(50, 22, 50, 16)
+        # 7. Response Format
+        draw_rect(50, 25, 52, 6, "Venue Check-In: Coordinator Scans QR Ticket\n(Validate Cryptographic Token & Prevent Duplicate Check-in)")
+        draw_arrow(50, 22, 50, 16)
 
-    # 8. Output Display
-    draw_rect(50, 13, 52, 5, "Deliver Response to Client Interface & Log Event")
-    draw_arrow(50, 10.5, 50, 6.5)
+        # 8. Output Display
+        draw_rect(50, 13, 52, 5, "Mark Student Attendance as 'Present' in MongoDB\n(Update Real-Time Coordinator Dashboard & Attendance Log)")
+        draw_arrow(50, 10.5, 50, 6.5)
 
-    draw_oval(50, 4, "END / AWAIT NEXT INVOCATION", color="#15803D", bg="#F0FDF4")
+        draw_oval(50, 4, "END / ATTENDANCE CONFIRMED", color="#15803D", bg="#F0FDF4")
+    else:
+        # 2. Ingest Request
+        draw_rect(50, 84, 52, 5, "Receive User Request & Ingest Parameters\n(CLI Command / Interface Input Form)")
+        draw_arrow(50, 81.5, 50, 77.5)
+
+        # 3. Validate
+        draw_diamond(50, 72, 32, 7.5, "Input Valid & Authorized?")
+
+        # Failure Branch
+        draw_arrow(34, 72, 18, 72, "NO")
+        draw_rect(18, 64, 22, 5, "Log Error & Reject\nOutput Warning Notice", color="#DC2626", bg="#FEF2F2")
+        draw_arrow(18, 61.5, 18, 12)
+        draw_arrow(18, 12, 34, 4)
+
+        # Success Branch
+        draw_arrow(50, 68, 50, 63, "YES")
+
+        # 4. Business Transaction
+        draw_rect(50, 59, 52, 6, "Execute Application Service Logic\n(Process Account Operation / Model Calculation)")
+        draw_arrow(50, 56, 50, 51)
+
+        # 5. Security & Verification
+        draw_rect(50, 48, 52, 5, "Apply Integrity Checks & Hash Verification\n(SHA-256 Checksum / State Validation)")
+        draw_arrow(50, 45.5, 50, 40.5)
+
+        # 6. Data Store Persistence
+        draw_rect(50, 37, 52, 6, "Commit Transaction to Persistence Store\n(Atomic Write to Data Repository / File System)")
+        draw_arrow(50, 34, 50, 29)
+
+        # 7. Response Format
+        draw_rect(50, 25, 52, 6, "Serialize Response Payload & Status Telemetry\n(Format Human-Readable Output / JSON Data)")
+        draw_arrow(50, 22, 50, 16)
+
+        # 8. Output Display
+        draw_rect(50, 13, 52, 5, "Deliver Response to Client Interface & Log Event")
+        draw_arrow(50, 10.5, 50, 6.5)
+
+        draw_oval(50, 4, "END / AWAIT NEXT INVOCATION", color="#15803D", bg="#F0FDF4")
 
     out_file.parent.mkdir(parents=True, exist_ok=True)
-    plt.tight_layout()
-    plt.savefig(str(out_file), dpi=200, facecolor="white", edgecolor="none")
-    plt.close(fig)
+    try:
+        plt.tight_layout()
+        plt.savefig(str(out_file), dpi=200, facecolor="white", edgecolor="none")
+    finally:
+        plt.close(fig)
+        plt.close("all")
+    return out_file
+
+
+def render_bioinformatics_block_diagram_mpl(brief: ProjectBrief, facts: ProjectFacts, out_file: Path) -> Path:
+    """Render 4-tier Bioinformatics Pipeline Architecture Block Diagram at 200 DPI."""
+    fig, ax = plt.subplots(figsize=(12, 7.5), dpi=200)
+    fig.patch.set_facecolor("white")
+    ax.set_facecolor("white")
+    ax.set_xlim(0, 100)
+    ax.set_ylim(0, 100)
+    ax.axis("off")
+
+    title = brief.project.title
+    ax.text(
+        50,
+        96.5,
+        f"{title.upper()} - BIOINFORMATICS PIPELINE ARCHITECTURE",
+        fontsize=12,
+        fontweight="bold",
+        ha="center",
+        va="top",
+        color="#1E293B",
+    )
+
+    def draw_layer(y, h, t, subtitle, details, border_col, bg_col, text_col):
+        box = patches.FancyBboxPatch(
+            (7, y),
+            86,
+            h,
+            boxstyle="round,pad=0.6,rounding_size=1.5",
+            edgecolor=border_col,
+            facecolor=bg_col,
+            lw=1.8,
+        )
+        ax.add_patch(box)
+        ax.text(11, y + h - 3.8, t, fontsize=9.5, fontweight="bold", ha="left", va="top", color=text_col)
+        ax.text(11, y + h - 7.6, subtitle, fontsize=8.0, fontstyle="italic", ha="left", va="top", color="#475569")
+        ax.text(11, y + 3.2, details, fontsize=7.8, ha="left", va="bottom", color="#1E293B")
+
+    draw_layer(
+        73,
+        16,
+        "SEQUENCE INGESTION & DATA PREPROCESSING TIER",
+        "Multi-format genomic sequence ingestion, quality filtering, and alphabet validation",
+        "• FASTA / FASTQ Parser & Validator   • Phred Quality Score Filtering   • Nucleic Acid (A/C/G/T/N) Alphabet Sanitization",
+        "#0D9488",
+        "#F0FDFA",
+        "#0F766E",
+    )
+    draw_layer(
+        50,
+        16,
+        "ALIGNMENT CONTROLLER & ORCHESTRATION TIER",
+        "Dynamic programming algorithm dispatch, substitution matrices, and gap scoring policies",
+        "• Smith-Waterman / BLAST Orchestrator   • Affine Gap Penalty Scoring   • BLOSUM62 / PAM Substitution Models",
+        "#2563EB",
+        "#EFF6FF",
+        "#1D4ED8",
+    )
+    draw_layer(
+        27,
+        16,
+        "DYNAMIC PROGRAMMING & MATRIX COMPUTATION TIER",
+        "Cellular recurrence matrix calculation, traceback extraction, and statistical evaluation",
+        "• DP Recurrence Score Engine   • Optimal Path Traceback Indexing   • Statistical Significance (E-Value) Computation",
+        "#D97706",
+        "#FFFBEB",
+        "#B45309",
+    )
+    draw_layer(
+        4,
+        16,
+        "DATA PERSISTENCE & GENOMIC REPORTING TIER",
+        "Alignment repository, export serialization, and execution telemetry reporting",
+        "• Aligned Pairwise Sequence Store   • CIGAR String & SAM Export   • Alignment Score Visualization & Telemetry",
+        "#7C3AED",
+        "#FAF5FF",
+        "#6D28D9",
+    )
+
+    for y_gap in [66, 43, 20]:
+        ax.annotate(
+            "",
+            xy=(50, y_gap + 0.8),
+            xytext=(50, y_gap + 6.2),
+            arrowprops=dict(facecolor="#475569", edgecolor="#475569", arrowstyle="<->", lw=1.8),
+        )
+
+    out_file.parent.mkdir(parents=True, exist_ok=True)
+    try:
+        plt.tight_layout()
+        plt.savefig(str(out_file), dpi=200, facecolor="white", edgecolor="none")
+    finally:
+        plt.close(fig)
+        plt.close("all")
+    return out_file
+
+
+def render_bioinformatics_data_flow_diagram_mpl(brief: ProjectBrief, facts: ProjectFacts, out_file: Path) -> Path:
+    """Render Bioinformatics Data Flow Diagram (DFD) at 200 DPI without MCU pinouts."""
+    fig, ax = plt.subplots(figsize=(12, 7.5), dpi=200)
+    fig.patch.set_facecolor("white")
+    ax.set_facecolor("white")
+    ax.set_xlim(0, 100)
+    ax.set_ylim(0, 100)
+    ax.axis("off")
+
+    title = brief.project.title
+    ax.text(
+        50,
+        96.5,
+        f"{title.upper()} - SEQUENCE DATA FLOW DIAGRAM (DFD)",
+        fontsize=12,
+        fontweight="bold",
+        ha="center",
+        va="top",
+        color="#1E293B",
+    )
+
+    def draw_box(x, y, w, h, t, sub, bcol, bgcol, tcol):
+        box = patches.FancyBboxPatch(
+            (x, y),
+            w,
+            h,
+            boxstyle="round,pad=0.6,rounding_size=1.5",
+            edgecolor=bcol,
+            facecolor=bgcol,
+            lw=1.6,
+        )
+        ax.add_patch(box)
+        ax.text(x + w / 2, y + h / 2 + 3, t, fontsize=8.5, fontweight="bold", ha="center", va="center", color=tcol)
+        ax.text(x + w / 2, y + h / 2 - 4, sub, fontsize=7.2, ha="center", va="center", color="#475569")
+
+    draw_box(4, 34, 18, 30, "FASTA / FASTQ\nINGESTION", "Sequence Query & Target", "#0F766E", "#F0FDFA", "#115E59")
+    draw_box(29, 34, 18, 30, "PREPROCESSING &\nQUALITY FILTER", "Trimming & Cleaning", "#2563EB", "#EFF6FF", "#1D4ED8")
+    draw_box(55, 55, 20, 26, "DYNAMIC ALIGNMENT\nCORE ENGINE", "Recurrence Matrix", "#D97706", "#FFFBEB", "#B45309")
+    draw_box(55, 15, 20, 26, "STATISTICAL EVAL\n& E-VALUE", "Significance Scoring", "#7C3AED", "#FAF5FF", "#6D28D9")
+    draw_box(82, 34, 15, 30, "ALIGNMENT REPORT\n& REPOSITORY", "Results Database", "#DC2626", "#FEF2F2", "#B91C1C")
+
+    # Arrows
+    ax.annotate("", xy=(29, 52), xytext=(22, 52), arrowprops=dict(facecolor="#334155", edgecolor="#334155", arrowstyle="->", lw=1.6))
+    ax.text(25.5, 55.5, "Raw Sequence", fontsize=7.2, fontweight="bold", ha="center", color="#0F172A")
+
+    ax.annotate("", xy=(22, 44), xytext=(29, 44), arrowprops=dict(facecolor="#334155", edgecolor="#334155", arrowstyle="->", lw=1.6))
+    ax.text(25.5, 40.5, "Status Code", fontsize=7.2, fontweight="bold", ha="center", color="#0F172A")
+
+    ax.annotate("", xy=(55, 66), xytext=(47, 54), arrowprops=dict(facecolor="#334155", edgecolor="#334155", arrowstyle="->", lw=1.6))
+    ax.text(49.5, 63.5, "Score Cell", fontsize=7.2, fontweight="bold", ha="center", color="#0F172A")
+
+    ax.annotate("", xy=(55, 28), xytext=(47, 42), arrowprops=dict(facecolor="#334155", edgecolor="#334155", arrowstyle="->", lw=1.6))
+    ax.text(49.5, 32.5, "Eval E-Value", fontsize=7.2, fontweight="bold", ha="center", color="#0F172A")
+
+    ax.annotate("", xy=(82, 54), xytext=(75, 66), arrowprops=dict(facecolor="#334155", edgecolor="#334155", arrowstyle="->", lw=1.6))
+    ax.text(80.5, 63.5, "Save Path", fontsize=7.2, fontweight="bold", ha="center", color="#0F172A")
+
+    ax.annotate("", xy=(75, 28), xytext=(82, 42), arrowprops=dict(facecolor="#334155", edgecolor="#334155", arrowstyle="->", lw=1.6))
+    ax.text(80.5, 32.5, "Fetch Summary", fontsize=7.2, fontweight="bold", ha="center", color="#0F172A")
+
+    out_file.parent.mkdir(parents=True, exist_ok=True)
+    try:
+        plt.tight_layout()
+        plt.savefig(str(out_file), dpi=200, facecolor="white", edgecolor="none")
+    finally:
+        plt.close(fig)
+        plt.close("all")
+    return out_file
+
+
+def render_bioinformatics_flowchart_mpl(brief: ProjectBrief, facts: ProjectFacts, out_file: Path) -> Path:
+    """Render Bioinformatics Sequence Alignment Flowchart at 200 DPI without MCU firmware loops."""
+    fig, ax = plt.subplots(figsize=(9.6, 12.0), dpi=200)
+    fig.patch.set_facecolor("white")
+    ax.set_facecolor("white")
+    ax.set_xlim(0, 100)
+    ax.set_ylim(0, 100)
+    ax.axis("off")
+
+    title = brief.project.title
+    ax.text(
+        50,
+        98.5,
+        f"{title.upper()} - SEQUENCE ALIGNMENT FLOWCHART",
+        fontsize=11.5,
+        fontweight="bold",
+        ha="center",
+        va="top",
+        color="#1E293B",
+    )
+
+    def draw_oval(x, y, text, color="#2563EB", bg="#EFF6FF"):
+        box = patches.FancyBboxPatch(
+            (x - 22, y - 2.5),
+            44,
+            5.0,
+            boxstyle="round,pad=0.3,rounding_size=2.5",
+            edgecolor=color,
+            facecolor=bg,
+            lw=1.6,
+        )
+        ax.add_patch(box)
+        ax.text(x, y, text, fontsize=7.5, fontweight="bold", ha="center", va="center", color=color)
+
+    def draw_rect(x, y, w, h, text, color="#334155", bg="#F8FAFC"):
+        box = patches.FancyBboxPatch(
+            (x - w / 2, y - h / 2),
+            w,
+            h,
+            boxstyle="round,pad=0.4,rounding_size=1.0",
+            edgecolor=color,
+            facecolor=bg,
+            lw=1.4,
+        )
+        ax.add_patch(box)
+        ax.text(x, y, text, fontsize=7.2, ha="center", va="center", color="#0F172A", multialignment="center")
+
+    def draw_diamond(x, y, w, h, text, color="#D97706", bg="#FFFBEB"):
+        diamond = patches.Polygon(
+            [[x, y + h / 2], [x + w / 2, y], [x, y - h / 2], [x - w / 2, y]],
+            closed=True,
+            edgecolor=color,
+            facecolor=bg,
+            lw=1.5,
+        )
+        ax.add_patch(diamond)
+        ax.text(x, y, text, fontsize=7.0, fontweight="bold", ha="center", va="center", color="#92400E", multialignment="center")
+
+    def draw_arrow(x1, y1, x2, y2, label=None):
+        ax.annotate(
+            "",
+            xy=(x2, y2),
+            xytext=(x1, y1),
+            arrowprops=dict(facecolor="#475569", edgecolor="#475569", arrowstyle="->", lw=1.5),
+        )
+        if label:
+            mx = (x1 + x2) / 2 + (3.0 if x1 == x2 else 0)
+            my = (y1 + y2) / 2 + (1.5 if y1 == y2 else 0)
+            ax.text(mx, my, label, fontsize=7.0, fontweight="bold", ha="center", va="center", color="#0F172A")
+
+    draw_oval(50, 93.5, "START / INGEST GENOMIC SEQUENCES")
+    draw_arrow(50, 91.0, 50, 87.0)
+
+    draw_rect(50, 84.5, 54, 5.0, "Ingest Query & Reference Sequences\n(Parse FASTA / FASTQ Format & Headers)")
+    draw_arrow(50, 82.0, 50, 78.0)
+
+    draw_rect(50, 75.5, 54, 5.0, "Alphabet Validation & Quality Trimming\n(Validate A/C/G/T Alphabet, Filter Ambiguous Bases)")
+    draw_arrow(50, 73.0, 50, 69.0)
+
+    draw_diamond(50, 64.5, 34, 7.5, "Are Sequences\nValid & Non-Empty?")
+
+    draw_arrow(67, 64.5, 82, 64.5, "NO")
+    draw_rect(82, 57.0, 26, 5.0, "Raise Syntax Error &\nLog Malformed Input", color="#DC2626", bg="#FEF2F2")
+    draw_arrow(82, 54.5, 82, 10.0)
+
+    draw_arrow(50, 60.7, 50, 56.5, "YES")
+    draw_rect(50, 54.0, 54, 5.0, "Initialize (M+1) x (N+1) Scoring Matrix\n(Set Initial Boundary Row & Column Penalties)")
+    draw_arrow(50, 51.5, 50, 47.5)
+
+    draw_rect(50, 45.0, 54, 5.0, "Compute DP Recurrence Relations\n(Match/Mismatch Scores + Affine Gap Penalties)")
+    draw_arrow(50, 42.5, 50, 38.5)
+
+    draw_rect(50, 36.0, 54, 5.0, "Traceback Matrix Traversal\n(Identify High-Scoring Subsequence Path)")
+    draw_arrow(50, 33.5, 50, 29.5)
+
+    draw_diamond(50, 25.5, 34, 7.5, "Alignment Score >\nSignificance Threshold?")
+
+    draw_arrow(67, 25.5, 80, 25.5, "YES")
+    draw_rect(80, 18.0, 28, 5.0, "Format Optimal Alignment\n(Extract CIGAR & Identity %)", color="#059669", bg="#ECFDF5")
+
+    draw_arrow(33, 25.5, 20, 25.5, "NO")
+    draw_rect(20, 18.0, 28, 5.0, "Flag Sub-Optimal Match\n(Low Statistical Significance)", color="#D97706", bg="#FFFBEB")
+
+    draw_arrow(80, 15.5, 60, 9.5)
+    draw_arrow(20, 15.5, 40, 9.5)
+    draw_arrow(82, 10.0, 68, 8.5)
+
+    draw_oval(50, 7.5, "OUTPUT ALIGNED SEQUENCES & SCORE SUMMARY", color="#15803D", bg="#F0FDF4")
+
+    out_file.parent.mkdir(parents=True, exist_ok=True)
+    try:
+        plt.tight_layout()
+        plt.savefig(str(out_file), dpi=200, facecolor="white", edgecolor="none")
+    finally:
+        plt.close(fig)
+        plt.close("all")
     return out_file
 
 
@@ -1676,7 +2096,8 @@ def generate_all_diagrams(
     """Generate Block Diagram, Connection Diagram, and Flowchart.
 
     Uses Graphviz if installed, falling back cleanly to Matplotlib at 200 DPI.
-    All diagrams dynamically adapt to the project brief.
+    All diagrams dynamically adapt to the project brief and condition strictly on
+    is_hardware to eliminate MCU pins/firmware loops from software projects.
     """
     out_dir_path = Path(out_dir)
     out_dir_path.mkdir(parents=True, exist_ok=True)
@@ -1685,23 +2106,41 @@ def generate_all_diagrams(
     conn_file = out_dir_path / "connection_diagram.png"
     flow_file = out_dir_path / "flowchart.png"
 
-    domain = (brief.domain or "EMBEDDED_HARDWARE").upper()
+    # Clean old diagram files from previous runs to isolate intermediate state
+    for old_file in (block_file, conn_file, flow_file):
+        if old_file.is_file():
+            try:
+                old_file.unlink(missing_ok=True)
+            except Exception:
+                pass
 
-    if domain in ("MACHINE_LEARNING", "DATA_ANALYTICS"):
+    domain = (brief.domain or "GENERAL_ACADEMIC").upper()
+    is_hw = getattr(getattr(brief, "implementation", None), "is_hardware", None)
+    if is_hw is None:
+        is_hw = getattr(brief, "is_hardware", None)
+    if is_hw is None:
+        is_hw = (domain in ("EMBEDDED_HARDWARE", "EMBEDDED_IOT"))
+
+    if is_hw:
+        logger.info(f"Using Hardware diagram generator at 200 DPI for domain '{domain}'...")
+        render_block_diagram_mpl(brief, facts, block_file)
+        render_connection_diagram_mpl(brief, facts, conn_file)
+        render_flowchart_mpl(brief, facts, flow_file)
+    elif domain in ("MACHINE_LEARNING", "DATA_ANALYTICS"):
         logger.info(f"Rendering Machine Learning pipeline diagrams at 200 DPI (domain: {domain})...")
         render_ml_block_diagram_mpl(brief, facts, block_file)
         render_ml_data_flow_diagram_mpl(brief, facts, conn_file)
         render_ml_flowchart_mpl(brief, facts, flow_file)
-    elif domain in ("SOFTWARE_APP", "WEB_CLOUD"):
+    elif domain == "BIOINFORMATICS" or "bio" in domain.lower():
+        logger.info(f"Rendering Bioinformatics pipeline diagrams at 200 DPI (domain: {domain})...")
+        render_bioinformatics_block_diagram_mpl(brief, facts, block_file)
+        render_bioinformatics_data_flow_diagram_mpl(brief, facts, conn_file)
+        render_bioinformatics_flowchart_mpl(brief, facts, flow_file)
+    else:
         logger.info(f"Rendering Software layered architecture diagrams at 200 DPI (domain: {domain})...")
         render_software_block_diagram_mpl(brief, facts, block_file)
         render_software_data_flow_diagram_mpl(brief, facts, conn_file)
         render_software_flowchart_mpl(brief, facts, flow_file)
-    else:
-        logger.info("Using Hardware diagram generator at 200 DPI...")
-        render_block_diagram_mpl(brief, facts, block_file)
-        render_connection_diagram_mpl(brief, facts, conn_file)
-        render_flowchart_mpl(brief, facts, flow_file)
 
     logger.info(f"Generated diagrams successfully in {out_dir_path}")
     return {
@@ -1709,3 +2148,4 @@ def generate_all_diagrams(
         "connection_diagram": conn_file,
         "flowchart": flow_file,
     }
+

@@ -1,0 +1,17 @@
+============================================================
+REPORTSMITH VERIFICATION REPORT
+============================================================
+Target Document: out\test_debug.docx
+Project: Campusconnect: A Mern-Based Campus Event Management And Registration Platform
+Status: FAILED
+
+Total Errors: 6
+Total Warnings: 0
+
+ERRORS:
+  [X] Ungrounded number '401' detected in prose: "Incoming HTTP request bodies are parsed using express.json() middleware. Central..."
+  [X] Ungrounded number '201' detected in prose: "Incoming HTTP request bodies are parsed using express.json() middleware. Central..."
+  [X] Ungrounded number '404' detected in prose: "Incoming HTTP request bodies are parsed using express.json() middleware. Central..."
+  [X] Ungrounded number '201' detected in prose: "Operational telemetry and output metrics recorded during system execution demons..."
+  [X] Ungrounded number '450' detected in prose: "Client-side network telemetry demonstrates lightweight asset delivery, with init..."
+  [X] Ungrounded number '140' detected in prose: "Performance evaluation and result analysis confirm that the CampusConnect platfo..."

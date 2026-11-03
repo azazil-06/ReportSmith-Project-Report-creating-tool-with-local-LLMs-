@@ -2,7 +2,7 @@
 REPORTSMITH VERIFICATION REPORT
 ============================================================
 Target Document: out\report.docx
-Project: PARKEASE: A FLUTTER-BASED SMART PARKING SLOT FINDER AND RESERVATION APP
+Project: CampusConnect: a MERN-Based Campus Event Management and Registration Platform
 Status: PASSED
 
 Total Errors: 0

@@ -327,14 +327,16 @@ def run_docx_postprocessing(
     )
 
     # Save refined docx
+    target_out.parent.mkdir(parents=True, exist_ok=True)
+    from reportsmith.docx_build import attempt_close_word_doc, get_safe_output_path
+    attempt_close_word_doc(target_out)
     try:
-        target_out.parent.mkdir(parents=True, exist_ok=True)
         doc.save(str(target_out))
         print(f"[POST-PROCESSING] Refined Word report saved to: {target_out}")
     except PermissionError:
-        fallback_out = target_out.parent / f"{target_out.stem}_refined.docx"
-        doc.save(str(fallback_out))
-        print(f"[WARNING] '{target_out.name}' is currently locked. Saved to '{fallback_out.name}' instead.")
+        actual_refined_out = get_safe_output_path(target_out)
+        doc.save(str(actual_refined_out))
+        print(f"[WARNING] '{target_out.name}' is currently locked. Saved to '{actual_refined_out.name}' instead.")
 
     # Print summary table
     print_audit_summary_table(report)

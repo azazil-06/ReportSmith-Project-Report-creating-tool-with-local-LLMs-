@@ -3,9 +3,13 @@
 import copy
 import json
 import logging
-from pathlib import Path
+import os
 import re
-from typing import Any, Dict, List, Optional, Set, Tuple, Union
+import sys
+import time
+import uuid
+from pathlib import Path
+from typing import Any, Dict, Generator, List, Optional, Set, Tuple, Union
 
 import docx
 from docx import Document
@@ -22,6 +26,100 @@ from reportsmith.outline import ReportOutline
 from reportsmith.llm import _is_prompt_echo
 
 logger = logging.getLogger(__name__)
+
+
+def attempt_close_word_doc(file_path: Union[str, Path]) -> bool:
+    """Attempt to close an open document in running Microsoft Word instance on Windows."""
+    if sys.platform != "win32":
+        return False
+    target_abs = str(Path(file_path).resolve()).lower()
+    closed = False
+    try:
+        import win32com.client
+        word = win32com.client.GetActiveObject("Word.Application")
+        for wdoc in list(word.Documents):
+            try:
+                if str(Path(wdoc.FullName).resolve()).lower() == target_abs:
+                    wdoc.Close(SaveChanges=0)
+                    closed = True
+            except Exception:
+                pass
+        if closed:
+            time.sleep(0.4)
+    except Exception:
+        pass
+    return closed
+
+
+def is_file_writable(path: Union[str, Path]) -> bool:
+    """Test if a file can be opened for writing / overwriting without PermissionError."""
+    p = Path(path)
+    try:
+        p.parent.mkdir(parents=True, exist_ok=True)
+        if not p.exists():
+            test_p = p.with_name(f".probe_{p.stem}_{os.getpid()}_{uuid.uuid4().hex[:6]}.tmp")
+            try:
+                with open(test_p, "wb") as f:
+                    f.write(b"")
+                test_p.unlink(missing_ok=True)
+                return True
+            except (PermissionError, OSError):
+                return False
+        else:
+            with open(p, "r+b"):
+                pass
+            return True
+    except (PermissionError, OSError):
+        return False
+
+
+def get_output_candidates(target_path: Union[str, Path]) -> Generator[Path, None, None]:
+    """Generate prioritized output candidate paths:
+    1. target_path (e.g. out/report.docx)
+    2. out/report_updated.docx
+    3. out/report_1.docx ... out/report_99.docx
+    4. out/report_<timestamp>.docx
+    """
+    p = Path(target_path)
+    parent = p.parent
+    stem = p.stem
+    ext = p.suffix if p.suffix else ".docx"
+
+    # Candidate 0: Target path
+    yield p
+
+    # Candidate 1: _updated
+    updated_p = parent / f"{stem}_updated{ext}"
+    if updated_p != p:
+        yield updated_p
+
+    # Candidates 2..100: _1, _2, ..., _99
+    for idx in range(1, 100):
+        cand = parent / f"{stem}_{idx}{ext}"
+        if cand != p and cand != updated_p:
+            yield cand
+
+    # Candidate fallback: timestamp
+    yield parent / f"{stem}_{int(time.time())}{ext}"
+
+
+def get_safe_output_path(target_path: Union[str, Path]) -> Path:
+    """Resolve a safe, non-colliding writable output path.
+
+    1. Attempts COM close if Word holds target_path on Windows.
+    2. Probes target_path for writability.
+    3. If locked, probes fallback candidates:
+       - f"{stem}_updated{ext}"
+       - f"{stem}_{idx}{ext}" for idx in range(1, 100)
+       - f"{stem}_{int(time.time())}{ext}" as timestamp fallback
+    4. Returns the first writable candidate Path.
+    """
+    p = Path(target_path)
+    for cand in get_output_candidates(p):
+        attempt_close_word_doc(cand)
+        if is_file_writable(cand):
+            return cand
+    return p.with_name(f"{p.stem}_{int(time.time())}{p.suffix or '.docx'}")
 
 
 def _is_abstract_echo(text: str, abstract_text: Optional[str]) -> bool:
@@ -187,9 +285,16 @@ KNOWN_ABBREVIATIONS = {
     "API": "Application Programming Interface",
     "ARM": "Advanced RISC Machines",
     "AUC": "Area Under the Curve",
+    "BLAST": "Basic Local Alignment Search Tool",
     "CLI": "Command-Line Interface",
     "CNN": "Convolutional Neural Network",
     "Cortex-M": "ARM Cortex Microcontroller Core",
+    "DNA": "Deoxyribonucleic Acid",
+    "FASTQ": "FASTQ Sequence and Quality Format",
+    "FASTA": "FASTA Sequence Format",
+    "HPC": "High-Performance Computing",
+    "NCBI": "National Center for Biotechnology Information",
+    "RNA": "Ribonucleic Acid",
     "CPI": "Cycles Per Instruction",
     "CPU": "Central Processing Unit",
     "CRUD": "Create, Read, Update, Delete",
@@ -215,8 +320,21 @@ KNOWN_ABBREVIATIONS = {
     "JDK": "Java Development Kit",
     "JRE": "Java Runtime Environment",
     "JSON": "JavaScript Object Notation",
+    "JWT": "JSON Web Token",
     "JVM": "Java Virtual Machine",
     "KNN": "K-Nearest Neighbors",
+    "MERN": "MongoDB, Express.js, React, Node.js Stack",
+    "RF": "Random Forest",
+    "RBAC": "Role-Based Access Control",
+    "SMOTE": "Synthetic Minority Over-sampling Technique",
+    "F1": "F1-Score Harmonized Metric",
+    "CSS": "Cascading Style Sheets",
+    "HTML": "Hypertext Markup Language",
+    "ODM": "Object Data Modeling",
+    "ORM": "Object-Relational Mapping",
+    "SPA": "Single-Page Application",
+    "UI": "User Interface",
+    "UX": "User Experience",
     "LED": "Light Emitting Diode",
     "MCU": "Microcontroller Unit",
     "ML": "Machine Learning",
@@ -469,11 +587,16 @@ class DocxReportBuilder:
         facts: ProjectFacts,
         outline: ReportOutline,
         sample_path: Optional[Union[str, Path]] = None,
+        diagrams: Optional[Dict[str, Path]] = None,
+        out_dir: Optional[Union[str, Path]] = None,
     ):
         self.brief = brief
         self.facts = facts
         self.outline = outline
         self.sample_path = Path(sample_path) if sample_path else None
+        self.diagrams = diagrams or {}
+        self.out_dir = Path(out_dir) if out_dir else Path("out")
+        self.saved_path: Optional[Path] = None
 
         self.figure_entries: List[Tuple[str, str, str]] = []  # (fig_num, caption, page_placeholder)
         self.table_entries: List[Tuple[str, str, str]] = []  # (tbl_num, caption, page_placeholder)
@@ -481,6 +604,17 @@ class DocxReportBuilder:
 
         self.figure_count = 0
         self.table_count = 0
+
+    @property
+    def is_hardware(self) -> bool:
+        """Check whether the active project is an embedded hardware/IoT project."""
+        is_hw = getattr(getattr(self.brief, "implementation", None), "is_hardware", None)
+        if is_hw is None:
+            is_hw = getattr(self.brief, "is_hardware", None)
+        if is_hw is None:
+            domain = (getattr(self.brief, "domain", None) or "GENERAL_ACADEMIC").upper()
+            is_hw = (domain in ("EMBEDDED_HARDWARE", "EMBEDDED_IOT"))
+        return bool(is_hw)
 
     def init_document(self) -> Document:
         """Initialize document from sample or scratch with A4 & 1 inch margins."""
@@ -578,40 +712,64 @@ class DocxReportBuilder:
         self._populate_lof_table(doc)
         self._populate_lot_table(doc)
 
-        # Save output atomically
+        # Save output atomically using unique temporary file
         out_p = Path(out_path)
         out_p.parent.mkdir(parents=True, exist_ok=True)
-        temp_p = out_p.with_suffix(".tmp.docx")
-        doc.save(str(temp_p))
+        unique_id = uuid.uuid4().hex[:8]
+        temp_p = out_p.with_name(f".{out_p.stem}_{os.getpid()}_{unique_id}.tmp.docx")
+
         try:
-            if out_p.exists():
-                out_p.unlink()
-            temp_p.rename(out_p)
-            self.saved_path = out_p
-            logger.info(f"Saved complete docx report to {out_p}")
-        except PermissionError:
-            fallback_p = out_p.with_name(f"{out_p.stem}_updated{out_p.suffix}")
-            if fallback_p.exists():
+            doc.save(str(temp_p))
+
+            # Probe candidates and atomically replace
+            chosen_path = None
+            for cand in get_output_candidates(out_p):
+                attempt_close_word_doc(cand)
                 try:
-                    fallback_p.unlink()
+                    if cand.exists():
+                        try:
+                            cand.unlink()
+                        except (PermissionError, OSError):
+                            pass
+                    os.replace(str(temp_p), str(cand))
+                    chosen_path = cand
+                    break
+                except (PermissionError, OSError) as e:
+                    logger.debug(f"Candidate '{cand}' locked ({e}), probing next candidate...")
+                    continue
+
+            if chosen_path is None:
+                fallback_ts = out_p.with_name(f"{out_p.stem}_{int(time.time())}{out_p.suffix or '.docx'}")
+                os.replace(str(temp_p), str(fallback_ts))
+                chosen_path = fallback_ts
+
+            self.saved_path = chosen_path
+
+            if chosen_path.resolve() == out_p.resolve():
+                logger.info(f"Saved complete docx report to {chosen_path}")
+            else:
+                logger.warning(
+                    f"\n[WARNING] '{out_p}' is currently locked by Microsoft Word or another application.\n"
+                    f"Saved newly generated report to '{chosen_path}' instead!\n"
+                )
+                print(
+                    f"\n"
+                    f"====================================================================\n"
+                    f"[IMPORTANT NOTICE - TARGET FILE LOCKED BY WORD]\n"
+                    f"'{out_p.resolve()}' could not be overwritten because it is open in Microsoft Word.\n"
+                    f"Your newly generated report has been safely saved to:\n"
+                    f"  >>> {chosen_path.resolve()} <<<\n"
+                    f"Close Microsoft Word if you wish to overwrite '{out_p.name}'.\n"
+                    f"All downstream post-processing and checks have targeted this file.\n"
+                    f"====================================================================\n"
+                )
+        finally:
+            if temp_p.exists():
+                try:
+                    temp_p.unlink(missing_ok=True)
                 except Exception:
                     pass
-            temp_p.rename(fallback_p)
-            self.saved_path = fallback_p
-            logger.warning(
-                f"\n[WARNING] '{out_p}' is currently open in Microsoft Word or another application.\n"
-                f"Saved newly generated report to '{fallback_p}' instead!\n"
-            )
-            print(
-                f"\n"
-                f"====================================================================\n"
-                f"[IMPORTANT NOTICE - TARGET FILE LOCKED BY WORD]\n"
-                f"'{out_p}' could not be overwritten because it is open in Microsoft Word.\n"
-                f"Your newly generated report has been saved to:\n"
-                f"  >>> {fallback_p.resolve()} <<<\n"
-                f"Close Microsoft Word to allow overwriting '{out_p}'.\n"
-                f"====================================================================\n"
-            )
+
         return doc
 
     def _build_title_page(self, doc: Document):
@@ -1056,6 +1214,12 @@ class DocxReportBuilder:
         # Collect abbreviations that actually match the brief, outline, and domain
         active_abbreviations = []
         domain = getattr(self.brief, "domain", None) or getattr(self.outline, "domain", "GENERAL_ACADEMIC")
+        is_hw = getattr(getattr(self.brief, "implementation", None), "is_hardware", None)
+        if is_hw is None:
+            is_hw = getattr(self.brief, "is_hardware", None)
+        if is_hw is None:
+            is_hw = (domain in ("EMBEDDED_HARDWARE", "EMBEDDED_IOT"))
+
         full_text = (
             f"{self.brief.project.title} {self.brief.implementation.board.name} "
             f"{self.brief.implementation.board.core} {self.brief.implementation.framework} "
@@ -1070,16 +1234,34 @@ class DocxReportBuilder:
             "RTC", "SDA", "SCL", "SPI", "SysTick", "MMIO", "ALU", "CPI", "FSM", "IR", "ISA", "PC", "RISC"
         }
         if domain in ("MACHINE_LEARNING", "DATA_ANALYTICS"):
-            default_core = ["AI", "AUC", "CNN", "CPU", "CUDA", "CV", "EDA", "GLCM", "GPU", "HSV", "KNN", "ML", "RGB", "ROC"]
+            is_vision = any(
+                k in full_text.lower()
+                for k in ("image", "vision", "produce", "fruit", "vegetable", "glcm", "opencv", "freshness")
+            ) and not any(
+                k in full_text.lower()
+                for k in ("student", "academic", "attendance", "random forest", "tabular")
+            )
+            if is_vision:
+                default_core = ["AI", "AUC", "CNN", "CPU", "CUDA", "CV", "EDA", "GLCM", "GPU", "HSV", "KNN", "ML", "RGB", "ROC"]
+            else:
+                default_core = ["AI", "AUC", "CPU", "CSV", "EDA", "F1", "GPU", "ML", "RF", "ROC", "SMOTE"]
             banned_hardware = hardware_banned
             full_text = f"{self.brief.project.title} {self.brief.abstract or ''} {' '.join(it.title for it in self.outline.items)}"
         elif domain in ("SOFTWARE_APP", "WEB_CLOUD"):
-            default_core = ["API", "CLI", "CRUD", "DB", "GUI", "HTTP", "HTTPS", "IDE", "JSON", "NoSQL", "QR", "REST", "SDK", "SQL", "UI", "UX"]
+            default_core = ["API", "CLI", "CRUD", "CSS", "DB", "GUI", "HTML", "HTTP", "HTTPS", "IDE", "JDK", "JSON", "JVM", "JWT", "MERN", "NoSQL", "ODM", "QR", "RBAC", "REST", "SDK", "SPA", "SQL", "UI", "UX"]
             banned_hardware = hardware_banned
             full_text = f"{self.brief.project.title} {self.brief.abstract or ''} {' '.join(it.title for it in self.outline.items)}" 
+        elif domain == "BIOINFORMATICS" or "bio" in domain.lower():
+            default_core = ["DNA", "RNA", "NCBI", "BLAST", "HPC", "API", "FASTQ"]
+            banned_hardware = hardware_banned
+            full_text = f"{self.brief.project.title} {self.brief.abstract or ''} {' '.join(it.title for it in self.outline.items)}"
         elif domain == "COA_SYSTEMS":
             default_core = ["ALU", "CPI", "FSM", "IR", "ISA", "MMIO", "PC", "RISC"]
             banned_hardware = set()
+        elif not is_hw:
+            default_core = ["API", "CLI", "CRUD", "DB", "GUI", "IDE", "JSON", "OOP", "RAM", "SDK", "SQL", "UI", "UX"]
+            banned_hardware = hardware_banned
+            full_text = f"{self.brief.project.title} {self.brief.abstract or ''} {' '.join(it.title for it in self.outline.items)}"
         else:
             default_core = ["ADC", "GPIO", "I2C", "MCU", "OLED", "UART"]
             banned_hardware = set()
@@ -1227,7 +1409,7 @@ class DocxReportBuilder:
         domain = getattr(self.brief, "domain", None) or getattr(self.outline, "domain", "GENERAL_ACADEMIC")
 
         # Section 2.2 / Specifications: Board / System / Hardware Specifications Table
-        if (sec_id == "2.2" and domain == "EMBEDDED_HARDWARE") or ("board specification" in title_lower) or ("development board" in title_lower):
+        if self.is_hardware and ((sec_id == "2.2" and domain == "EMBEDDED_HARDWARE") or ("board specification" in title_lower) or ("development board" in title_lower)):
             self.table_count += 1
             tbl_num = f"Table 2.{self.table_count}"
             tbl_title = f"{self.brief.implementation.board.mcu_part_number} Technical Specifications"
@@ -1288,6 +1470,93 @@ class DocxReportBuilder:
             )
             self.table_entries.append((tbl_num, tbl_title, "pg"))
 
+        elif domain == "WEB_CLOUD" and ("web platform" in title_lower or "cloud architectural" in title_lower or "specifications" in title_lower or sec_id in ("2.1", "2.3")):
+            self.table_count += 1
+            tbl_num = f"Table 2.{self.table_count}"
+            tbl_title = "Web Platform and Cloud Deployment Specifications"
+            self._add_table_caption(doc, tbl_num, tbl_title)
+
+            specs = [
+                ("System Architecture", "Three-Tier Client-Server RESTful Architecture"),
+                ("Client Interface", "Responsive Web Application / SPA (Port 80/443)"),
+                ("Application Framework", self.brief.implementation.framework or "Node.js / Express / Python"),
+                ("API Communication", "JSON Payloads over HTTPS / RESTful Endpoints"),
+                ("Database Engine", "Relational Database Management System / Document Store"),
+                ("Security Protocol", "JWT Bearer Token Authentication & HTTPS Encryption"),
+                ("Hosting Environment", "Cloud Container Platform / Virtualized Server"),
+            ]
+            t = doc.add_table(rows=len(specs) + 1, cols=2)
+            t.rows[0].cells[0].paragraphs[0].text = "Architectural Parameter"
+            t.rows[0].cells[1].paragraphs[0].text = "Value / Specification"
+            for idx, (param, val) in enumerate(specs, start=1):
+                t.rows[idx].cells[0].paragraphs[0].text = param
+                t.rows[idx].cells[1].paragraphs[0].text = val
+
+            format_table(
+                t,
+                col_widths=[2.8, 3.4],
+                col_alignments=[WD_ALIGN_PARAGRAPH.LEFT, WD_ALIGN_PARAGRAPH.LEFT],
+            )
+            self.table_entries.append((tbl_num, tbl_title, "pg"))
+
+        elif domain in ("MACHINE_LEARNING", "DATA_ANALYTICS") and ("computational specifications" in title_lower or "operational environment" in title_lower or "specifications" in title_lower or sec_id in ("2.1", "2.3")):
+            self.table_count += 1
+            tbl_num = f"Table 2.{self.table_count}"
+            tbl_title = "Machine Learning Computational Environment and Platform Specifications"
+            self._add_table_caption(doc, tbl_num, tbl_title)
+
+            specs = [
+                ("Execution Environment", "Python 3.10+ Analytical Virtual Environment"),
+                ("Core ML Frameworks", "Scikit-Learn, PyTorch, NumPy, Pandas"),
+                ("Hardware Acceleration", "CUDA GPU Acceleration / Multi-Threaded CPU"),
+                ("Feature Representation", "Multidimensional Feature Vectors & Normalized Tensors"),
+                ("Model Paradigm", "Supervised Classification / Ensemble Learning"),
+                ("Validation Metric", "Stratified Cross-Validation / Macro F1-Score"),
+                ("Data Ingestion Format", "Tabular CSV / Multidimensional Array Store"),
+            ]
+            t = doc.add_table(rows=len(specs) + 1, cols=2)
+            t.rows[0].cells[0].paragraphs[0].text = "Platform Parameter"
+            t.rows[0].cells[1].paragraphs[0].text = "Specification"
+            for idx, (param, val) in enumerate(specs, start=1):
+                t.rows[idx].cells[0].paragraphs[0].text = param
+                t.rows[idx].cells[1].paragraphs[0].text = val
+
+            format_table(
+                t,
+                col_widths=[2.8, 3.4],
+                col_alignments=[WD_ALIGN_PARAGRAPH.LEFT, WD_ALIGN_PARAGRAPH.LEFT],
+            )
+            self.table_entries.append((tbl_num, tbl_title, "pg"))
+
+        elif (domain == "BIOINFORMATICS" or "bio" in domain.lower()) and ("computational environment" in title_lower or "system specifications" in title_lower or "specifications" in title_lower or sec_id in ("2.1", "2.3")):
+            self.table_count += 1
+            tbl_num = f"Table 2.{self.table_count}"
+            tbl_title = "Bioinformatics Pipeline and Computational Specifications"
+            self._add_table_caption(doc, tbl_num, tbl_title)
+
+            specs = [
+                ("Execution Platform", "High-Performance Computing Cluster / Linux Server"),
+                ("Algorithm Engine", "Dynamic Programming Alignment Kernel"),
+                ("Input Formats", "FASTA, FASTQ, SAM/BAM Sequence Specifications"),
+                ("Scoring Matrix", "BLOSUM62 / PAM250 / Affine Gap Model"),
+                ("Statistical Model", "Karlin-Altschul E-Value Verification"),
+                ("Storage Backend", "Indexed Genomic Sequence Cache"),
+                ("Quality Standards", "Phred Quality Q30+ Filtering Standard"),
+            ]
+            t = doc.add_table(rows=len(specs) + 1, cols=2)
+            t.rows[0].cells[0].paragraphs[0].text = "Pipeline Parameter"
+            t.rows[0].cells[1].paragraphs[0].text = "Specification"
+            for idx, (param, val) in enumerate(specs, start=1):
+                t.rows[idx].cells[0].paragraphs[0].text = param
+                t.rows[idx].cells[1].paragraphs[0].text = val
+
+            format_table(
+                t,
+                col_widths=[2.8, 3.4],
+                col_alignments=[WD_ALIGN_PARAGRAPH.LEFT, WD_ALIGN_PARAGRAPH.LEFT],
+            )
+            self.table_entries.append((tbl_num, tbl_title, "pg"))
+
         elif domain == "COA_SYSTEMS" and ("target isa" in title_lower or "processor specifications" in title_lower or (sec_id == "2.1" and "isa" in title_lower)):
             self.table_count += 1
             tbl_num = f"Table 2.{self.table_count}"
@@ -1318,8 +1587,8 @@ class DocxReportBuilder:
             )
             self.table_entries.append((tbl_num, tbl_title, "pg"))
 
-        # Section 2.3: Hardware Components Table (only if component table has elements)
-        elif ("hardware components" in title_lower or "sensors used" in title_lower or (sec_id == "2.3" and domain == "EMBEDDED_HARDWARE")) and self.facts.component_table:
+        # Section 2.3: Hardware Components Table (only for hardware when component table has elements)
+        elif self.is_hardware and ("hardware components" in title_lower or "sensors used" in title_lower or (sec_id == "2.3" and domain == "EMBEDDED_HARDWARE")) and self.facts.component_table:
             self.table_count += 1
             tbl_num = f"Table 2.{self.table_count}"
             tbl_title = "System Hardware Components and Specifications"
@@ -1347,21 +1616,32 @@ class DocxReportBuilder:
             self.figure_count += 1
             fig_num = f"Figure 3.{self.figure_count}"
             if domain in ("MACHINE_LEARNING", "DATA_ANALYTICS"):
+                is_vis = any(k in title_lower or k in (self.brief.abstract or "").lower() for k in ("image", "vision", "produce", "fruit", "vegetable", "glcm", "opencv", "freshness")) and not any(k in title_lower or k in (self.brief.abstract or "").lower() for k in ("student", "academic", "attendance", "random forest", "tabular"))
                 fig_title = "Machine Learning Pipeline and Modular Architecture Diagram"
-                desc = "Pipeline block diagram illustrating image input, preprocessing, feature extraction, KNN classifier, and prediction"
+                desc = "Pipeline block diagram illustrating image input, preprocessing, feature extraction, and classification" if is_vis else "Pipeline block diagram illustrating tabular dataset ingestion, SMOTE balancing, Random Forest ensemble, and majority voting"
             elif domain in ("SOFTWARE_APP", "WEB_CLOUD"):
                 fig_title = "Overall System Architecture and Layered Block Diagram"
                 desc = "Block diagram illustrating presentation layer, application controller, service logic, and persistent storage store"
             elif domain == "COA_SYSTEMS":
                 fig_title = "Instruction Datapath and Multi-Stage Pipeline Block Diagram"
                 desc = "Block diagram illustrating fetch, decode, execute, memory access, and writeback pipeline stages"
+            elif domain == "BIOINFORMATICS" or "bio" in domain.lower():
+                fig_title = "Bioinformatics Pipeline and Computational Architecture Diagram"
+                desc = "Block diagram illustrating sequence ingestion, quality filtering, dynamic programming alignment, and verification"
+            elif not self.is_hardware:
+                fig_title = "System Architecture and Subsystem Block Diagram"
+                desc = "Block diagram illustrating subsystem modules, component interfaces, and execution flow"
             else:
                 fig_title = "Overall System Architecture and Hardware Block Diagram"
                 desc = "Block diagram showing sensor inputs, microcontroller unit, display interface, and output actuators"
 
             # Check if diagram image exists
-            diag_path = Path("out/block_diagram.png")
-            if diag_path.is_file():
+            if self.diagrams:
+                diag_path = self.diagrams.get("block_diagram")
+            else:
+                diag_path = self.out_dir / "block_diagram.png"
+
+            if diag_path and Path(diag_path).is_file():
                 p_img = doc.add_paragraph()
                 p_img.alignment = WD_ALIGN_PARAGRAPH.CENTER
                 p_img.paragraph_format.keep_with_next = True
@@ -1381,20 +1661,31 @@ class DocxReportBuilder:
             self.figure_count += 1
             fig_num = f"Figure 3.{self.figure_count}"
             if domain in ("MACHINE_LEARNING", "DATA_ANALYTICS"):
-                fig_title = "Data Flow and Feature Pipeline Interaction Diagram"
-                desc = "Data flow diagram illustrating input image stream, preprocessing, color and GLCM texture descriptor extraction, and KNN prediction"
+                is_vis = any(k in title_lower or k in (self.brief.abstract or "").lower() for k in ("image", "vision", "produce", "fruit", "vegetable", "glcm", "opencv", "freshness")) and not any(k in title_lower or k in (self.brief.abstract or "").lower() for k in ("student", "academic", "attendance", "random forest", "tabular"))
+                fig_title = "Data Flow and Feature Pipeline Interaction Diagram (DFD)"
+                desc = "Data flow diagram illustrating input image stream, preprocessing, color and GLCM texture descriptor extraction, and classification" if is_vis else "Data flow diagram illustrating student records stream, preprocessing, academic/behavioral feature matrix, and ensemble inference"
             elif domain in ("SOFTWARE_APP", "WEB_CLOUD"):
-                fig_title = "Data Flow and Component Interaction Diagram"
+                fig_title = "Data Flow and Component Interaction Diagram (DFD)"
                 desc = "Data flow diagram illustrating user inputs, controller processing, file persistence read/write cycles, and response formatting"
             elif domain == "COA_SYSTEMS":
                 fig_title = "Memory Mapped I/O (MMIO) and Bus Interconnect Diagram"
                 desc = "Interconnection diagram depicting address bus decoders, data registers, and control lines"
+            elif domain == "BIOINFORMATICS" or "bio" in domain.lower():
+                fig_title = "Bioinformatics Sequence Processing and Data Flow Diagram (DFD)"
+                desc = "Data flow diagram illustrating genomic sequence ingestion, DP scoring recurrence, and alignment output"
+            elif not self.is_hardware:
+                fig_title = "System Data Flow and Interaction Diagram (DFD)"
+                desc = "Data flow diagram illustrating subsystem component interactions and data exchange"
             else:
                 fig_title = "Complete Circuit Interconnection Diagram"
                 desc = f"Wiring diagram of {self.brief.implementation.board.name}, sensors, display module, and programming interface"
 
-            conn_path = Path("out/connection_diagram.png")
-            if conn_path.is_file():
+            if self.diagrams:
+                conn_path = self.diagrams.get("connection_diagram")
+            else:
+                conn_path = self.out_dir / "connection_diagram.png"
+
+            if conn_path and Path(conn_path).is_file():
                 p_img = doc.add_paragraph()
                 p_img.alignment = WD_ALIGN_PARAGRAPH.CENTER
                 p_img.paragraph_format.keep_with_next = True
@@ -1409,8 +1700,8 @@ class DocxReportBuilder:
             self._add_figure_caption(doc, fig_num, fig_title)
             self.figure_entries.append((fig_num, fig_title, "pg"))
 
-        # Section 3.5: Pin Mapping Table (only if pin table has elements)
-        elif ("pin configuration" in title_lower or "pin allocation" in title_lower or "peripheral mapping" in title_lower or (sec_id == "3.5" and domain == "EMBEDDED_HARDWARE")) and self.facts.pin_table:
+        # Section 3.5: Pin Mapping Table (hardware only)
+        elif self.is_hardware and ("pin configuration" in title_lower or "pin allocation" in title_lower or "peripheral mapping" in title_lower or (sec_id == "3.5" and domain == "EMBEDDED_HARDWARE")) and self.facts.pin_table:
             self.table_count += 1
             tbl_num = f"Table 3.{self.table_count}"
             tbl_title = "Microcontroller Pin Allocation and Peripheral Mapping"
@@ -1440,19 +1731,77 @@ class DocxReportBuilder:
             )
             self.table_entries.append((tbl_num, tbl_title, "pg"))
 
+        # Section 3.4 / 3.5: Subsystem Modules and Component Specifications Table (non-hardware)
+        elif not self.is_hardware and (
+            "interface specification" in title_lower
+            or "data schema" in title_lower
+            or "dataset organization" in title_lower
+            or "subsystem" in title_lower
+            or (sec_id in ("3.4", "3.5") and not any(k in title_lower for k in ("algorithm", "flowchart", "principle")))
+        ):
+            self.table_count += 1
+            tbl_num = f"Table 3.{self.table_count}"
+            tbl_title = "System Subsystem Modules and Component Specifications"
+            self._add_table_caption(doc, tbl_num, tbl_title)
+
+            raw_mods = getattr(self.brief.implementation, "modules", []) or []
+            if not raw_mods:
+                raw_mods = ["Ingestion & Input Interface", "Core Business Logic", "Data Persistence & Storage"]
+
+            t = doc.add_table(rows=len(raw_mods) + 1, cols=4)
+            t.rows[0].cells[0].paragraphs[0].text = "Subsystem Module"
+            t.rows[0].cells[1].paragraphs[0].text = "Architectural Layer"
+            t.rows[0].cells[2].paragraphs[0].text = "Primary Responsibility"
+            t.rows[0].cells[3].paragraphs[0].text = "Interface / Schema"
+
+            layer_map = [
+                ("Presentation Tier", "User interaction and input event handling", "REST API / GUI Events"),
+                ("Application Tier", "Core business rules and workflow execution", "Internal Service Calls"),
+                ("Data Access Tier", "State persistence and transaction records", "Database Queries / JSON"),
+                ("Integration Tier", "Inter-module telemetry and validation", "Event Payloads / HTTPS"),
+                ("Analytics Tier", "Performance telemetry and monitoring", "Log Streams / Metrics"),
+            ]
+            for idx, mod in enumerate(raw_mods, start=1):
+                layer, resp, iface = layer_map[(idx - 1) % len(layer_map)]
+                t.rows[idx].cells[0].paragraphs[0].text = mod
+                t.rows[idx].cells[1].paragraphs[0].text = layer
+                t.rows[idx].cells[2].paragraphs[0].text = resp
+                t.rows[idx].cells[3].paragraphs[0].text = iface
+
+            format_table(
+                t,
+                col_widths=[1.6, 1.4, 2.0, 1.4],
+                col_alignments=[
+                    WD_ALIGN_PARAGRAPH.LEFT,
+                    WD_ALIGN_PARAGRAPH.CENTER,
+                    WD_ALIGN_PARAGRAPH.LEFT,
+                    WD_ALIGN_PARAGRAPH.LEFT,
+                ],
+            )
+            self.table_entries.append((tbl_num, tbl_title, "pg"))
+
         # Section 3.6: Algorithm and Flowchart
         elif "flowchart" in title_lower or "algorithm" in title_lower or (sec_id == "3.6" and domain == "EMBEDDED_HARDWARE"):
             self.figure_count += 1
             fig_num = f"Figure 3.{self.figure_count}"
             if domain in ("MACHINE_LEARNING", "DATA_ANALYTICS"):
-                fig_title = "KNN Classification and Freshness Decision Flowchart"
+                is_vis = any(k in title_lower or k in (self.brief.abstract or "").lower() for k in ("image", "vision", "produce", "fruit", "vegetable", "glcm", "opencv", "freshness")) and not any(k in title_lower or k in (self.brief.abstract or "").lower() for k in ("student", "academic", "attendance", "random forest", "tabular"))
+                fig_title = "KNN Classification and Freshness Decision Flowchart" if is_vis else "Random Forest Ensemble Inference and Decision Flowchart"
             elif domain in ("SOFTWARE_APP", "WEB_CLOUD"):
                 fig_title = "Application Request Execution and Data Persistence Flowchart"
+            elif domain == "BIOINFORMATICS" or "bio" in domain.lower():
+                fig_title = "Sequence Alignment Algorithm and Verification Flowchart"
+            elif not self.is_hardware:
+                fig_title = "System Execution and Process Logic Flowchart"
             else:
                 fig_title = "System Execution and Logic Flowchart"
 
-            flow_path = Path("out/flowchart.png")
-            if flow_path.is_file():
+            if self.diagrams:
+                flow_path = self.diagrams.get("flowchart")
+            else:
+                flow_path = self.out_dir / "flowchart.png"
+
+            if flow_path and Path(flow_path).is_file():
                 p_img = doc.add_paragraph()
                 p_img.alignment = WD_ALIGN_PARAGRAPH.CENTER
                 p_img.paragraph_format.keep_with_next = True
@@ -1467,8 +1816,8 @@ class DocxReportBuilder:
             self._add_figure_caption(doc, fig_num, fig_title)
             self.figure_entries.append((fig_num, fig_title, "pg"))
 
-        # Section 3.7: Calibration & State Table (only if state ranges has elements)
-        elif ("calibration" in title_lower or "state classification" in title_lower or "threshold" in title_lower or (sec_id == "3.7" and domain == "EMBEDDED_HARDWARE")) and self.facts.state_ranges:
+        # Section 3.7: Calibration & State Table (hardware only)
+        elif self.is_hardware and ("calibration" in title_lower or "state classification" in title_lower or "threshold" in title_lower or (sec_id == "3.7" and domain == "EMBEDDED_HARDWARE")) and self.facts.state_ranges:
             self.table_count += 1
             tbl_num = f"Table 3.{self.table_count}"
             is_night_lamp = any("DARK" in sr.state_name for sr in self.facts.state_ranges)
@@ -1539,76 +1888,36 @@ class DocxReportBuilder:
             )
             self.table_entries.append((tbl_num, tbl_title, "pg"))
 
-        # Section 5.3: Photographs / Prototype Setup
-        elif "photograph" in title_lower or "prototype setup" in title_lower or (sec_id == "5.3" and domain == "EMBEDDED_HARDWARE"):
-            if domain == "SOFTWARE_APP":
-                add_placeholder_box(
-                    doc,
-                    "Photograph 5.1: Software Development and Execution Environment",
-                    "Please insert screenshot of the development environment, running terminal sessions, or GUI window layout.",
-                )
-            elif domain == "COA_SYSTEMS":
-                add_placeholder_box(
-                    doc,
-                    "Photograph 5.1: Simulation Platform and Datapath Execution Environment",
-                    "Please insert screenshot of the simulator environment displaying active register states and pipeline stages.",
-                )
-            else:
+        # Section 5.3: Photographs / Prototype Setup / Benchmark Results
+        elif sec_id == "5.3" or "prototype setup" in title_lower or "validation and benchmark" in title_lower or (self.is_hardware and "photograph" in title_lower):
+            if self.is_hardware:
                 add_placeholder_box(
                     doc,
                     "Photograph 5.1: Hardware Prototype Setup",
                     f"Please insert high-resolution photograph of the wired {self.brief.implementation.board.name} prototype setup.",
                 )
-
-        # Section 5.4: Screenshots / Telemetry
-        elif "screenshot" in title_lower or "telemetry" in title_lower or (sec_id == "5.4" and domain == "EMBEDDED_HARDWARE"):
-            if domain == "SOFTWARE_APP":
-                add_placeholder_box(
-                    doc,
-                    "Photograph 5.2: Application Output and Transaction Execution Logs",
-                    "Please insert screenshot of the terminal monitor displaying output logs, generated files, and user interactions.",
-                )
-            elif domain == "COA_SYSTEMS":
-                add_placeholder_box(
-                    doc,
-                    "Photograph 5.2: Memory Dump and Output Telemetry",
-                    "Please insert screenshot of memory dumps, simulated I/O traces, and register value logs.",
-                )
-            else:
-                add_placeholder_box(
-                    doc,
-                    "Photograph 5.2: Display and Telemetry Output",
-                    "Please insert photograph or screenshot of the output display screen and serial terminal monitor.",
-                )
-        elif sec_id == "5.3":
-            if self.brief.domain in ("EMBEDDED_HARDWARE", "EMBEDDED_IOT"):
-                add_placeholder_box(
-                    doc,
-                    "Photograph 5.1: Hardware Prototype Setup",
-                    "Please insert high-resolution photograph of the wired microcontroller, sensor, and display prototype.",
-                )
-            elif self.brief.domain == "MACHINE_LEARNING":
+            elif domain in ("MACHINE_LEARNING", "DATA_ANALYTICS"):
                 add_placeholder_box(
                     doc,
                     "Figure 5.1: Machine Learning Prototype and Classification Interface",
-                    "Please insert screenshot of the model execution environment, input produce image, and classification prediction interface.",
+                    "Please insert screenshot of the model execution environment, input sample, and classification prediction interface.",
                 )
             else:
                 add_placeholder_box(
                     doc,
                     "Figure 5.1: System Prototype Setup and User Interface",
-                    "Please insert screenshot of the application user interface and operational dashboard.",
+                    "Please insert screenshot of the application user interface, running terminal session, or benchmark validation dashboard.",
                 )
 
-        # Section 5.4: Output Screenshots
-        elif sec_id == "5.4":
-            if self.brief.domain in ("EMBEDDED_HARDWARE", "EMBEDDED_IOT"):
+        # Section 5.4: Screenshots / Telemetry
+        elif sec_id == "5.4" or "screenshot" in title_lower or "telemetry" in title_lower:
+            if self.is_hardware:
                 add_placeholder_box(
                     doc,
                     "Photograph 5.2: Output Display and Telemetry Output",
                     "Please insert photograph or screenshot of the output display screen and serial terminal monitor.",
                 )
-            elif self.brief.domain == "MACHINE_LEARNING":
+            elif domain in ("MACHINE_LEARNING", "DATA_ANALYTICS"):
                 add_placeholder_box(
                     doc,
                     "Figure 5.2: Output Confusion Matrix and Classification Metrics",
@@ -1618,8 +1927,9 @@ class DocxReportBuilder:
                 add_placeholder_box(
                     doc,
                     "Figure 5.2: System Output and Execution Telemetry",
-                    "Please insert screenshot of the application output telemetry and execution logs.",
+                    "Please insert screenshot of the application output telemetry, query results, and execution logs.",
                 )
+
 
     def _add_figure_caption(self, doc: Document, fig_num: str, caption_text: str):
         p = doc.add_paragraph()
@@ -1648,6 +1958,7 @@ class DocxReportBuilder:
 
     def _build_end_matter(self, doc: Document):
         """Render References and Code Appendices."""
+        domain = getattr(self.brief, "domain", None) or getattr(self.outline, "domain", "GENERAL_ACADEMIC")
         # References
         doc.add_page_break()
         p_ref = doc.add_paragraph()
@@ -1660,12 +1971,48 @@ class DocxReportBuilder:
 
         self.toc_entries.append(("REFERENCES", "chapter", "references"))
 
-        refs = self.brief.references or [
-            "STMicroelectronics, 'STM32F103x8 STM32F103xB Medium-density performance line ARM-based 32-bit MCU Datasheet', DocID 13587 Rev 17, 2020.",
-            "STMicroelectronics, 'RM0008 Reference Manual: STM32F101xx, STM32F102xx, STM32F103xx advanced ARM-based 32-bit MCUs', Rev 21, 2021.",
-            "STM32duino, 'Arduino Core for STM32 based boards', Official STMicroelectronics GitHub Repository, 2024.",
-            "Adafruit Industries, 'Adafruit SSD1306 OLED Driver Library Documentation', 2023.",
-        ]
+        if self.brief.references:
+            refs = self.brief.references
+        elif not self.is_hardware:
+            if domain in ("SOFTWARE_APP", "WEB_CLOUD"):
+                refs = [
+                    "Gamma, E., Helm, R., Johnson, R., & Vlissides, J. (1994). Design Patterns: Elements of Reusable Object-Oriented Software. Addison-Wesley.",
+                    "Bloch, J. (2018). Effective Java (3rd ed.). Addison-Wesley Professional.",
+                    "Martin, R. C. (2008). Clean Code: A Handbook of Agile Software Craftsmanship. Prentice Hall.",
+                    "Fielding, R. T. (2000). Architectural Styles and the Design of Network-based Software Architectures. Doctoral dissertation, University of California, Irvine.",
+                ]
+            elif domain in ("MACHINE_LEARNING", "DATA_ANALYTICS"):
+                refs = [
+                    "Hastie, T., Tibshirani, R., & Friedman, J. (2009). The Elements of Statistical Learning: Data Mining, Inference, and Prediction. Springer.",
+                    "Pedregosa, F., et al. (2011). Scikit-learn: Machine Learning in Python. Journal of Machine Learning Research, 12, 2825-2830.",
+                    "Chawla, N. V., et al. (2002). SMOTE: Synthetic Minority Over-sampling Technique. Journal of Artificial Intelligence Research, 16, 321-357.",
+                    "Breiman, L. (2001). Random Forests. Machine Learning, 45(1), 5-32.",
+                ]
+            elif domain == "BIOINFORMATICS" or "bio" in domain.lower():
+                refs = [
+                    "Altschul, S. F., et al. (1990). Basic local alignment search tool. Journal of Molecular Biology, 215(3), 403-410.",
+                    "Needleman, S. B., & Wunsch, C. D. (1970). A general method applicable to the search for similarities in the amino acid sequence of two proteins. Journal of Molecular Biology, 48(3), 443-453.",
+                    "Smith, T. F., & Waterman, M. S. (1981). Identification of common molecular subsequences. Journal of Molecular Biology, 147(1), 195-197.",
+                    "Cock, P. J., et al. (2009). Biopython: freely available Python tools for computational molecular biology and bioinformatics. Bioinformatics, 25(11), 1422-1423.",
+                ]
+            elif domain == "COA_SYSTEMS":
+                refs = [
+                    "Patterson, D. A., & Hennessy, J. L. (2020). Computer Organization and Design: The Hardware/Software Interface. Morgan Kaufmann.",
+                    "Waterman, A., & Asanovic, K. (2019). The RISC-V Instruction Set Manual, Volume I: User-Level ISA. RISC-V Foundation.",
+                ]
+            else:
+                refs = [
+                    "Sommerville, I. (2015). Software Engineering (10th ed.). Pearson.",
+                    "Pressman, R. S. (2014). Software Engineering: A Practitioner's Approach. McGraw-Hill.",
+                    "Tanenbaum, A. S., & Austin, T. (2012). Structured Computer Organization. Pearson.",
+                ]
+        else:
+            refs = [
+                "STMicroelectronics, 'STM32F103x8 STM32F103xB Medium-density performance line ARM-based 32-bit MCU Datasheet', DocID 13587 Rev 17, 2020.",
+                "STMicroelectronics, 'RM0008 Reference Manual: STM32F101xx, STM32F102xx, STM32F103xx advanced ARM-based 32-bit MCUs', Rev 21, 2021.",
+                "STM32duino, 'Arduino Core for STM32 based boards', Official STMicroelectronics GitHub Repository, 2024.",
+                "Adafruit Industries, 'Adafruit SSD1306 OLED Driver Library Documentation', 2023.",
+            ]
 
         for idx, ref_text in enumerate(refs, start=1):
             p = doc.add_paragraph()
@@ -1678,7 +2025,6 @@ class DocxReportBuilder:
             add_markdown_formatted_runs(p, ref_clean)
 
         # Appendix A: Source Code (only if code exists or outline specifies source code)
-        domain = getattr(self.brief, "domain", None) or getattr(self.outline, "domain", "GENERAL_ACADEMIC")
         has_code_files = any(Path(c).is_file() for c in self.brief.code_files_list)
         outline_has_code = any(item.id == "appendix_a_source_code" for item in self.outline.items)
 
@@ -1738,6 +2084,36 @@ class DocxReportBuilder:
                 "- Data Encoding: UTF-8 Standard Encoding\n"
                 "- Exception Policy: Graceful Degradation with Structured Error Trapping\n"
             )
+        elif domain == "WEB_CLOUD":
+            p_cfg.add_run(
+                "Cloud Deployment and Environment Configuration Details:\n"
+                "- Web Protocol: HTTP/1.1 and HTTPS / TLS 1.3 Encryption\n"
+                "- Container Platform: Docker Container Virtualization\n"
+                "- Port Allocation: Application Port 5000 / Web Service Port 443\n"
+                "- Process Management: Daemonized Multi-Worker Process Pool\n"
+                "- Cache & Session Store: In-Memory Key-Value Store\n"
+                "- API Specification: OpenAPI / Swagger 3.0 Standard Schema\n"
+            )
+        elif domain in ("MACHINE_LEARNING", "DATA_ANALYTICS"):
+            p_cfg.add_run(
+                "Machine Learning Model and Hyperparameter Specifications:\n"
+                "- Optimization Framework: Scikit-learn / PyTorch Analytical Kernel\n"
+                "- Acceleration Backend: CUDA / Multi-Threaded BLAS Operations\n"
+                "- Convergence Criterion: Tolerance tol=1e-4, Maximum Iterations 1000\n"
+                "- Feature Normalization: Standard / Min-Max Dynamic Scaling\n"
+                "- Model Validation Strategy: Stratified 5-Fold Cross-Validation\n"
+                "- Telemetry Logging: Macro Precision, Recall, F1-Score, and ROC-AUC\n"
+            )
+        elif domain == "BIOINFORMATICS" or "bio" in domain.lower():
+            p_cfg.add_run(
+                "Bioinformatics Computational Environment and Scoring Parameters:\n"
+                "- Alignment Mode: Global / Local Dynamic Programming Matrix Kernel\n"
+                "- Scoring Matrix: BLOSUM62 / PAM250 Substitution Model\n"
+                "- Gap Penalties: Existence Penalty d=-10, Extension Penalty e=-0.5\n"
+                "- Alphabet Validation: Strict Ambiguity Filter (IUPAC Nucleotide/Amino)\n"
+                "- Statistical Significance: Karlin-Altschul E-Value Threshold <= 1e-5\n"
+                "- Memory Scaling: Quadratic DP Space / Hirschberg Linear Space Option\n"
+            )
         elif domain == "COA_SYSTEMS":
             p_cfg.add_run(
                 "Architectural Simulation and Datapath Timing Details:\n"
@@ -1747,6 +2123,16 @@ class DocxReportBuilder:
                 "- Branch Prediction: Static / Dynamic 2-Bit Saturating Counter\n"
                 "- Memory Bus: Unified Memory Mapped I/O Bus (MMIO)\n"
                 "- Register File: 32 General-Purpose 32-bit Registers (x0 Hardwired to Zero)\n"
+            )
+        elif not self.is_hardware:
+            p_cfg.add_run(
+                "System Platform and Runtime Configuration Details:\n"
+                "- Runtime Platform: Multi-Platform Managed Runtime / Virtual Environment\n"
+                "- Memory Management: Automatic Dynamic Heap Management\n"
+                "- Execution Concurrency: Multi-Threaded / Asynchronous Event Loop\n"
+                "- Persistence Layer: Structured Relational Database / Formatted File Store\n"
+                "- Logging & Telemetry: Structured JSON Application Execution Logs\n"
+                "- Error Handling: Defensive Exception Interception and Recovery\n"
             )
         else:
             p_cfg.add_run(
@@ -1773,11 +2159,19 @@ class DocxReportBuilder:
 
         self.toc_entries.append(("APPENDIX C: Additional Output Images", "chapter", "appendix_c"))
 
-        add_placeholder_box(
-            doc,
-            "Appendix C Supplementary Images",
-            "Optional oscilloscope captures, serial plotter waveforms, or simulation scope traces.",
-        )
+        if self.is_hardware:
+            add_placeholder_box(
+                doc,
+                "Appendix C Supplementary Images",
+                "Optional oscilloscope captures, serial plotter waveforms, or simulation scope traces.",
+            )
+        else:
+            add_placeholder_box(
+                doc,
+                "Appendix C Supplementary Visualizations",
+                "Optional application screenshots, telemetry dashboard visualizations, or benchmark performance plots.",
+            )
+
 
     def _populate_toc_table(self, doc: Document):
         """Populate Table of Contents entries with structured Item numbers, Titles, and baseline page numbers."""

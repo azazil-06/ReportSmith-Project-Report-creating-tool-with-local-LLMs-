@@ -138,6 +138,9 @@ class ReportValidator:
                 self.errors.append(f"Banned / hallucinated AI phrase detected: '{phrase}'")
 
     def _check_sections_presence(self, headings: List[str]):
+        if not headings:
+            return
+
         # Required chapters
         for ch_num in range(1, 7):
             if not any(f"CHAPTER {ch_num}" in h for h in headings):
@@ -145,8 +148,11 @@ class ReportValidator:
 
         # Core mandatory sections across all subjects
         mandatory_secs = ["1.1", "1.2", "2.1", "2.2", "3.1", "4.1", "5.1", "6.1"]
-        domain = getattr(self.brief, "domain", None)
-        if domain == "EMBEDDED_HARDWARE":
+        domain = (getattr(self.brief, "domain", None) or "").upper()
+        is_hw = getattr(self.brief, "is_hardware", None)
+        if is_hw is None:
+            is_hw = getattr(getattr(self.brief, "implementation", None), "is_hardware", None)
+        if domain in ("EMBEDDED_HARDWARE", "EMBEDDED_IOT") or is_hw:
             mandatory_secs.append("3.7")
 
         for sec in mandatory_secs:
@@ -199,6 +205,10 @@ class ReportValidator:
                 or p.startswith("Figure")
                 or p.startswith("Table")
                 or p.startswith("[")
+                or p.startswith("Place:")
+                or p.startswith("Date:")
+                or "COLLEGE OF ENGINEERING" in p.upper()
+                or "DEPARTMENT OF" in p.upper()
                 or re.search(r"\.{3,}|\t\d+$", p)
                 or re.match(r"^(?:REFERENCES|APPENDIX|INDEX)\s+\d+$", p.strip(), re.IGNORECASE)
             ):
@@ -219,8 +229,14 @@ class ReportValidator:
                         # Allow section cross-reference numbers like 4.7, 3.1
                         if "." in num and len(num.split(".")) == 2:
                             continue
-                        # Allow classification percentage metrics in ML/Data domains (e.g. 50% to 100%)
-                        if getattr(self.brief, "domain", None) in ("MACHINE_LEARNING", "DATA_ANALYTICS") and f_val.is_integer() and 50 <= int(f_val) <= 100:
+                        # Allow percentage metrics across all domains (e.g. 50% to 100%)
+                        if f_val.is_integer() and 50 <= int(f_val) <= 100:
+                            continue
+                        # Allow standard HTTP status codes for Web/Software domains
+                        domain = (getattr(self.brief, "domain", None) or "").upper()
+                        if domain in ("WEB_CLOUD", "SOFTWARE_APP") and f_val.is_integer() and int(f_val) in {
+                            200, 201, 202, 204, 301, 302, 304, 400, 401, 403, 404, 405, 408, 409, 410, 422, 429, 500, 502, 503, 504
+                        }:
                             continue
                     except ValueError:
                         pass

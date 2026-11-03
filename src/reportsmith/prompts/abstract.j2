@@ -6,13 +6,21 @@ Target Length: {{ target_words }} words
 
 PROJECT DATA:
 - Title: {{ brief.project.title }}
-- {% if brief.domain in ['MACHINE_LEARNING', 'SOFTWARE_APP', 'DATA_ANALYTICS', 'WEB_CLOUD'] %}Platform / Environment: {{ brief.implementation.board.name }} ({{ brief.implementation.board.mcu_part_number }}){% else %}Microcontroller: {{ brief.implementation.board.mcu_part_number }} ({{ brief.implementation.board.name }}, {{ brief.implementation.board.core }} @ {{ brief.implementation.board.clock }}){% endif %}
+{% if brief.implementation.is_hardware or brief.domain in ['EMBEDDED_HARDWARE', 'EMBEDDED_IOT'] %}
+- Microcontroller: {{ brief.implementation.board.mcu_part_number }} ({{ brief.implementation.board.name }}, {{ brief.implementation.board.core }} @ {{ brief.implementation.board.clock }})
+{% else %}
+- Platform / Environment: {{ brief.implementation.board.name }} ({{ brief.implementation.board.mcu_part_number }})
+{% endif %}
 - Framework: {{ brief.implementation.framework }}
-- {% if brief.domain in ['MACHINE_LEARNING', 'SOFTWARE_APP', 'DATA_ANALYTICS', 'WEB_CLOUD'] %}Subsystems & Modules:{% else %}Hardware Components & Peripherals:{% endif %}
+{% if brief.implementation.is_hardware or brief.domain in ['EMBEDDED_HARDWARE', 'EMBEDDED_IOT'] %}
+- Hardware Components & Peripherals:
+{% else %}
+- Subsystems & Modules:
+{% endif %}
 {% for c in brief.implementation.components %}
   - {{ c.name }}: {{ c.role }} ({{ c.interface }})
 {% endfor %}
-{% if brief.implementation.pins %}
+{% if brief.implementation.pins and (brief.implementation.is_hardware or brief.domain in ['EMBEDDED_HARDWARE', 'EMBEDDED_IOT']) %}
 - Pin Interconnections:
 {% for p in brief.implementation.pins %}
   - {{ p.pin }} ({{ p.peripheral }}): {{ p.connected_to }} - {{ p.function }}
@@ -22,7 +30,7 @@ PROJECT DATA:
 {% for k, v in facts.constants.items() %}
   - {{ k }} = {{ v }}
 {% endfor %}
-{% if brief.domain not in ['MACHINE_LEARNING', 'SOFTWARE_APP', 'DATA_ANALYTICS', 'WEB_CLOUD'] %}
+{% if brief.implementation.is_hardware or brief.domain in ['EMBEDDED_HARDWARE', 'EMBEDDED_IOT'] %}
 - Telemetry: Serial USART1 at {{ brief.implementation.serial_baud }} baud
 {% endif %}
 - Operational States & Classes:

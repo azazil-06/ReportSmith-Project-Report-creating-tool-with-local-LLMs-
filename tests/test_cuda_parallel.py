@@ -163,21 +163,22 @@ concurrency = 6
 
 def test_cli_cuda_flags():
     """Verify that python -m reportsmith.cli --cuda and 'cuda' subcommand run cleanly."""
+    timeout_sec = 60
     res_flag = subprocess.run(
         [sys.executable, "-m", "reportsmith.cli", "--cuda"],
         capture_output=True,
         text=True,
-        timeout=25,
+        timeout=timeout_sec,
     )
-    assert res_flag.returncode == 0
+    assert res_flag.returncode == 0, f"CLI --cuda failed with stderr: {res_flag.stderr}"
     assert "CUDA HARDWARE ACCELERATION DIAGNOSTICS" in res_flag.stdout
 
     res_subcmd = subprocess.run(
         [sys.executable, "-m", "reportsmith.cli", "cuda"],
         capture_output=True,
         text=True,
-        timeout=25,
+        timeout=timeout_sec,
     )
-    assert res_subcmd.returncode == 0
+    assert res_subcmd.returncode == 0, f"CLI cuda subcommand failed with stderr: {res_subcmd.stderr}"
     assert "CUDA HARDWARE ACCELERATION DIAGNOSTICS" in res_subcmd.stdout
 

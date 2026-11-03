@@ -1,5 +1,5 @@
 {
-  "created_at": "2026-11-01T00:56:43.489501",
+  "created_at": "2026-11-03T08:39:36.358528",
   "version": "2.0.0",
   "training_dir": "training",
   "documents_count": 9,
@@ -14046,6 +14046,10 @@
         }
       ]
     },
+    "MACHINE_LEARNING": {},
+    "WEB_CLOUD": {},
+    "DATA_ANALYTICS": {},
+    "BIOINFORMATICS": {},
     "GENERAL_ACADEMIC": {}
   }
 }

@@ -1,0 +1,4 @@
+.agents
+training/
+cache/
+.pytest_cache

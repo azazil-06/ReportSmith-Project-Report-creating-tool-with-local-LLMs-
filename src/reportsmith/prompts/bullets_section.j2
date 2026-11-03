@@ -5,15 +5,23 @@ Target Length: {{ target_words }} words
 
 SECTION DETAILS:
 - Topic: {{ section_title }}
-- {% if brief.domain in ['MACHINE_LEARNING', 'SOFTWARE_APP', 'DATA_ANALYTICS', 'WEB_CLOUD'] %}Platform / Environment: {{ brief.implementation.board.name }} ({{ brief.implementation.board.mcu_part_number }}){% else %}Microcontroller: {{ brief.implementation.board.mcu_part_number }} ({{ brief.implementation.board.name }}){% endif %}
-- Framework & Tools: {{ brief.implementation.framework }}{% if brief.implementation.libraries %}, {{ brief.implementation.libraries | join(', ') }}{% endif %}
+{% if brief.implementation.is_hardware or brief.domain in ['EMBEDDED_HARDWARE', 'EMBEDDED_IOT'] %}
+- Microcontroller: {{ brief.implementation.board.mcu_part_number }} ({{ brief.implementation.board.name }})
+{% else %}
+- Platform / Environment: {{ brief.implementation.board.name }} ({{ brief.implementation.board.mcu_part_number }})
+{% endif %}
+{% if brief.implementation.libraries %}
+- Framework & Tools: {{ brief.implementation.framework }}, {{ brief.implementation.libraries | join(', ') }}
+{% else %}
+- Framework & Tools: {{ brief.implementation.framework }}
+{% endif %}
 {% if brief.implementation.components %}
 - System Subsystems:
 {% for c in brief.implementation.components %}
   - {{ c.name }}: {{ c.role }}
 {% endfor %}
 {% endif %}
-{% if brief.implementation.pins %}
+{% if brief.implementation.pins and (brief.implementation.is_hardware or brief.domain in ['EMBEDDED_HARDWARE', 'EMBEDDED_IOT']) %}
 - Pins:
 {% for p in brief.implementation.pins %}
   - {{ p.pin }}: {{ p.peripheral }} connected to {{ p.connected_to }} ({{ p.function }})

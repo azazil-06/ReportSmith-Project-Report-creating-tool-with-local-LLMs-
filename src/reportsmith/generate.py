@@ -5,6 +5,7 @@ import hashlib
 import json
 import logging
 import os
+import shutil
 import time
 from pathlib import Path
 from typing import Any, Dict, List, Optional, Set, Union
@@ -114,12 +115,110 @@ def build_section_prompt(
         )
 
 
-def compute_cache_key(prompt: str, model: str, temperature: float, seed: int) -> str:
+def check_and_update_active_manifest(
+    base_cache_dir: Path,
+    project_signature: str,
+    project_title: Optional[str] = None,
+    domain: Optional[str] = None,
+) -> None:
+    """Manage cache/active_manifest.json and auto-purge stale cache on project change."""
+    manifest_path = base_cache_dir / "active_manifest.json"
+    manifest_data = {}
+    if manifest_path.is_file():
+        try:
+            with open(manifest_path, "r", encoding="utf-8") as f:
+                manifest_data = json.load(f)
+        except Exception as e:
+            logger.warning(f"Could not read active_manifest.json: {e}")
+
+    prev_sig = manifest_data.get("project_signature")
+    if prev_sig and prev_sig != project_signature:
+        logger.info(
+            f"[CACHE] Project change detected ('{prev_sig}' -> '{project_signature}'). "
+            "Purging stale project caches."
+        )
+        # Purge stale project directory for prev_sig
+        stale_dir = base_cache_dir / prev_sig
+        if stale_dir.is_dir():
+            try:
+                shutil.rmtree(stale_dir, ignore_errors=True)
+                logger.info(f"[CACHE] Removed stale project cache: {stale_dir}")
+            except Exception as e:
+                logger.warning(f"Failed removing stale project cache: {e}")
+
+        # Also purge any other subdirectories in base_cache_dir that are not current project_signature
+        try:
+            for item in base_cache_dir.iterdir():
+                if item.is_dir() and item.name != project_signature:
+                    shutil.rmtree(item, ignore_errors=True)
+        except Exception:
+            pass
+
+    # Clean unpartitioned legacy root files in base_cache_dir
+    try:
+        for f in list(base_cache_dir.glob("*.json")) + list(base_cache_dir.glob("*.tmp")):
+            if f.name != "active_manifest.json":
+                try:
+                    f.unlink(missing_ok=True)
+                except Exception:
+                    pass
+    except Exception:
+        pass
+
+    # Update manifest
+    new_manifest = {
+        "project_signature": project_signature,
+        "project_title": project_title or manifest_data.get("project_title", ""),
+        "domain": domain or manifest_data.get("domain", ""),
+        "timestamp": time.time(),
+    }
+    try:
+        temp_manifest = manifest_path.with_name(f".manifest_{os.getpid()}_{time.time_ns()}.tmp")
+        with open(temp_manifest, "w", encoding="utf-8") as f:
+            json.dump(new_manifest, f, indent=2)
+        temp_manifest.replace(manifest_path)
+    except Exception as e:
+        logger.warning(f"Could not write active_manifest.json: {e}")
+
+
+def compute_cache_key(
+    project_signature: Optional[str] = None,
+    prompt: str = "",
+    model: str = "stub",
+    temperature: float = 0.0,
+    seed: int = 42,
+    **kwargs,
+) -> str:
+    """Compute project-scoped SHA256 cache key.
+
+    Supports 5-arg contract:
+        compute_cache_key(project_signature, prompt, model, temperature, seed)
+    And backwards-compatible 4-arg legacy calls:
+        compute_cache_key(prompt, model, temperature, seed)
+    Also supports keyword arguments.
+    """
+    if isinstance(model, (int, float)):
+        # 4-arg legacy positional call: (prompt, model, temperature, seed)
+        actual_prompt = str(project_signature or "")
+        actual_model = str(prompt or "stub")
+        actual_temp = float(model)
+        actual_seed = int(temperature)
+        actual_sig = kwargs.get("project_signature", "")
+    else:
+        # 5-arg contract positional call or keyword call
+        actual_sig = project_signature or kwargs.get("project_signature", "")
+        actual_prompt = prompt or kwargs.get("prompt", "")
+        actual_model = str(model or kwargs.get("model", "stub"))
+        actual_temp = float(kwargs.get("temperature", temperature))
+        actual_seed = int(kwargs.get("seed", seed))
+
     hasher = hashlib.sha256()
-    hasher.update(prompt.encode("utf-8"))
-    hasher.update(model.encode("utf-8"))
-    hasher.update(str(temperature).encode("utf-8"))
-    hasher.update(str(seed).encode("utf-8"))
+    if actual_sig:
+        hasher.update(str(actual_sig).encode("utf-8"))
+    hasher.update(str(actual_prompt).encode("utf-8"))
+    hasher.update(str(actual_model).encode("utf-8"))
+    hasher.update(str(actual_temp).encode("utf-8"))
+    hasher.update(str(actual_seed).encode("utf-8"))
     return hasher.hexdigest()
 
 
@@ -131,11 +230,22 @@ class SectionGenerator:
         llm: LLMClient,
         config: ReportSmithConfig,
         cache_dir: Optional[Union[str, Path]] = None,
+        project_signature: Optional[str] = None,
     ):
         self.llm = llm
         self.config = config
-        self.cache_dir = Path(cache_dir or config.paths.cache_dir)
-        self.cache_dir.mkdir(parents=True, exist_ok=True)
+        self.base_cache_dir = Path(cache_dir or config.paths.cache_dir)
+        self.project_signature = project_signature
+        if self.project_signature:
+            self.cache_dir = self.base_cache_dir / self.project_signature
+            self.cache_dir.mkdir(parents=True, exist_ok=True)
+            check_and_update_active_manifest(
+                self.base_cache_dir,
+                self.project_signature,
+            )
+        else:
+            self.cache_dir = self.base_cache_dir
+            self.cache_dir.mkdir(parents=True, exist_ok=True)
 
     def generate_all(
         self,
@@ -150,6 +260,15 @@ class SectionGenerator:
         """Generate all prose sections in outline, using cache where available.
         Supports parallel section generation accelerated by CUDA and multithreading.
         """
+        if brief and self.project_signature:
+            title = brief.project.title if brief.project else ""
+            check_and_update_active_manifest(
+                self.base_cache_dir,
+                self.project_signature,
+                project_title=title,
+                domain=brief.domain,
+            )
+
         results: Dict[str, Dict[str, Any]] = {}
 
         # Items that require LLM prose generation
@@ -243,6 +362,7 @@ class SectionGenerator:
     ) -> Dict[str, Any]:
         """Generate a single section with disk caching."""
         cache_key = compute_cache_key(
+            self.project_signature or "",
             prompt,
             getattr(self.llm, "model", "stub"),
             getattr(self.llm, "temperature", 0.0),
@@ -254,8 +374,10 @@ class SectionGenerator:
             try:
                 with open(cache_file, "r", encoding="utf-8") as f:
                     cached_data = json.load(f)
-                logger.info(f"[CACHE HIT] Section {section_id} ({section_title})")
-                return cached_data["data"]
+                cached_sig = cached_data.get("project_signature")
+                if not self.project_signature or cached_sig is None or cached_sig == self.project_signature:
+                    logger.info(f"[CACHE HIT] Section {section_id} ({section_title})")
+                    return cached_data["data"]
             except Exception as e:
                 logger.warning(f"Failed reading cache for {section_id}: {e}")
 
@@ -284,6 +406,7 @@ class SectionGenerator:
             with open(unique_tmp, "w", encoding="utf-8") as f:
                 json.dump(
                     {
+                        "project_signature": self.project_signature,
                         "section_id": section_id,
                         "title": section_title,
                         "data": res,

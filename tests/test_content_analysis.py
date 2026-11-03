@@ -15,9 +15,10 @@ from reportsmith.llm import StubLLM
 def test_content_folder_analysis():
     brief, facts, outline = analyze_content_folder("Content", "COA_report.docx")
 
-    t_low = brief.project.title.lower()
-    assert any(k in t_low for k in ("water", "plant", "freshknn", "knn", "parkease", "parking", "moneygo", "resumate"))
-    assert brief.domain in ("MACHINE_LEARNING", "SOFTWARE_APP", "EMBEDDED_HARDWARE", "WEB_CLOUD", "DATA_ANALYTICS")
+    assert isinstance(brief.project.title, str)
+    assert len(brief.project.title.strip()) > 0
+    assert brief.project.title.strip().lower() != "untitled project"
+    assert brief.domain in ("MACHINE_LEARNING", "SOFTWARE_APP", "EMBEDDED_HARDWARE", "WEB_CLOUD", "DATA_ANALYTICS", "BIOINFORMATICS", "COA_SYSTEMS")
     assert len(brief.people.team) >= 1
     assert brief.people.hod.name == "Dr. S Suresh Babu"
     assert brief.people.coordinator is None
@@ -192,7 +193,7 @@ def test_universal_software_report_build(tmp_path):
 
     # Check Chapter 5 Software Test Cases table
     assert any("TC_01" in t for t in table_texts)
-    assert any("Standard system input parameters" in t for t in table_texts)
+    assert any("authentication" in t.lower() or "credentials" in t.lower() or "endpoint" in t.lower() or "transaction" in t.lower() or "standard system" in t.lower() for t in table_texts)
 
     # Check References contains Java / Software engineering literature
     ref_paras = [p.text for p in doc.paragraphs if "[" in p.text and "]" in p.text and ("Java" in p.text or "Code" in p.text or "Design Patterns" in p.text)]

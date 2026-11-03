@@ -25,9 +25,18 @@ DOMAIN_EMBEDDED = "EMBEDDED_HARDWARE"
 DOMAIN_ML = "MACHINE_LEARNING"
 DOMAIN_WEB = "WEB_CLOUD"
 DOMAIN_DATA = "DATA_ANALYTICS"
+DOMAIN_BIOINFORMATICS = "BIOINFORMATICS"
 DOMAIN_GENERAL = "GENERAL_ACADEMIC"
 
 DOMAIN_KEYWORDS = {
+    DOMAIN_BIOINFORMATICS: [
+        "bioinformatics", "genomic", "genomics", "nucleotide", "dna", "rna",
+        "sequence alignment", "smith-waterman", "needleman-wunsch", "blast",
+        "ncbi", "fasta", "fastq", "protein", "amino acid", "codon", "genome",
+        "crispr", "phylogenetic", "gene expression", "biopython", "gap penalty",
+        "affine gap", "base pairs", "sequencing", "variant calling",
+        "transcriptomics", "proteomics", "molecular", "sequence analysis",
+    ],
     DOMAIN_ML: [
         "machine learning", "deep learning", "neural network", "knn",
         "k-nearest", "classification", "regression", "clustering",
@@ -59,6 +68,8 @@ DOMAIN_KEYWORDS = {
         "gcp", "deployment", "ci/cd", "devops", "serverless",
         "responsive design", "single page application", "spa",
         "full stack", "frontend framework", "backend framework",
+        "mern", "restful", "jwt", "mongodb", "full-stack", "endpoint", "endpoints",
+        "web application", "web platform", "token", "tokens",
     ],
     DOMAIN_DATA: [
         "big data", "data analytics", "data mining", "data warehouse",
@@ -86,19 +97,19 @@ DOMAIN_KEYWORDS = {
 def classify_text_domain(text: str) -> str:
     """Classify text into a domain based on keyword frequency analysis.
 
-    Supported domains: MACHINE_LEARNING, COA_SYSTEMS, WEB_CLOUD, DATA_ANALYTICS,
+    Supported domains: BIOINFORMATICS, MACHINE_LEARNING, COA_SYSTEMS, WEB_CLOUD, DATA_ANALYTICS,
     SOFTWARE_APP, EMBEDDED_HARDWARE, GENERAL_ACADEMIC.
     """
     t_lower = text.lower()
     scores = {}
     for domain, kws in DOMAIN_KEYWORDS.items():
-        score = sum(t_lower.count(kw) for kw in kws)
+        score = sum(len(re.findall(rf"\b{re.escape(kw)}\b", t_lower)) for kw in kws)
         scores[domain] = score
 
     # Pick the domain with the highest score; break ties by specificity order
     priority_order = [
-        DOMAIN_ML, DOMAIN_COA, DOMAIN_WEB, DOMAIN_DATA,
-        DOMAIN_EMBEDDED, DOMAIN_SOFTWARE,
+        DOMAIN_BIOINFORMATICS, DOMAIN_ML, DOMAIN_COA, DOMAIN_WEB,
+        DOMAIN_DATA, DOMAIN_EMBEDDED, DOMAIN_SOFTWARE,
     ]
     best_domain = DOMAIN_GENERAL
     best_score = 0
@@ -512,6 +523,10 @@ class ReportTrainer:
             DOMAIN_SOFTWARE: {},
             DOMAIN_COA: {},
             DOMAIN_EMBEDDED: {},
+            DOMAIN_ML: {},
+            DOMAIN_WEB: {},
+            DOMAIN_DATA: {},
+            DOMAIN_BIOINFORMATICS: {},
             DOMAIN_GENERAL: {},
         }
 
@@ -672,3 +687,174 @@ Strict factual grounding: NEVER hallucinate unprovided components, pin assignmen
             "modelfile_path": str(modelfile_path),
             "summary_path": str(summary_path),
         }
+
+
+# Hardware domain identifier set
+HARDWARE_DOMAINS = {DOMAIN_EMBEDDED, "EMBEDDED_IOT"}
+
+# Banned hardware tokens for non-hardware exemplars
+BANNED_HARDWARE_TOKENS = {
+    "stm32", "microcontroller", "pinout", "mcu", "sensor", "moisture",
+    "blue pill", "st-link", "hc-sr04", "ultrasonic", "gpio", "firmware",
+    "adc", "cortex-m", "breadboard", "actuator", "soil moisture", "active-low",
+    "arduino", "esp32", "esp8266", "raspberry pi", "atmega", "avr",
+    "sensor wiring", "pa0", "pc13", "ldr", "stm32f103", "stm32f103c8t6",
+}
+
+
+class ExemplarStore:
+    """Manages domain-aware, project-isolated query and retrieval of training exemplars."""
+
+    def __init__(self, db_path: Optional[Union[str, Path]] = None, db_data: Optional[Dict[str, Any]] = None):
+        self.db_path = Path(db_path) if db_path else Path("out/training_database.json")
+        self.db_data = db_data or self._load_db()
+
+    def _load_db(self) -> Dict[str, Any]:
+        if self.db_path and self.db_path.is_file():
+            try:
+                with open(self.db_path, "r", encoding="utf-8") as f:
+                    return json.load(f)
+            except Exception as e:
+                logger.warning(f"Could not load exemplar database from {self.db_path}: {e}")
+        return {"documents": [], "exemplars": {}}
+
+    def get_exact_project_match(
+        self,
+        active_title: str,
+        active_domain: str,
+        min_token_overlap: float = 0.85,
+    ) -> Optional[Dict[str, Any]]:
+        """Match a document strictly by token similarity and domain congruence.
+
+        Returns matched document dict if and only if:
+        1. Domains are congruent (both hardware or both non-hardware, and matching domain string).
+        2. Normalized title token overlap (Jaccard similarity) meets or exceeds min_token_overlap.
+        """
+        if not active_title or not self.db_data.get("documents"):
+            return None
+
+        # Normalize active title tokens (ignore stopwords)
+        stopwords = {"a", "an", "the", "and", "or", "of", "in", "for", "using", "based", "system", "report", "project"}
+        a_tokens = set(re.findall(r"\b[a-zA-Z0-9]{3,}\b", active_title.lower())) - stopwords
+        if not a_tokens:
+            return None
+
+        is_active_hw = active_domain in HARDWARE_DOMAINS
+        best_doc = None
+        best_score = 0.0
+
+        for doc in self.db_data.get("documents", []):
+            doc_domain = doc.get("domain", DOMAIN_GENERAL)
+            is_doc_hw = doc_domain in HARDWARE_DOMAINS
+
+            # STRICT DOMAIN ISOLATION: Never match hardware with non-hardware!
+            if is_active_hw != is_doc_hw:
+                continue
+            if active_domain and doc_domain and active_domain != doc_domain:
+                continue
+
+            doc_title = doc.get("title", "")
+            d_tokens = set(re.findall(r"\b[a-zA-Z0-9]{3,}\b", doc_title.lower())) - stopwords
+            if not d_tokens:
+                continue
+
+            union = a_tokens | d_tokens
+            if not union:
+                continue
+            overlap = len(a_tokens & d_tokens) / len(union)
+            if overlap >= min_token_overlap and overlap > best_score:
+                best_score = overlap
+                best_doc = doc
+
+        return best_doc
+
+    def get_domain_exemplar(
+        self,
+        domain: str,
+        role: str,
+        is_hardware: bool = False,
+    ) -> Optional[Dict[str, Any]]:
+        """Retrieve a style exemplar strictly filtered by domain and hardware mode.
+
+        Guarantees:
+        - If is_hardware is False: EMBEDDED_HARDWARE exemplars are strictly banned.
+        - Prose is scanned to ensure ZERO hardware tokens leak into non-hardware requests.
+        - If no congruent exemplar exists, returns neutral generic academic fallback.
+        """
+        dom = domain.upper() if domain else DOMAIN_GENERAL
+
+        if not is_hardware:
+            # Caller requested non-hardware mode: strictly ban hardware domains
+            if dom in HARDWARE_DOMAINS:
+                return self._get_neutral_generic_exemplar(role)
+            is_hw = False
+        else:
+            is_hw = is_hardware or (dom in HARDWARE_DOMAINS)
+
+        # 1. Lookup in curated domain exemplars
+        exemplars = self.db_data.get("exemplars", {})
+        if dom in exemplars and role in exemplars[dom] and exemplars[dom][role]:
+            candidates = exemplars[dom][role]
+            for cand in candidates:
+                paras = cand.get("paragraphs", [])
+                bullets = cand.get("bullets", [])
+                text_combined = " ".join(paras + bullets).lower()
+
+                # If non-hardware, sanitize against banned hardware tokens
+                if not is_hw:
+                    if any(re.search(rf"\b{re.escape(tok)}\b", text_combined) for tok in BANNED_HARDWARE_TOKENS):
+                        continue  # Quarantined: contains hardware references!
+
+                return {
+                    "paragraphs": paras[:3],
+                    "bullets": bullets[:4],
+                    "source_role": role,
+                    "domain": dom,
+                }
+
+        # 2. Neutral generic academic fallback (clean Indian/UK English, zero hardware)
+        if not is_hw:
+            return self._get_neutral_generic_exemplar(role)
+
+        return None
+
+    def _get_neutral_generic_exemplar(self, role: str) -> Optional[Dict[str, Any]]:
+        """Provide clean, domain-neutral academic prose exemplars for unrepresented non-hardware domains."""
+        NEUTRAL_TEMPLATES = {
+            "abstract": [
+                "This project presents the design, implementation, and empirical evaluation of a structured technical solution addressing core domain requirements.",
+                "The methodology combines modular architectural principles with systematic verification protocols to achieve deterministic, reliable outcomes.",
+            ],
+            "introduction": [
+                "The advancement of modern computational paradigms has led to increasing reliance on structured, high-efficiency software architectures.",
+                "This project addresses systematic engineering challenges by establishing rigorous design patterns and robust operational methodologies.",
+            ],
+            "objectives": [
+                "Design and construct a modular, decoupled technical architecture capable of deterministic execution.",
+                "Implement scalable algorithmic components conforming to formal technical specifications and performance benchmarks.",
+            ],
+            "scope": [
+                "The operational scope encompasses modular functional components designed for reproducible deployment in standard computational environments.",
+                "System boundaries are defined by formal interface specifications, deterministic data structures, and verified operational workflows.",
+            ],
+            "applications": [
+                "The architectural framework applies directly to modern computational systems requiring high-reliability automated data processing.",
+                "Practical use cases span diverse academic and industry domains seeking modular, maintainable technical implementations.",
+            ],
+            "specifications": [
+                "The system is designed to execute within standard production environments utilizing modern runtime dependencies.",
+                "Computational requirements specify structured memory management, thread-safe state persistence, and reproducible configuration pipelines.",
+            ],
+            "conclusion": [
+                "The technical solution demonstrated successful execution against defined project objectives and functional criteria.",
+                "Empirical observations confirm structural stability, modular maintainability, and readiness for extended operational deployment.",
+            ],
+            "future_scope": [
+                "Future research and development will focus on scaling algorithmic throughput, extending modular interoperability, and optimizing computational efficiency.",
+                "Subsequent iterations aim to integrate automated testing pipelines and distributed operational telemetry.",
+            ],
+        }
+        if role in NEUTRAL_TEMPLATES:
+            return {"paragraphs": NEUTRAL_TEMPLATES[role], "bullets": [], "source_role": role, "domain": DOMAIN_GENERAL}
+        return None
+

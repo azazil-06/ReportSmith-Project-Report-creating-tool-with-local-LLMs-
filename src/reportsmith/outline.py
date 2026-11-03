@@ -229,6 +229,8 @@ def synthesize_universal_outline(
     abstract_text: Optional[str] = None,
     modules: Optional[List[str]] = None,
     has_code: bool = True,
+    is_hardware: Optional[bool] = None,
+    brief: Optional[Any] = None,
 ) -> ReportOutline:
     """Synthesize complete, publication-grade academic outline for any subject when no rules file is provided.
 
@@ -251,8 +253,24 @@ def synthesize_universal_outline(
     16. References
     17. Appendix A - Complete Source Code (if code present)
 
-    Dynamically invents appropriate subheadings and topics based on the abstract, title, and domain.
+    Dynamically invents appropriate subheadings and topics based on the abstract, title, and domain,
+    conditioned strictly on is_hardware.
     """
+    if is_hardware is None:
+        if brief is not None:
+            is_hardware = getattr(getattr(brief, "implementation", None), "is_hardware", None)
+            if is_hardware is None:
+                is_hardware = getattr(brief, "is_hardware", None)
+    if is_hardware is None:
+        domain_clean = (domain or "GENERAL_ACADEMIC").upper()
+        is_hardware = (domain_clean in ("EMBEDDED_HARDWARE", "EMBEDDED_IOT"))
+
+    domain_clean = (domain or "GENERAL_ACADEMIC").upper()
+    if brief is not None:
+        brief_dom = getattr(brief, "domain", None)
+        if brief_dom and domain == "GENERAL_ACADEMIC":
+            domain_clean = brief_dom.upper()
+
     items: List[OutlineItem] = [
         OutlineItem(kind="prelim", id="title_page", title="Title Page"),
         OutlineItem(kind="prelim", id="certificate", title="Bonafide Certificate"),
@@ -273,7 +291,7 @@ def synthesize_universal_outline(
     items.append(OutlineItem(kind="section", id="1.4", title="Applications", number="1.4", chapter="1"))
 
     # Chapter 2: System Specifications / Requirements
-    if domain == "EMBEDDED_HARDWARE":
+    if is_hardware:
         ch2_title = "Hardware and Software Requirements"
         sec2 = [
             ("2.1", "STM32 Microcontroller Overview"),
@@ -282,24 +300,43 @@ def synthesize_universal_outline(
             ("2.4", "Software Requirements"),
             ("2.5", "STM32CubeIDE and STM32 HAL Library"),
         ]
-    elif domain == "MACHINE_LEARNING":
-        ch2_title = "Hardware and Software Requirements"
+    elif domain_clean == "BIOINFORMATICS" or "BIO" in domain_clean:
+        ch2_title = "System Specifications and Platform Requirements"
+        sec2 = [
+            ("2.1", "Computational Environment and System Specifications"),
+            ("2.2", "Algorithmic Framework and Software Dependencies"),
+            ("2.3", "High-Performance Computing and Infrastructure Requirements"),
+            ("2.4", "Genomic Dataset Specifications and Input Constraints"),
+            ("2.5", "System Design Constraints and Quality Standards"),
+        ]
+    elif domain_clean in ("MACHINE_LEARNING", "DATA_ANALYTICS"):
+        ch2_title = "Computational Platform and Software Requirements"
         sec2 = [
             ("2.1", "Operational Environment and Computational Specifications"),
             ("2.2", "Machine Learning Framework and Software Requirements"),
-            ("2.3", "Hardware Infrastructure and GPU Acceleration Requirements"),
+            ("2.3", "Computational Infrastructure and GPU Acceleration Requirements"),
             ("2.4", "Dataset Specifications and Input Constraints"),
             ("2.5", "Design Constraints and Quality Standards"),
         ]
-    elif domain == "SOFTWARE_APP":
+    elif domain_clean == "SOFTWARE_APP":
         ch2_title = "Software and System Requirements"
         sec2 = [
             ("2.1", "Operational Environment and System Specifications"),
             ("2.2", "Functional and Feature Requirements"),
             ("2.3", "Software and Technology Stack Requirements"),
-            ("2.4", "Hardware and Platform Requirements"),
+            ("2.4", "Computational Platform and Infrastructure Requirements"),
+            ("2.5", "Design Constraints and Quality Standards"),
         ]
-    elif domain == "COA_SYSTEMS":
+    elif domain_clean == "WEB_CLOUD":
+        ch2_title = "System Specifications and Platform Requirements"
+        sec2 = [
+            ("2.1", "Web Platform and Cloud Architectural Specifications"),
+            ("2.2", "Functional and User Role Requirements"),
+            ("2.3", "Full-Stack Technology Stack and Framework Specifications"),
+            ("2.4", "Cloud Infrastructure and Hosting Requirements"),
+            ("2.5", "Security, Authentication, and Interface Standards"),
+        ]
+    elif domain_clean == "COA_SYSTEMS":
         ch2_title = "Architectural and System Requirements"
         sec2 = [
             ("2.1", "Target ISA and Processor Specifications"),
@@ -308,12 +345,12 @@ def synthesize_universal_outline(
             ("2.4", "System Design Constraints and Standards"),
         ]
     else:
-        ch2_title = "System Requirements and Specifications"
+        ch2_title = "System Architecture, Technology Stack, and Prerequisites"
         sec2 = [
-            ("2.1", "System Overview and Environmental Requirements"),
-            ("2.2", "Technological Stack and Software Specifications"),
-            ("2.3", "Hardware and Operational Requirements"),
-            ("2.4", "Design Constraints and Standards"),
+            ("2.1", "Operational Environment and System Prerequisites"),
+            ("2.2", "Technology Stack and Framework Specifications"),
+            ("2.3", "Computational Infrastructure and Platform Specifications"),
+            ("2.4", "System Design Constraints and Quality Standards"),
         ]
 
     items.append(OutlineItem(kind="chapter", id="ch_2", title=ch2_title, number="2"))
@@ -322,7 +359,7 @@ def synthesize_universal_outline(
 
     # Chapter 3: System Design and Architecture
     items.append(OutlineItem(kind="chapter", id="ch_3", title="System Design and Architecture", number="3"))
-    if domain == "EMBEDDED_HARDWARE":
+    if is_hardware:
         sec3 = [
             ("3.1", "System Architecture"),
             ("3.2", "Block Diagram"),
@@ -332,25 +369,43 @@ def synthesize_universal_outline(
             ("3.6", "Algorithm and Flowchart"),
             ("3.7", "Working Principle"),
         ]
-    elif domain == "MACHINE_LEARNING":
+    elif domain_clean == "BIOINFORMATICS" or "BIO" in domain_clean:
+        sec3 = [
+            ("3.1", "Subsystem Architecture and Pipeline Decomposition"),
+            ("3.2", "Bioinformatics Pipeline and Block Diagram"),
+            ("3.3", "Subsystem Data Flow and Sequence Processing Diagram (DFD)"),
+            ("3.4", "Interface Specifications and Data Schema"),
+            ("3.5", "Alignment Algorithm and Operational Flowchart"),
+            ("3.6", "Working Principle and Processing Logic"),
+        ]
+    elif domain_clean in ("MACHINE_LEARNING", "DATA_ANALYTICS"):
         sec3 = [
             ("3.1", "Overall System Architecture"),
             ("3.2", "Machine Learning Pipeline and Block Diagram"),
-            ("3.3", "Data Flow and Feature Pipeline Interaction Diagram"),
+            ("3.3", "Subsystem Data Flow and Feature Pipeline Interaction Diagram (DFD)"),
             ("3.4", "Dataset Organization and Feature Representation"),
-            ("3.5", "Classification Algorithm and Flowchart"),
-            ("3.6", "Performance Evaluation and Verification Metrics"),
+            ("3.5", "Classification Algorithm and Operational Flowchart"),
+            ("3.6", "Working Principle and Performance Evaluation Metrics"),
         ]
-    elif domain == "SOFTWARE_APP":
+    elif domain_clean == "SOFTWARE_APP":
         sec3 = [
-            ("3.1", "System Architecture"),
+            ("3.1", "System Architecture and Subsystem Decomposition"),
             ("3.2", "Block Diagram and Architectural Layers"),
-            ("3.3", "Data Flow and Component Interaction Diagram"),
-            ("3.4", "Data Storage and Database / File Organization"),
-            ("3.5", "Algorithm and Flowchart"),
-            ("3.6", "Security and Authentication Architecture"),
+            ("3.3", "Subsystem Data Flow and Component Interaction Diagram (DFD)"),
+            ("3.4", "Data Storage and Database / File Schema"),
+            ("3.5", "Application Algorithm and Operational Flowchart"),
+            ("3.6", "Working Principle and Processing Logic"),
         ]
-    elif domain == "COA_SYSTEMS":
+    elif domain_clean == "WEB_CLOUD":
+        sec3 = [
+            ("3.1", "Three-Tier Client-Server Architecture"),
+            ("3.2", "Full-Stack System Block Diagram"),
+            ("3.3", "End-to-End Data Flow and REST API Interaction Diagram (DFD)"),
+            ("3.4", "Database Schema Design and Entity Relationship"),
+            ("3.5", "Operational Flowchart and Request-Response Lifecycle"),
+            ("3.6", "Working Principle, Authentication, and Security Architecture"),
+        ]
+    elif domain_clean == "COA_SYSTEMS":
         sec3 = [
             ("3.1", "Core System Architecture"),
             ("3.2", "Instruction Datapath and Pipeline Block Diagram"),
@@ -360,11 +415,12 @@ def synthesize_universal_outline(
         ]
     else:
         sec3 = [
-            ("3.1", "System Architecture"),
-            ("3.2", "System Block Diagram"),
-            ("3.3", "Data Flow and Component Interaction Diagram"),
-            ("3.4", "Process Execution Flowchart"),
-            ("3.5", "Operational Logic and Workflows"),
+            ("3.1", "Subsystem Architecture and Decomposition"),
+            ("3.2", "Subsystem Block Architecture Diagram"),
+            ("3.3", "Subsystem Data Flow and Interaction Diagram (DFD)"),
+            ("3.4", "Interface Specifications and Data Schema"),
+            ("3.5", "Operational Flowchart and Execution Logic"),
+            ("3.6", "Working Principle and Processing Logic"),
         ]
 
     for sid, stitle in sec3:
@@ -372,64 +428,70 @@ def synthesize_universal_outline(
 
     # Chapter 4: Implementation
     items.append(OutlineItem(kind="chapter", id="ch_4", title="Implementation", number="4"))
-    extracted_mods = modules or []
-    if not extracted_mods and abstract_text:
-        extracted_mods = extract_abstract_modules(abstract_text)
+    if is_hardware:
+        sec4 = [
+            ("4.1", "Development Environment Setup"),
+            ("4.2", "GPIO and Peripheral Configuration"),
+            ("4.3", "Embedded C Program Development"),
+            ("4.4", "Hardware Interfacing and Integration"),
+            ("4.5", "Program Execution and Debugging"),
+            ("4.6", "Implementation Challenges and Solutions"),
+        ]
+    else:
+        extracted_mods = []
+        if modules:
+            extracted_mods = [m for m in modules if m and len(m.strip()) > 2]
+        if not extracted_mods and brief is not None:
+            brief_impl = getattr(brief, "implementation", None)
+            if brief_impl is not None:
+                b_mods = getattr(brief_impl, "modules", []) or []
+                extracted_mods = [m for m in b_mods if m and len(m.strip()) > 2]
+            if not extracted_mods:
+                b_mods = getattr(brief, "modules", []) or []
+                extracted_mods = [m for m in b_mods if m and len(m.strip()) > 2]
+        if not extracted_mods and abstract_text:
+            extracted_mods = extract_abstract_modules(abstract_text)
+        if not extracted_mods:
+            if domain_clean == "BIOINFORMATICS" or "BIO" in domain_clean:
+                extracted_mods = ["Sequence Ingestion and Preprocessing", "Alignment Matrix Computation", "Scoring and Statistical Verification"]
+            elif domain_clean in ("MACHINE_LEARNING", "DATA_ANALYTICS"):
+                extracted_mods = ["Dataset Ingestion and Preprocessing", "Feature Engineering Subsystem", "Classification and Inference Engine"]
+            elif domain_clean == "WEB_CLOUD":
+                extracted_mods = ["Responsive Client Presentation", "RESTful API Controller", "Authentication and Role Security"]
+            elif domain_clean == "SOFTWARE_APP":
+                extracted_mods = ["User Interface and Client Interaction", "Core Business Logic Processing", "Data Persistence and Storage Handling"]
+            else:
+                extracted_mods = ["Data Ingestion Pipeline", "Core Processing Engine", "Evaluation and Output Interface"]
 
-    if extracted_mods:
         sec4 = [("4.1", "Development Environment Setup and Configuration")]
         idx = 2
         for mod in extracted_mods:
-            mod_clean = mod.replace("Module", "").strip()
+            mod_clean = re.sub(r"\s*(?:Module|Subsystem)\s*$", "", mod, flags=re.IGNORECASE).strip()
             sec4.append((f"4.{idx}", f"{mod_clean} Module Implementation"))
             idx += 1
-        sec4.append((f"4.{idx}", "Data Persistence and Storage Handling"))
-        idx += 1
-        sec4.append((f"4.{idx}", "Program Execution and System Integration"))
+
+        # Add domain-appropriate closing sections
+        if not any("persistence" in m.lower() or "storage" in m.lower() for m in extracted_mods):
+            if domain_clean in ("SOFTWARE_APP", "WEB_CLOUD", "GENERAL_ACADEMIC"):
+                sec4.append((f"4.{idx}", "Data Persistence and Storage Handling"))
+                idx += 1
+            elif domain_clean in ("MACHINE_LEARNING", "DATA_ANALYTICS"):
+                sec4.append((f"4.{idx}", "Model Training and Pipeline Optimization"))
+                idx += 1
+            elif domain_clean == "BIOINFORMATICS" or "BIO" in domain_clean:
+                sec4.append((f"4.{idx}", "Algorithmic Optimization and Matrix Computation"))
+                idx += 1
+
+        sec4.append((f"4.{idx}", "System Integration and Program Execution Testing"))
         idx += 1
         sec4.append((f"4.{idx}", "Implementation Challenges and Solutions"))
-    else:
-        if domain == "EMBEDDED_HARDWARE":
-            sec4 = [
-                ("4.1", "Development Environment Setup"),
-                ("4.2", "GPIO and Peripheral Configuration"),
-                ("4.3", "Embedded C Program Development"),
-                ("4.4", "Hardware Interfacing and Integration"),
-                ("4.5", "Program Execution and Debugging"),
-                ("4.6", "Implementation Challenges and Solutions"),
-            ]
-        elif domain == "SOFTWARE_APP":
-            sec4 = [
-                ("4.1", "Development Environment Setup"),
-                ("4.2", "Core Application Logic and Code Structure"),
-                ("4.3", "User Interface and Interaction Handling"),
-                ("4.4", "Data Storage and Persistence Management"),
-                ("4.5", "Program Execution and Integration"),
-                ("4.6", "Implementation Challenges and Solutions"),
-            ]
-        elif domain == "COA_SYSTEMS":
-            sec4 = [
-                ("4.1", "Simulation Environment Setup"),
-                ("4.2", "Assembly Code Development and Instruction Routines"),
-                ("4.3", "Hardware-Software Interface Layer and MMIO"),
-                ("4.4", "Simulation and Debugging Procedures"),
-                ("4.5", "Implementation Challenges and Solutions"),
-            ]
-        else:
-            sec4 = [
-                ("4.1", "Development Environment Setup"),
-                ("4.2", "Core Algorithm and Code Implementation"),
-                ("4.3", "Subsystem Interfacing and Integration"),
-                ("4.4", "Program Execution and Debugging"),
-                ("4.5", "Implementation Challenges and Solutions"),
-            ]
 
     for sid, stitle in sec4:
         items.append(OutlineItem(kind="section", id=sid, title=stitle, number=sid, chapter="4"))
 
     # Chapter 5: Testing and Results
     items.append(OutlineItem(kind="chapter", id="ch_5", title="Testing and Results", number="5"))
-    if domain == "EMBEDDED_HARDWARE":
+    if is_hardware:
         sec5 = [
             ("5.1", "Testing Methodology"),
             ("5.2", "Test Cases and Observations"),
@@ -439,9 +501,9 @@ def synthesize_universal_outline(
         ]
     else:
         sec5 = [
-            ("5.1", "Testing Methodology"),
-            ("5.2", "Test Cases and Observations"),
-            ("5.3", "System Prototype Setup and User Interface"),
+            ("5.1", "Testing Methodology and Validation Strategy"),
+            ("5.2", "Test Cases and Experimental Observations"),
+            ("5.3", "System Validation and Benchmark Results"),
             ("5.4", "Output Screenshots and Telemetry"),
             ("5.5", "Result Analysis and Performance Evaluation"),
         ]
@@ -463,11 +525,13 @@ def synthesize_universal_outline(
     items.append(OutlineItem(kind="end_matter", id="references", title="References"))
     if has_code:
         code_title = "Appendix A – Complete Source Code"
-        if domain == "EMBEDDED_HARDWARE":
+        if domain_clean == "EMBEDDED_HARDWARE":
             code_title = "Appendix A – Complete Embedded C Source Code"
-        elif domain == "SOFTWARE_APP":
+        elif domain_clean == "SOFTWARE_APP":
             code_title = "Appendix A – Complete Application Source Code"
-        elif domain == "COA_SYSTEMS":
+        elif domain_clean == "WEB_CLOUD":
+            code_title = "Appendix A – Complete Full-Stack Web Application Source Code"
+        elif domain_clean == "COA_SYSTEMS":
             code_title = "Appendix A – Complete Assembly Source Code"
         items.append(OutlineItem(kind="end_matter", id="appendix_a_source_code", title=code_title))
 
@@ -480,4 +544,26 @@ def synthesize_universal_outline(
         )
     )
 
+    # Definitive Non-Hardware Sanitizer Guard
+    if not is_hardware:
+        banned_phrases = {
+            "stm32 microcontroller overview": "Operational Environment and System Specifications",
+            "stm32 development board and specifications": "Technology Stack and Framework Specifications",
+            "hardware components and sensors used": "System Components and Dependencies",
+            "stm32cubeide and stm32 hal library": "Development Tools and Runtime Libraries",
+            "circuit diagram": "Subsystem Data Flow Diagram (DFD)",
+            "hardware component description": "Subsystem Module Description",
+            "pin configuration and peripheral mapping": "Subsystem Architecture and Interface Mapping",
+            "gpio and peripheral configuration": "Subsystem Configuration and Setup",
+            "embedded c program development": "Core Application Logic Development",
+            "hardware interfacing and integration": "System Integration and Module Interfacing",
+            "hardware implementation photographs": "System Validation and Benchmark Results",
+        }
+        for item in items:
+            t_low = item.title.strip().lower()
+            for banned, clean in banned_phrases.items():
+                if banned in t_low:
+                    item.title = clean
+
     return ReportOutline(title=f"{title} Outline", items=items)
+

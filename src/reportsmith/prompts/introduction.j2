@@ -5,7 +5,11 @@ Target Length: {{ target_words }} words
 
 PROJECT CONTEXT:
 - Title: {{ brief.project.title }}
-- {% if brief.domain in ['MACHINE_LEARNING', 'SOFTWARE_APP', 'DATA_ANALYTICS', 'WEB_CLOUD'] %}Platform / Environment: {{ brief.implementation.board.name }} ({{ brief.implementation.board.mcu_part_number }}){% else %}Microcontroller: {{ brief.implementation.board.name }} ({{ brief.implementation.board.mcu_part_number }}, {{ brief.implementation.board.clock }}, {{ brief.implementation.board.flash }} Flash, {{ brief.implementation.board.sram }} SRAM){% endif %}
+{% if brief.implementation.is_hardware or brief.domain in ['EMBEDDED_HARDWARE', 'EMBEDDED_IOT'] %}
+- Microcontroller: {{ brief.implementation.board.name }} ({{ brief.implementation.board.mcu_part_number }}, {{ brief.implementation.board.clock }}, {{ brief.implementation.board.flash }} Flash, {{ brief.implementation.board.sram }} SRAM)
+{% else %}
+- Platform / Environment: {{ brief.implementation.board.name }} ({{ brief.implementation.board.mcu_part_number }})
+{% endif %}
 - Framework: {{ brief.implementation.framework }}
 - Purpose: {{ brief.extra_notes or brief.project.title }}
 - Subsystems & Modules:
