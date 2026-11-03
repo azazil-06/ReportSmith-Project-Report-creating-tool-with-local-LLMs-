@@ -8,6 +8,16 @@
 
 ReportSmith transforms raw project materials, codebases, abstracts, and institutional syllabi into fully formatted, 6-chapter Microsoft Word (`.docx`) and PDF (`.pdf`) reports following strict university formatting standards—complete with Roman-numeral preliminaries, dynamic system architecture diagrams, styled specification tables, and synchronized page-numbered tables of contents.
 
+## 📸 Demo Showcase
+
+| 🚀 Automated CLI Build | 🧠 Local Model Generation | 📄 Raw Generated Document |
+| :---: | :---: | :---: |
+| <img src="Demo/cli_build_running.png" width="300" alt="ReportSmith CLI in action" /> | <img src="Demo/llm_token_generation.png" width="260" alt="Local Model Token Generation" /> | <img src="Demo/raw_report_preview.png" width="300" alt="Raw Unedited Word Output" /> |
+| *Single-command automated pipeline* | *Trained model inference via Ollama / LM Studio* | *Complete unedited output with title, certificate & layout* |
+
+---
+
+
 ### 1. Installation
 
 ```bash
@@ -48,6 +58,7 @@ python -m reportsmith.cli train --dir training --out-dir out
 ```
 
 ---
+
 
 ## 🧠 System Architecture: The Hybrid Bifurcated Engine
 
